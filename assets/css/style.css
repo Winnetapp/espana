@@ -1,0 +1,146 @@
+:root {
+  --rojo: #300404;
+  --negro: #000000;
+  --blanco: #ffffff;
+  --azul: #0077cc;
+  --azul-hover: #005fa3;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  background: var(--negro);
+  margin: 0;
+  padding-top: 70px; /* espacio para header fijo */
+  color: var(--blanco);
+}
+
+/* HEADER */
+header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 7%;
+  background: var(--rojo);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 5%;
+  color: var(--blanco);
+  z-index: 999;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+  font-size: 24px;
+}
+
+.header-left, .header-right {
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.header-left {
+  justify-content: flex-start;
+}
+
+.header-right {
+  justify-content: flex-end;
+}
+
+.header-center {
+  flex: 0 0 auto;
+}
+
+.logo {
+  height: 100px;
+}
+
+
+.user-menu {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+}
+
+
+.user-menu:hover .dropdown-menu,
+.user-menu.active .dropdown-menu {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+#username-display {
+  font-weight: bold;
+}
+
+.user-menu .dropdown-content a {
+  text-decoration: none;
+  color: var(--blanco);
+  display: block;
+  padding: 5px 10px;
+  background-color: var(--rojo);
+  border-radius: 10px;
+  transition: background-color 0.2s ease;
+  box-shadow: 0 2px 8px rgb(243, 247, 7, 0.4);
+}
+
+.user-menu .dropdown-content a:hover {
+  background-color: var(--rojo);
+  border-radius: 4px;
+}
+
+
+
+
+/* CONTENIDO */
+#main-content {
+  padding: 20px;
+  max-width: 1200px;
+  margin: auto;
+}
+h1 {
+  text-align: center;
+  margin-top: 20px;
+}
+
+.grupo-fecha {
+  margin: 30px 20px;
+  background: var(--blanco);
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: 0 0 5px rgba(0,0,0,0.1);
+  color: var(--negro);
+}
+
+.grupo-fecha h2 {
+  margin-top: 0;
+  color: var(--azul);
+}
+
+.partido {
+  margin-top: 15px;
+  padding: 10px;
+  border-top: 1px solid #ddd;
+}
+
+.cuotas {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.cuotas button {
+  flex: 1;
+  padding: 10px;
+  font-size: 14px;
+  border: none;
+  background: var(--azul);
+  color: white;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.cuotas button:hover {
+  background: var(--azul-hover);
+}
