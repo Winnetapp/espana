@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Winnet</title>
+  <link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body>
+  <header>
+    <div class="header-left" id="header-left">
+      <!-- Aquí aparecerá saldo o Registrarse -->
+    </div>
+
+    <div class="header-center">
+      <a href="#top">
+        <img src="logohead.png" alt="Logo" class="logo" id="logo-scroll" style="cursor: pointer;" />
+      </a>
+    </div>
+
+    <div class="header-right" id="header-right">
+      <!-- Aquí aparecerá el nombre de usuario y menú desplegable -->
+      <div class="user-menu" id="user-menu" style="display: none;">
+        <span id="username-display">Usuario ⌄</span>
+        <div class="dropdown-menu" id="dropdown-menu">
+          <button id="logout-btn">Cerrar sesión</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+
+
+
+ <main id="main-content">
+  <h1>Partidos Disponibles</h1>
+  <div id="partidos-container"></div>
+ </main>
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+
+
+  <!-- Configuración de Firebase -->
+  <script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyDgdI3UcnHuRlcynH-pCHcGORcGBAD3FSU",
+        authDomain: "winnet-708db.firebaseapp.com",
+        projectId: "winnet-708db",
+        storageBucket: "winnet-708db.appspot.com",
+        messagingSenderId: "869401097323",
+        appId: "1:869401097323:web:fddb5e44af9d27a7cfed2e",
+        measurementId: "G-12LH5QRVD0"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+  </script>
+
+  <!-- Archivo JavaScript principal -->
+  <script src="assets/js/main.js"></script>
+
+</body>
+</html>
