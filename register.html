@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Registro - Apuestas Deportivas</title>
+  <link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body>
+
+  <h1>Registro de Usuario</h1>
+  <form id="register-form">
+    <input type="text" id="username" placeholder="Nombre de usuario" required />
+    <input type="email" id="email" placeholder="Email" required />
+    <input type="password" id="password" placeholder="Contraseña" required />
+    <button type="submit">Registrarse</button>
+  </form>
+  <div id="register-error" style="color: red;"></div>
+
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+  <!-- Configuración de Firebase -->
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDgdI3UcnHuRlcynH-pCHcGORcGBAD3FSU",
+      authDomain: "winnet-708db.firebaseapp.com",
+      projectId: "winnet-708db",
+      storageBucket: "winnet-708db.appspot.com",
+      messagingSenderId: "869401097323",
+      appId: "1:869401097323:web:fddb5e44af9d27a7cfed2e",
+      measurementId: "G-12LH5QRVD0"
+    };
+    firebase.initializeApp(firebaseConfig);
+  </script>
+
+  <!-- Lógica de registro -->
+  <script src="assets/js/auth.js"></script>
+
+</body>
+</html>
