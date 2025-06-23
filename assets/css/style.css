@@ -22,7 +22,7 @@ header {
   top: 0;
   left: 0;
   right: 0;
-  height: 7%;
+  height: 5%;
   background: var(--rojo-oscuro);
   display: flex;
   align-items: center;
@@ -96,7 +96,7 @@ header {
 
 /* CONTENIDO */
 #main-content {
-  padding: 100px 0;
+  padding: 5px 0;
   max-width: 1200px;
   margin: auto;
 }
@@ -104,197 +104,136 @@ h1 {
   text-align: center;
   margin-top: 20px;
 }
-
 /* PARTIDOS */
-/* Contenedor general */
+/* CONTENEDOR GENERAL */
 #partidos-container {
-  max-width: 480px; /* ancho fijo para móviles y escritorio */
+  max-width: 480px;
   margin: 0 auto;
   padding: 0 12px;
   box-sizing: border-box;
 }
 
+/* PARTIDO como columna vertical */
 .partido {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-family: Arial, sans-serif;
-  gap: 12px;
-  border-bottom: 2px solid var(--rojo-oscuro);
+  width: 100%;
+  max-width: 480px;
+  margin: 10px auto;
+  background: #222;
+  border-radius: 8px;
+  padding: 12px 16px;
+  box-sizing: border-box;
+  color: white;
+  font-family: 'Arial', sans-serif;
+  user-select: none;
 }
 
-.partido.ultimo-del-dia {
-  border-bottom: none; /* quitar borde en el último partido */
-}
-
-/* Fecha a la derecha */
+/* Fecha grande arriba, centrada */
 .fecha {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  background-color: var(--rojo-oscuro);
+  color: yellow;
   font-weight: bold;
   font-size: 18px;
-  color: var(--blanco);
-  background-color: var(--rojo-oscuro);
-  padding: 8px 12px;
+  padding: 12px;
   border-radius: 6px 6px 0 0;
   text-transform: capitalize;
   width: 100%;
-  box-sizing: border-box;
-  height: 52px; /* altura fija para que coincida con cuotas */
-  user-select: none;
-  flex-wrap: nowrap; /* evitar que se divida */
-}
-
-.fecha-texto {
-  white-space: nowrap; /* que no se parta en varias líneas */
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.cuotas-titulo {
-  display: flex;
-  gap: 12px;
-  font-weight: normal;
-  font-size: 18px;
-  align-items: center;
-  height: 100%;
-  flex-wrap: nowrap;
-}
-
-/* Cada título con tamaño fijo */
-.cuotas-titulo span {
-  min-width: 50px;
-  max-width: 50px;
-  height: 36px;
-  line-height: 36px;
   text-align: center;
-  color: var(--blanco);
   user-select: none;
-  padding: 5px;
-}
-
-/* Contenedor del partido */
-.contenido-partido {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 20px;
-  background-color: var(--morado-oscuro);
-  border-radius: 0 0 6px 6px;
-  padding: 8px 16px;
-  flex-wrap: nowrap; /* importante para que no se envuelvan */
-  width: 100%;
+  height: 40px;
   box-sizing: border-box;
+  text-align: left;
 }
 
-.equipos {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  flex-shrink: 0; /* que no se reduzcan */
+/* Contenedor equipos + hora */
+.info-hora {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* 3 columnas iguales */
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  text-align: center;
+  color: yellow;
 }
 
+/* Equipos en fila horizontal */
+.info-equipos {
+  display: contents; /* para que sus hijos hereden el grid padre */
+}
+
+/* Cada equipo como columna */
 .equipo {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 8px;
+  text-align: center;
+  flex: 1;
+  padding: 4px;
 }
 
 .equipo span {
+  white-space: normal;
+  word-wrap: break-word;
+  word-break: break-word;
+  max-width: 100%;
   font-size: 16px;
-  white-space: nowrap;
-}
-
-.escudo {
-  width: 32px;
-  height: 32px;
-  object-fit: contain;
-  flex-shrink: 0;
-}
-
-.cuotas {
-  display: flex;
-  gap: 12px;
-  flex-wrap: nowrap;
-}
-
-.cuota {
-  background-color: #f5f5f5;
-  padding: 0; /* quitamos padding para altura fija */
-  border-radius: 6px;
   font-weight: bold;
-  color: var(--rojo);
-  border: 4px solid var(--rojo-oscuro);
-  min-width: 50px;
-  max-width: 50px;
-  height: 36px;
-  line-height: 36px;
+  color: var(--blanco);
+}
+
+/* Escudo tamaño compacto */
+.escudo {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  margin-bottom: 6px;
+}
+
+/* Hora en medio o al lado */
+.escudo {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  margin-bottom: 6px;
+}
+
+/* Contenedor cuotas en fila centrada */
+.cuotas {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+/* Cada cuota igual, botón pequeño */
+.cuota {
+  background-color: #444;
+  padding: 8px 0;
   text-align: center;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.25s ease;
+  user-select: none;
   display: flex;
+  flex-direction: column; /* para que nombre y valor estén verticales */
   justify-content: center;
   align-items: center;
-  user-select: none;
 }
 
-.cuota, .cuotas-titulo span {
-  min-width: 50px;
-  max-width: 50px;
-  height: 36px;
-  line-height: 36px;
-  font-size: 16px;
-  text-align: center;
-  user-select: none;
-  padding: 0;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+
+.cuota:hover {
+  background-color: #666;
 }
 
-body, html {
-  overflow-x: hidden;
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+.nombre-equipo-cuota {
+  font-weight: 500;
+  font-size: 0.9rem;
+  margin-bottom: 4px;
+  color: var(--blanco);
 }
 
-/* Media query para móviles muy pequeños */
-@media (max-width: 480px) {
-  .fecha {
-    font-size: 14px;
-    padding: 6px 10px;
-    height: 40px; /* altura reducida */
-  }
-  
-  .cuotas-titulo {
-    font-size: 14px;
-    gap: 18px;
-    padding-right: 10px;
-  }
-
-  .escudo {
-    width: 22px;
-    height: 22px;
-  }
-
-  .equipo span {
-    font-size: 12px;
-  }
-
-  .cuota, .cuotas-titulo span {
-    min-width: 28px;
-    max-width: 28px;
-    height: 24px;
-    line-height: 24px;
-    font-size: 12px;
-  }
-
-  /* Opcional: ajusta padding y gaps para que sea más compacto */
-  .contenido-partido {
-    gap: 12px;
-    padding: 8px 12px;
-  }
-
-  .equipos {
-    gap: 8px;
-  }
+.valor-cuota {
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: yellow;
 }
