@@ -13,14 +13,12 @@ function mostrarPartidos(partidos) {
 
   if (!Array.isArray(partidos)) return;
 
-  // Ordenar partidos por fecha
   partidos.sort((a, b) => {
     const fechaA = a.fecha ? new Date(a.fecha) : new Date(0);
     const fechaB = b.fecha ? new Date(b.fecha) : new Date(0);
     return fechaA - fechaB;
   });
 
-  // Agrupar partidos por fecha (clave: "lun 23", etc)
   const partidosPorFecha = {};
 
   partidos.forEach((partido) => {
@@ -35,60 +33,77 @@ function mostrarPartidos(partidos) {
     partidosPorFecha[claveFecha].push(partido);
   });
 
-  // Mostrar partidos agrupados por fecha
   for (const claveFecha in partidosPorFecha) {
     const grupo = partidosPorFecha[claveFecha];
 
-    // Insertar encabezado de fecha
+    // Contenedor general del grupo con fecha arriba
+    const grupoDiv = document.createElement('div');
+    grupoDiv.classList.add('grupo-fecha');
+
+    // Fecha como encabezado centrado
     const fechaDiv = document.createElement('div');
     fechaDiv.classList.add('fecha');
     fechaDiv.textContent = claveFecha;
-    container.appendChild(fechaDiv);
+    grupoDiv.appendChild(fechaDiv);
 
-    grupo.forEach((partido, index) => {
+    grupo.forEach((partido) => {
       const equipo1 = partido.equipo1;
       const equipo2 = partido.equipo2;
 
       const escudo1 = `Equipos/${removeTildes(equipo1.toLowerCase().replace(/\s/g, ''))}.png`;
       const escudo2 = `Equipos/${removeTildes(equipo2.toLowerCase().replace(/\s/g, ''))}.png`;
 
+      const horaPartido = partido.fecha
+        ? new Date(partido.fecha).toLocaleTimeString('es-ES', {
+            hour: '2-digit',
+            minute: '2-digit',
+          })
+        : '00:00';
+
       const partidoDiv = document.createElement('div');
       partidoDiv.classList.add('partido');
 
-      // Si es el último partido de ese día, añade clase para eliminar borde
-      if (index === grupo.length -1) {
-        partidoDiv.classList.add('ultimo-del-dia');
-      }
-
       partidoDiv.innerHTML = `
-        <div class="contenido-partido">
-          <div class="equipos">
-            <div class="equipo">
-              <img src="${escudo1}" alt="${equipo1}" class="escudo">
+        <div class="info-hora">
+          <div class="info-equipos">
+            <div class="equipo equipo1">
+              <img src="${escudo1}" alt="${equipo1}" class="escudo" />
               <span>${equipo1}</span>
             </div>
-            <div class="equipo">
-              <img src="${escudo2}" alt="${equipo2}" class="escudo">
+            <div class="hora">${horaPartido}</div>
+            <div class="equipo equipo2">
+              <img src="${escudo2}" alt="${equipo2}" class="escudo" />
               <span>${equipo2}</span>
             </div>
           </div>
-          <div class="cuotas">
-            <div class="cuota">${partido.cuota1}</div>
-            <div class="cuota">${partido.cuotaX}</div>
-            <div class="cuota">${partido.cuota2}</div>
-          </div>
         </div>
+        <div class="cuotas">
+            <div class="cuota">
+              <div class="nombre-equipo-cuota">${partido.equipo1}</div>
+              <div class="valor-cuota">${partido.cuota1}</div>
+            </div>
+            <div class="cuota">
+              <div class="nombre-equipo-cuota">Empate</div>
+              <div class="valor-cuota">${partido.cuotaX}</div>
+            </div>
+            <div class="cuota">
+              <div class="nombre-equipo-cuota">${partido.equipo2}</div>
+              <div class="valor-cuota">${partido.cuota2}</div>
+            </div>
+          </div>
       `;
 
-      container.appendChild(partidoDiv);
+      grupoDiv.appendChild(partidoDiv);
     });
+
+    container.appendChild(grupoDiv);
   }
 }
 
-// Función para quitar tildes
 function removeTildes(str) {
   return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
+
 
 
 
