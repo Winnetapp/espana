@@ -7,38 +7,108 @@ document.getElementById('logo-scroll').addEventListener('click', () => {
 });
 
 // Mostrar partidos
-const partidosContainer = document.getElementById('partidos-container');
+function mostrarPartidos(partidos) {
+  const container = document.getElementById('partidos-container');
+  container.innerHTML = '';
 
-function mostrarPartidos() {
-  partidosContainer.innerHTML = '<p>Cargando partidos...</p>';
+  if (!Array.isArray(partidos)) return;
 
-  db.collection('partidos').get()
-    .then(querySnapshot => {
-      if (querySnapshot.empty) {
-        partidosContainer.innerHTML = '<p>No hay partidos disponibles.</p>';
-        return;
+  // Ordenar partidos por fecha
+  partidos.sort((a, b) => {
+    const fechaA = a.fecha ? new Date(a.fecha) : new Date(0);
+    const fechaB = b.fecha ? new Date(b.fecha) : new Date(0);
+    return fechaA - fechaB;
+  });
+
+  // Agrupar partidos por fecha (clave: "lun 23", etc)
+  const partidosPorFecha = {};
+
+  partidos.forEach((partido) => {
+    const fechaObj = partido.fecha ? new Date(partido.fecha) : null;
+    if (!fechaObj) return;
+
+    const diaSemana = fechaObj.toLocaleDateString('es-ES', { weekday: 'short' });
+    const diaNumero = fechaObj.getDate();
+    const claveFecha = `${diaSemana} ${diaNumero}`;
+
+    if (!partidosPorFecha[claveFecha]) partidosPorFecha[claveFecha] = [];
+    partidosPorFecha[claveFecha].push(partido);
+  });
+
+  // Mostrar partidos agrupados por fecha
+  for (const claveFecha in partidosPorFecha) {
+    const grupo = partidosPorFecha[claveFecha];
+
+    // Insertar encabezado de fecha
+    const fechaDiv = document.createElement('div');
+    fechaDiv.classList.add('fecha');
+    fechaDiv.textContent = claveFecha;
+    container.appendChild(fechaDiv);
+
+    grupo.forEach((partido, index) => {
+      const equipo1 = partido.equipo1;
+      const equipo2 = partido.equipo2;
+
+      const escudo1 = `Equipos/${removeTildes(equipo1.toLowerCase().replace(/\s/g, ''))}.png`;
+      const escudo2 = `Equipos/${removeTildes(equipo2.toLowerCase().replace(/\s/g, ''))}.png`;
+
+      const partidoDiv = document.createElement('div');
+      partidoDiv.classList.add('partido');
+
+      // Si es el último partido de ese día, añade clase para eliminar borde
+      if (index === grupo.length -1) {
+        partidoDiv.classList.add('ultimo-del-dia');
       }
 
-      partidosContainer.innerHTML = '';
-      querySnapshot.forEach(doc => {
-        const partido = doc.data();
-        const partidoDiv = document.createElement('div');
-        partidoDiv.className = 'partido';
-        partidoDiv.innerHTML = `
-          <h3>${partido.equipo1} vs ${partido.equipo2}</h3>
-          <p>Fecha: ${partido.fecha}</p>
-          <p>Cuotas: Local ${partido.cuota1} - Empate ${partido.cuota2} - Visitante ${partido.cuota3}</p>
-        `;
-        partidosContainer.appendChild(partidoDiv);
-      });
-    })
-    .catch(error => {
-      console.error('Error al obtener partidos:', error);
-      partidosContainer.innerHTML = '<p>Error cargando partidos.</p>';
+      partidoDiv.innerHTML = `
+        <div class="contenido-partido">
+          <div class="equipos">
+            <div class="equipo">
+              <img src="${escudo1}" alt="${equipo1}" class="escudo">
+              <span>${equipo1}</span>
+            </div>
+            <div class="equipo">
+              <img src="${escudo2}" alt="${equipo2}" class="escudo">
+              <span>${equipo2}</span>
+            </div>
+          </div>
+          <div class="cuotas">
+            <div class="cuota">${partido.cuota1}</div>
+            <div class="cuota">${partido.cuotaX}</div>
+            <div class="cuota">${partido.cuota2}</div>
+          </div>
+        </div>
+      `;
+
+      container.appendChild(partidoDiv);
     });
+  }
 }
 
-mostrarPartidos();
+// Función para quitar tildes
+function removeTildes(str) {
+  return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+
+
+// 🔄 Obtener partidos desde Firebase y mostrarlos
+async function cargarPartidos() {
+  try {
+    const snapshot = await db.collection('partidos').get();
+    const partidos = [];
+
+    snapshot.forEach(doc => {
+      partidos.push(doc.data());
+    });
+
+    mostrarPartidos(partidos);
+  } catch (error) {
+    console.error("Error al cargar partidos:", error);
+  }
+}
+
+cargarPartidos();
 
 // Mostrar datos de usuario en header
 const headerLeft = document.getElementById('header-left');
