@@ -6,24 +6,33 @@
   <title>Registro - Apuestas Deportivas</title>
   <link rel="stylesheet" href="assets/css/style.css" />
 </head>
-<body>
+<body class="register-page">
 
-  <h1>Registro de Usuario</h1>
-  <form id="register-form">
-    <input type="text" id="username" placeholder="Nombre de usuario" required />
-    <input type="email" id="email" placeholder="Email" required />
-    <input type="password" id="password" placeholder="Contraseña" required />
-    <button type="submit">Registrarse</button>
-  </form>
-  <div id="register-error" style="color: red;"></div>
+  <div class="register-container">
+    <h1 class="register-title">Registro de Usuario</h1>
+    <form id="register-form" class="register-form">
+      <input type="text" id="username" placeholder="Nombre de usuario" required />
+      <input type="email" id="email" placeholder="Email" required />
 
+      <div class="password-container">
+        <input type="password" id="password" placeholder="Contraseña" required />
+        <button type="button" id="togglePassword" class="toggle-password">👁️</button>
+      </div>
+
+      <button type="submit">Registrarse</button>
+    </form>
+    <div id="register-error" class="register-error"></div>
+    <div class="login-link">
+      ¿Ya tienes cuenta? <a href="login.html">Inicia sesión</a>
+    </div>
+  </div>
 
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
-  <!-- Configuración de Firebase -->
+  <!-- Firebase Config -->
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyDgdI3UcnHuRlcynH-pCHcGORcGBAD3FSU",
@@ -39,6 +48,16 @@
 
   <!-- Lógica de registro -->
   <script src="assets/js/auth.js"></script>
+
+  <!-- Mostrar/ocultar contraseña -->
+  <script>
+    document.getElementById('togglePassword').addEventListener('click', function () {
+      const passwordInput = document.getElementById('password');
+      const isPassword = passwordInput.type === 'password';
+      passwordInput.type = isPassword ? 'text' : 'password';
+      this.textContent = isPassword ? '🙈' : '👁️';
+    });
+  </script>
 
 </body>
 </html>
