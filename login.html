@@ -6,21 +6,28 @@
   <title>Iniciar Sesión - Apuestas Deportivas</title>
   <link rel="stylesheet" href="assets/css/style.css" />
 </head>
-<body>
+<body class="login-page">
 
-  <h1>Iniciar Sesión</h1>
+  <div class="login-container">
+    <h1 class="login-title">Iniciar Sesión</h1>
 
-  <form id="login-form">
-    <label for="email">Correo electrónico:</label>
-    <input type="email" id="email" required />
+    <form id="login-form" class="login-form">
+      <input type="email" id="email" placeholder="Correo electrónico" required />
 
-    <label for="password">Contraseña:</label>
-    <input type="password" id="password" required />
+      <div class="password-container">
+        <input type="password" id="password" placeholder="Contraseña" required />
+        <button type="button" class="toggle-password" aria-label="Mostrar contraseña">👁️</button>
+      </div>
 
-    <button type="submit">Entrar</button>
-  </form>
+      <button type="submit">Entrar</button>
+    </form>
 
-  <p>¿No tienes cuenta? <a href="register.html">Regístrate aquí</a></p>
+    <p class="register-link">
+      ¿No tienes cuenta? <a href="register.html">Regístrate aquí</a>
+    </p>
+
+    <div id="login-error" class="login-error"></div>
+  </div>
 
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -39,6 +46,18 @@
       measurementId: "G-12LH5QRVD0"
     };
     firebase.initializeApp(firebaseConfig);
+  </script>
+
+  <!-- Lógica de mostrar/ocultar contraseña -->
+  <script>
+    const togglePasswordBtn = document.querySelector('.toggle-password');
+    const passwordInput = document.getElementById('password');
+
+    togglePasswordBtn.addEventListener('click', () => {
+      const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+      passwordInput.setAttribute('type', type);
+      togglePasswordBtn.textContent = type === 'password' ? '👁️' : '🙈';
+    });
   </script>
 
   <!-- Archivo JS con la lógica de login y registro -->
