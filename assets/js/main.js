@@ -24,15 +24,21 @@ const stakeInput   = document.getElementById('stake');
 const winEl        = document.getElementById('potential-winnings');
 const sidebar      = document.querySelector('.user-sidebar');
 const mobileBtn    = document.querySelector('.mobile-menu-btn');
-const bets         = [];   // almacén de selecciones
 
-const qsButtons = document.querySelectorAll('.qs'); // botones 2 €, 5 €, etc.
+const cartIcon      = document.getElementById('cartIcon');      // <img>
+const totalOddsText = document.getElementById('totalOddsText'); // <span>
+const betBadge      = mobileBtn.querySelector('.bet-badge');   // badge de apuestas
+
+const bets = [];                       // almacén de selecciones
+const qsButtons = document.querySelectorAll('.qs');             // botones 2 €, 5 €, etc.
 
 /* =========================================================
-   3.  LISTENER GENERALES
+   3.  LISTENERS GENERALES
    ========================================================= */
 mobileBtn.addEventListener('click', () => sidebar.classList.toggle('open'));
+
 stakeInput.addEventListener('input', updatePotentialWinnings);
+
 qsButtons.forEach(btn => {
   btn.addEventListener('click', () => {
     const valor = parseFloat(btn.textContent) || 0;
@@ -40,6 +46,7 @@ qsButtons.forEach(btn => {
     updatePotentialWinnings();
   });
 });
+
 document.getElementById('clear-bets').addEventListener('click', () => {
   bets.length = 0;
   refreshSlip();
@@ -47,10 +54,10 @@ document.getElementById('clear-bets').addEventListener('click', () => {
 });
 
 /* =========================================================
-   4.  REFRESH DEL SLIP Y GANANCIAS
+   4.  REFRESH DEL SLIP, GANANCIAS Y BOTÓN MÓVIL
    ========================================================= */
 function refreshSlip() {
-  /* ---- PINTAR APOSTADAS ---- */
+  /* ---- pintar apuestas ---- */
   betList.innerHTML = '';
   bets.forEach(({ partido, tipo, cuota }, i) => {
     betList.insertAdjacentHTML('beforeend', `
@@ -66,17 +73,16 @@ function refreshSlip() {
     `);
   });
 
-  /* ---- CUOTA TOTAL Y CONTADOR ---- */
+  /* ---- cuota total y contador de combinada ---- */
   const totalOdds = bets.reduce((acc, b) => acc * parseFloat(b.cuota), 1);
   totalOddsEl.textContent = bets.length ? totalOdds.toFixed(2).replace('.', ',') : '0,00';
   tabCombi.textContent    = `Combinada (${bets.length})`;
 
-  /* ---- CAMBIO AUTOMÁTICO DE PESTAÑA ---- */
+  /* ---- pestaña automática, ganancias, botón flotante y badge ---- */
   cambiarPestania(bets.length >= 2 ? 'combi' : 'simple');
-
-  /* ---- GANANCIAS POTENCIALES Y BOTÓN MÓVIL ---- */
   updatePotentialWinnings();
-  refreshMobileButton();
+  updateMobileButton();
+  actualizarBadgeApuestas();
 }
 
 function updatePotentialWinnings() {
@@ -86,47 +92,76 @@ function updatePotentialWinnings() {
   winEl.textContent = win > 0 ? `${win.toFixed(2).replace('.', ',')} €` : '0,00 €';
 }
 
-function refreshMobileButton() {
-  mobileBtn.classList.toggle('active', bets.length > 0);
+/* -------- BOTÓN FLOTANTE: icono ↔ cuota total -------- */
+function updateMobileButton() {
+  const total = parseFloat(totalOddsEl.textContent.replace(',', '.')) || 0;
+
+  if (bets.length === 0) {
+    cartIcon.style.display      = 'inline';
+    totalOddsText.style.display = 'none';
+  } else {
+    cartIcon.style.display      = 'none';
+    totalOddsText.style.display = 'inline';
+    totalOddsText.textContent   = total.toFixed(2).replace('.', ',');
+  }
+}
+
+/* -------- Badge con cantidad de apuestas en el botón móvil -------- */
+function actualizarBadgeApuestas() {
+  if (!betBadge) return;
+  const cantidad = bets.length;
+  if (cantidad > 0) {
+    betBadge.style.display = 'inline-block';
+    betBadge.textContent = cantidad;
+  } else {
+    betBadge.style.display = 'none';
+  }
 }
 
 /* =========================================================
-   5.  CAMBIO MANUAL/AUTOMÁTICO DE PESTAÑAS
+   5.  CAMBIO MANUAL / AUTOMÁTICO DE PESTAÑAS
    ========================================================= */
 document.querySelectorAll('.js-tab').forEach(tab => {
   tab.addEventListener('click', () => cambiarPestania(tab.dataset.target));
 });
+
 function cambiarPestania(target) {
-  /* botones */
   document.querySelectorAll('.bs-tab').forEach(t =>
     t.classList.toggle('active', t.dataset.target === target)
   );
-  /* secciones */
   document.querySelectorAll('[data-content]').forEach(sec =>
     sec.style.display = sec.dataset.content === target ? 'block' : 'none'
   );
 }
 
 /* =========================================================
-   6.  EVENTO PRINCIPAL: AÑADIR/QUITAR APUESTAS
+   6.  AÑADIR / QUITAR APUESTAS (solo clic en .cuota, NO en el botón)
    ========================================================= */
 document.getElementById('partidos-container').addEventListener('click', e => {
-  const btnCuota = e.target.closest('.cuota-btn');
-  if (!btnCuota) return;
+  // Solo actuamos si el target es .cuota
+  if (!e.target.classList.contains('cuota')) return;
 
-  const { partido, tipo } = btnCuota.dataset;
-  const cuota = btnCuota.textContent.trim();
+  const cuotaDiv = e.target;
 
+  const partido = cuotaDiv.dataset.partido;
+  const tipo = cuotaDiv.dataset.tipo;
+  const cuota = cuotaDiv.querySelector('.valor-cuota').textContent.trim();
+
+  // Comprobar si ya hay apuesta de ese partido
   if (bets.some(b => b.partido === partido)) {
-    alert(`Ya tienes una apuesta de este partido en el carrito.`);
+    alert('Ya tienes una apuesta de este partido en el carrito.');
     return;
   }
+
   bets.push({ partido, tipo, cuota });
   refreshSlip();
+
   if (window.innerWidth <= 768) sidebar.classList.add('open');
 });
 
-/* Eliminar apuesta individual (delegado) */
+
+
+/* eliminar apuesta individual */
 betList.addEventListener('click', e => {
   if (!e.target.classList.contains('bs-remove')) return;
   const idx = parseInt(e.target.dataset.index, 10);
@@ -137,7 +172,7 @@ betList.addEventListener('click', e => {
 });
 
 /* =========================================================
-   7.  CARGAR PARTIDOS DESDE FIRESTORE
+   7.  CARGAR PARTIDOS DESDE FIRESTORE (render sin cambios)
    ========================================================= */
 function removeTildes(str) {
   return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -152,6 +187,8 @@ async function cargarPartidos() {
   }
 }
 cargarPartidos();
+
+/* tu función mostrarPartidos(...) permanece igual */
 
 /* ------- Mostrar partidos (idéntico a tu lógica original) ------- */
 function mostrarPartidos(partidos) {
@@ -263,27 +300,27 @@ function mostrarPartidos(partidos) {
         <div class="cuotas">
           <div class="cuota">
             <div class="nombre-equipo-cuota">${equipo1}</div>
-            <button class="valor-cuota cuota-btn"
+            <div class="valor-cuota cuota-btn"
                     data-partido="${equipo1} vs ${equipo2}"
                     data-tipo="${equipo1}">
               ${cuota1}
-            </button>
+            </div>
           </div>
           <div class="cuota">
             <div class="nombre-equipo-cuota">Empate</div>
-            <button class="valor-cuota cuota-btn"
+            <div class="valor-cuota cuota-btn"
                     data-partido="${equipo1} vs ${equipo2}"
                     data-tipo="Empate">
               ${cuotaX}
-            </button>
+            </div>
           </div>
           <div class="cuota">
             <div class="nombre-equipo-cuota">${equipo2}</div>
-            <button class="valor-cuota cuota-btn"
+            <div class="valor-cuota cuota-btn"
                     data-partido="${equipo1} vs ${equipo2}"
                     data-tipo="${equipo2}">
               ${cuota2}
-            </button>
+            </div>
           </div>
         </div>
       `;
@@ -456,4 +493,6 @@ auth.onAuthStateChanged(async (user) => {
    ---------------------------------------------- */
 document.querySelector('.bs-toggle').addEventListener('click', () => {
   sidebar.classList.toggle('open');
+});
+
 });
