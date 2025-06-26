@@ -4,24 +4,29 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Winnet</title>
+
+  <!-- Estilos -->
   <link rel="stylesheet" href="assets/css/style.css" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="assets/css/headfoot.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+  <!-- Firebase (compat) -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 </head>
+
 <body>
+  <!-- ===== HEADER ==================================================== -->
   <header>
-    <div class="header-left" id="header-left">
-      <!-- Aquí aparecerá saldo o Registrarse -->
-    </div>
+    <div class="header-left"  id="header-left"></div>
 
     <div class="header-center">
-      <a href="#top">
-        <img src="logohead.png" alt="Logo" class="logo" id="logo-scroll" style="cursor: pointer;" />
-      </a>
+      <a href="#top"><img src="logohead.png" alt="Logo" class="logo" id="logo-scroll" /></a>
     </div>
 
     <div class="header-right" id="header-right">
-      <!-- Aquí aparecerá el nombre de usuario y menú desplegable -->
-      <div class="user-menu" id="user-menu" style="display: none;">
+      <div class="user-menu" id="user-menu" style="display:none;">
         <span id="username-display">Usuario ⌄</span>
         <div class="dropdown-menu" id="dropdown-menu">
           <button id="logout-btn">Cerrar sesión</button>
@@ -30,65 +35,121 @@
     </div>
   </header>
 
- <main id="main-content">
-  <h1>Partidos Disponibles</h1>
-  <div id="partidos-container"></div>
- </main>
+  <!-- ===== MAIN ====================================================== -->
+  <main id="main-content">
+    <h1>Partidos Disponibles</h1>
 
-<footer class="footer">
-  <div class="footer-content">
-    <div class="footer-logo">
-      <h2>Winnet</h2>
-      <p>&copy; 2025 Todos los derechos reservados.</p>
-    </div>
+    <div class="main-columns">
+      <div class="column column-left"><!-- Espacio futuro --></div>
 
-    <div class="footer-contacto">
-      <h2>Contacto</h2>
-      <p>Email: <a href="mailto:winnetaplicacion@gmail.com">winnetaplicacion@gmail.com</a></p>
-    </div>
+      <div class="column column-center">
+        <div id="partidos-container"></div>
+      </div>
 
-    <div class="footer-redes">
-      <h2>Síguenos</h2>
-      <div class="redes-iconos">
-        <a href="https://youtube.com" target="_blank" aria-label="YouTube">
-          <i class="fab fa-youtube"></i>
-        </a>
-        <a href="https://instagram.com" target="_blank" aria-label="Instagram">
-          <i class="fab fa-instagram"></i>
-        </a>
-        <a href="https://tiktok.com" target="_blank" aria-label="TikTok">
-          <i class="fab fa-tiktok"></i>
-        </a>
+      <div class="column column-right">
+        <div class="user-sidebar" id="userSidebar">
+          <!-- ───── CABECERA ───── -->
+          <div class="bs-header">
+            <button class="bs-toggle js-toggle">⌄</button>
+            <span class="bs-title">Carrito</span>
+            <button class="bs-clear" id="clear-bets" title="Vaciar">🗑️</button>
+          </div>
+
+          <!-- ───── PESTAÑAS ───── -->
+          <div class="bs-tabs">
+            <button class="bs-tab active js-tab" data-target="simple">Simple</button>
+            <button class="bs-tab js-tab" data-target="combi">Combinada (0)</button>
+            <button class="bs-tab js-tab" data-target="sistema">Sistema</button>
+          </div>
+
+          <!-- Contenido de cada pestaña -->
+          <div class="bs-content">
+            <div data-content="simple" style="display: block;">
+            </div>
+            <div data-content="combi" style="display: none;">
+            </div>
+            <div data-content="sistema" style="display: none;">
+            </div>
+          </div>
+
+
+          <!-- ───── LISTA Apuestas ───── -->
+          <div class="bs-body">
+            <ul id="bet-list" class="bs-list"><!-- tus <li> dinámicos --></ul>
+          </div>
+
+          <!-- ───── FOOTER ───── -->
+          <div class="bs-footer">
+            <div class="stake-row">
+              <div class="stake-group">
+                <label for="stake" class="stake">Importe</label>
+                <div class="stake-input">
+                  <input type="number" id="stake" value="5" min="0" />
+                  <span>€</span>
+                </div>
+              </div>
+
+              <div class="total-odds">
+                <span class="tot-label">Cuota total</span>
+                <span class="tot-value" id="total-odds">0,00</span>
+              </div>
+            </div>
+
+            <!-- Ganancias potenciales en una fila completa -->
+            <div class="potential-winnings">
+              <span class="pw-label">Ganancias potenciales</span>
+              <span class="pw-divider"></span>
+              <span class="pw-value" id="potential-winnings">0,00 €</span>
+            </div>
+          </div>
+
+            <div class="quick-stakes">
+              <button class="qs">2 €</button>
+              <button class="qs">5 €</button>
+              <button class="qs">10 €</button>
+              <button class="qs">20 €</button>
+              <button class="qs all-in">ALL-IN</button>
+            </div>
+
+            <button class="accept-btn">Aceptar los cambios</button>
+          </div>
+        </div>
+
       </div>
     </div>
-  </div>
-</footer>
 
+    <!-- Botón flotante de apuestas -->
+    <!-- Botón para abrir sidebar en móvil -->
+    <button id="mobileMenuBtn" class="mobile-menu-btn">
+      <img src="carrito.png" alt="Carrito" id="cartIcon"/>
+      <span id="totalOddsText" style="display:none;"></span>
+    </button>
+  </main>
 
-  <!-- Firebase SDKs -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <!-- ===== FOOTER ==================================================== -->
+  <footer class="footer">
+    <div class="footer-content">
+      <div class="footer-logo">
+        <h2>Winnet</h2><p>&copy; 2025 Todos los derechos reservados.</p>
+      </div>
 
+      <div class="footer-contacto">
+        <h2>Contacto</h2>
+        <p>Email: <a href="mailto:winnetaplicacion@gmail.com">winnetaplicacion@gmail.com</a></p>
+      </div>
 
-  <!-- Configuración de Firebase -->
-  <script>
-    const firebaseConfig = {
-        apiKey: "AIzaSyDgdI3UcnHuRlcynH-pCHcGORcGBAD3FSU",
-        authDomain: "winnet-708db.firebaseapp.com",
-        projectId: "winnet-708db",
-        storageBucket: "winnet-708db.appspot.com",
-        messagingSenderId: "869401097323",
-        appId: "1:869401097323:web:fddb5e44af9d27a7cfed2e",
-        measurementId: "G-12LH5QRVD0"
-    };
+      <div class="footer-redes">
+        <h2>Síguenos</h2>
+        <div class="redes-iconos">
+          <a href="https://youtube.com" target="_blank" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
+          <a href="https://www.instagram.com/winnetapp?igsh=MXBvazY2anFqN3Nsdw==" target="_blank" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+          <a href="https://www.tiktok.com/@winnetapp?_t=ZN-8xTDcL9VuTu&_r=1" target="_blank" aria-label="TikTok"><i class="fab fa-tiktok"></i></a>
+        </div>
+      </div>
+    </div>
+  </footer>
 
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
-  </script>
-
-  <!-- Archivo JavaScript principal -->
+  <!-- JS principal -->
   <script src="assets/js/main.js"></script>
-
 </body>
 </html>
