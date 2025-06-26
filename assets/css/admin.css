@@ -1,0 +1,123 @@
+
+/** ADMIN **/
+:root {
+  --bg: #121212;
+  --panel: #1e1e1e;
+  --pri: #fff;
+  --sec: #ddd;
+  --btn: #ff5959;
+}
+
+.main-admin {
+  min-height: 100vh; /* Ocupa al menos toda la altura visible */
+  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--pri);
+  display: flex;
+  justify-content: center;     /* Centrado horizontal */
+  align-items: center;         /* Centrado vertical */
+  padding: 2rem;
+  box-sizing: border-box;      /* Para que el padding no desborde */
+}
+
+.card {
+  background: var(--panel);
+  padding: 2rem 2.5rem;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 520px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+h2 {
+  text-align: center;
+  margin-top: 0;
+}
+
+label {
+  display: block;
+  margin: 1rem 0 0.25rem;
+  color: var(--sec);
+  font-size: 0.9rem;
+}
+
+input,
+select {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border: none;
+  border-radius: 5px;
+  margin-bottom: 0.5rem;
+  background: #2b2b2b;
+  color: var(--pri);
+  font-size: 1rem;
+}
+
+.cuota-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0.5rem;
+}
+
+button {
+  margin-top: 1rem;
+  width: 100%;
+  border: none;
+  border-radius: 6px;
+  background: var(--btn);
+  color: #fff;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.25s;
+  padding: 10px;
+}
+
+button:hover {
+  background: #ff7979;
+}
+
+.msg {
+  margin-top: 0.75rem;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+/* --- header admin --- */
+.admin-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 70px;              /* mismo alto que el header normal */
+  background: var(--rojo-oscuro);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 5%;
+  color: var(--blanco);
+  z-index: 999;
+  box-shadow: 0 2px 4px rgba(0,0,0,.5);
+}
+
+.admin-label {
+  font-weight: bold;
+  font-size: 28px;
+}
+
+.logo {
+  height: 60px;              /* ajusta si tu logo es más pequeño */
+}
+
+/* Botón reutiliza tu clase .header-btn; si no existe, define una rápida: */
+.header-btn {
+  background: yellow;
+  color: var(--rojo-oscuro);
+  padding: 8px 16px;
+  border-radius: 20px;
+  text-decoration: none;
+  font-weight: bold;
+  transition: background .25s;
+}
+.header-btn:hover {
+  background: #ffd400;
+}
