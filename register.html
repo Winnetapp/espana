@@ -3,36 +3,83 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Registro - Apuestas Deportivas</title>
+  <title>Registro - Winnet</title>
   <link rel="stylesheet" href="assets/css/style.css" />
+  <link rel="stylesheet" href="assets/css/headfoot.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
-<body class="register-page">
+<body>
 
-  <div class="register-container">
-    <h1 class="register-title">Registro de Usuario</h1>
-    <form id="register-form" class="register-form">
-      <input type="text" id="username" placeholder="Nombre de usuario" required />
-      <input type="email" id="email" placeholder="Email" required />
-
-      <div class="password-container">
-        <input type="password" id="password" placeholder="Contraseña" required />
-        <button type="button" id="togglePassword" class="toggle-password">👁️</button>
-      </div>
-
-      <button type="submit">Registrarse</button>
-    </form>
-    <div id="register-error" class="register-error"></div>
-    <div class="login-link">
-      ¿Ya tienes cuenta? <a href="login.html">Inicia sesión</a>
+  <!-- HEADER -->
+  <header>
+    <div class="header-left" id="header-left"></div>
+    <div class="header-center">
+      <a href="index.html"><img src="logohead.png" alt="Logo" class="logo" id="logo-scroll" style="cursor: pointer;" /></a>
     </div>
-  </div>
+    <div class="header-right" id="header-right">
+      <div class="user-menu" id="user-menu" style="display: none;">
+        <span id="username-display">Usuario ⌄</span>
+        <div class="dropdown-menu" id="dropdown-menu">
+          <button id="logout-btn">Cerrar sesión</button>
+        </div>
+      </div>
+    </div>
+  </header>
 
-  <!-- Firebase SDKs -->
+  <!-- MAIN -->
+  <main class="register-page">
+    <div class="register-container">
+      <h1 class="register-title">Registro de Usuario</h1>
+      <form id="register-form" class="register-form">
+        <input type="text" id="username" placeholder="Nombre de usuario" required />
+        <input type="email" id="email" placeholder="Email" required />
+        <div class="password-container">
+          <input type="password" id="password" placeholder="Contraseña" required />
+          <button type="button" id="togglePassword" class="toggle-password">👁️</button>
+        </div>
+        <button type="submit">Registrarse</button>
+      </form>
+      <div id="register-error" class="register-error"></div>
+      
+      <div class="login-link">
+        ¿Ya tienes cuenta? <a href="login.html">Inicia sesión</a>
+      </div>
+      
+      <div class="back-home">
+        <a href="index.html">← Volver al inicio</a>
+      </div>
+    </div>
+  </main>
+
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="footer-content">
+      <div class="footer-logo">
+        <h2>Winnet</h2>
+        <p>&copy; 2025 Todos los derechos reservados.</p>
+      </div>
+      <div class="footer-contacto">
+        <h2>Contacto</h2>
+        <p>Email: <a href="mailto:winnetaplicacion@gmail.com">winnetaplicacion@gmail.com</a></p>
+      </div>
+      <div class="footer-redes">
+        <h2>Síguenos</h2>
+        <div class="redes-iconos">
+          <a href="https://youtube.com" target="_blank" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
+          <a href="https://www.instagram.com/winnetapp" target="_blank" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+          <a href="https://www.tiktok.com/@winnetapp" target="_blank" aria-label="TikTok"><i class="fab fa-tiktok"></i></a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- FIREBASE -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
-  <!-- Firebase Config -->
+  <!-- CONFIG -->
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyDgdI3UcnHuRlcynH-pCHcGORcGBAD3FSU",
@@ -46,10 +93,7 @@
     firebase.initializeApp(firebaseConfig);
   </script>
 
-  <!-- Lógica de registro -->
-  <script src="assets/js/auth.js"></script>
-
-  <!-- Mostrar/ocultar contraseña -->
+  <!-- JS -->
   <script>
     document.getElementById('togglePassword').addEventListener('click', function () {
       const passwordInput = document.getElementById('password');
@@ -58,6 +102,6 @@
       this.textContent = isPassword ? '🙈' : '👁️';
     });
   </script>
-
+  <script src="assets/js/auth.js"></script>
 </body>
 </html>
