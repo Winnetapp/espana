@@ -554,125 +554,50 @@ h1 {
 /* Escritorio: fijo a la derecha ya lo tienes en .column-right     */
 /* Móvil: deslizable (clase .open la pones con JS)                 */
 /* Botón flotante para móvil */
+/* ----------- Estilos generales ----------- */
 .mobile-menu-btn {
-  display: none; /* por defecto oculto */
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  background: #e74b4b;
-  color: white;
-  border: none;
-  padding: 14px 18px;
-  border-radius: 50px;
-  font-size: 18px;
-  cursor: pointer;
-  z-index: 1000;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-  user-select: none;
-  transition: background 0.3s ease;
+  display: none; /* por defecto oculto en escritorio */
 }
 
 .mobile-menu-btn:hover {
-  background: #c0392b;
+  background: var(--rojo, #e74c3c);
 }
 
-/* --------- Adaptación móvil --------- */
+.mobile-menu-btn img#cartIcon {
+  width: 24px;
+  height: 24px;
+}
+
+#totalOddsText {
+  font-weight: bold;
+  font-size: 16px;
+  color: yellow;
+  display: none;
+}
+
+.bet-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background-color: #f39c12;
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 50%;
+  display: none;
+}
+
+/* ----------- Estilos móviles ----------- */
 @media (max-width: 768px) {
-  .user-sidebar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    z-index: 1000;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .bs-header {
-    padding: 15px;
-    border-bottom: 1px solid #ccc;
-  }
-
-  .bs-body {
-    flex: 1;
-    overflow-y: auto;
-    padding: 15px;
-  }
-
-  /* No ocultes la columna derecha, pero ponla fija para contener sidebar */
-  .column-right {
-    display: block; /* antes estaba display:none */
-    position: fixed;
-    top: 0;
-    right: 0;
-    width: 80%;       /* ancho sidebar */
-    max-width: 320px; /* ancho max para mejor UX */
-    height: 100vh;
-    background: transparent; /* el fondo está en .user-sidebar */
-    z-index: 999;
-    pointer-events: none; /* desactivamos interacción fuera sidebar */
-  }
-
-  /* Solo el sidebar debe permitir interacción */
-  .column-right .user-sidebar {
-    position: fixed; /* o relative, pero fijo para que se superponga */
-    top: 0;
-    right: 0;
-    width: 100%;
-    height: 100vh;
-    background: #0e0e0e;
-    box-shadow: -5px 0 15px rgba(0,0,0,0.5);
-    border-radius: 0;
-    transform: translateX(100%);
-    transition: transform 0.3s ease;
-    z-index: 1000;
-    pointer-events: auto; /* habilitamos interacción */
-    display: flex;
-    flex-direction: column;
-  }
-
-  /* Cuando se abre, desliza a la vista */
-  .column-right .user-sidebar.open {
-    transform: translateX(0);
-  }
-
-  /* Botón móvil para abrir menú */
+  /* Botón móvil flotante: sin cambios */
   .mobile-menu-btn {
-    display: block; /* visible en móvil */
+    display: flex;
     position: fixed;
     bottom: 20px;
     right: 20px;
-    background: #e74b4b;
-    color: white;
-    border: none;
-    padding: 14px 18px;
-    border-radius: 50px;
-    font-size: 18px;
-    cursor: pointer;
-    z-index: 1100;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-    user-select: none;
-    transition: background 0.3s ease;
-  }
-
-  .mobile-menu-btn:hover {
-    background: #c0392b;
-  }
-
-  /* Opcional: para que el resto de columnas ocupen todo el ancho */
-  .column-left, .column-center {
-    width: 100%;
-  }
-
-  /* Botón móvil para abrir menú */
-  .mobile-menu-btn {
-    display: block; /* visible en móvil */
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    background: #e74b4b;
-    color: white;
+    background: var(--rojo-oscuro, #c0392b);
+    color: yellow;
     border: none;
     padding: 10px 16px;
     border-radius: 50px;
@@ -680,29 +605,109 @@ h1 {
     font-size: 16px;
     cursor: pointer;
     z-index: 1100;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
     user-select: none;
-    display: flex;
     align-items: center;
     justify-content: center;
     gap: 6px;
+    transition: background 0.3s ease;
   }
 
-  .mobile-menu-btn img {
+  .mobile-menu-btn:hover {
+    background: var(--rojo, #e74c3c);
+  }
+
+  .mobile-menu-btn img#cartIcon {
     width: 24px;
     height: 24px;
   }
+
   #totalOddsText {
-  font-weight: 700;
-  font-size: 16px;
-  color: white;
+    font-weight: bold;
+    font-size: 16px;
+    color: yellow;
+    display: none;
   }
 
-  #cartIcon {
-    width: 24px;
-    height: 24px;
+  .bet-badge {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    background-color: yellow;
+    color: var(--rojo-oscuro);
+    font-size: 12px;
+    font-weight: bold;
+    padding: 2px 6px;
+    border-radius: 50%;
+    display: none;
+  }
+
+  /* ----------- Sidebar móvil ----------- */
+  .user-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;       /* ocupa toda la anchura */
+    height: 100vh;      /* ocupa toda la altura */
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    background: #0e0e0e; /* fondo visible para toda la sidebar */
+  }
+
+  .bs-header {
+    padding: 15px;
+    border-bottom: 1px solid #ccc;
+    flex-shrink: 0; /* no se reduce */
+  }
+
+  .bs-body {
+    flex: 1;               /* ocupa todo el espacio disponible */
+    overflow-y: auto;      /* scroll solo si contenido excede */
+    padding: 15px;
+  }
+
+  /* Contenedor para la sidebar en la parte derecha */
+  .column-right {
+    display: block;
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 100vw;          /* para móviles, ocupa toda la pantalla */
+    height: 100vh;
+    background: transparent;
+    z-index: 999;
+    pointer-events: none;
+  }
+
+  /* Sidebar dentro de .column-right */
+  .column-right .user-sidebar {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 100vw;          /* ancho completo en móvil */
+    height: 100vh;         /* alto completo */
+    background: #0e0e0e;
+    box-shadow: -5px 0 15px rgba(0, 0, 0, 0.5);
+    transform: translateX(100%);  /* oculta inicialmente */
+    transition: transform 0.3s ease;
+    z-index: 1000;
+    pointer-events: auto;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .column-right .user-sidebar.open {
+    transform: translateX(0); /* se muestra */
+  }
+
+  .column-left,
+  .column-center {
+    width: 100%;
   }
 }
+
+
 
 
 
