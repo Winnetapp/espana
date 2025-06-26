@@ -450,3 +450,10 @@ auth.onAuthStateChanged(async (user) => {
     headerRight.innerHTML = `<a href="login.html" class="header-btn">Iniciar sesión</a>`;
   }
 });
+
+/* ----------------------------------------------
+   Botón flecha: abre/cierra el user-sidebar
+   ---------------------------------------------- */
+document.querySelector('.bs-toggle').addEventListener('click', () => {
+  sidebar.classList.toggle('open');
+});
