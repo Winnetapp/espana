@@ -17,147 +17,53 @@ body {
   color: var(--blanco);
 }
 
-/* HEADER */
-header {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 5%;
-  background: var(--rojo-oscuro);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 5%;
-  color: var(--blanco);
-  z-index: 999;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.5);
-  font-size: 24px;
-}
-
-.header-left, .header-right {
-  flex: 1;
-  display: flex;
-  align-items: center;
-}
-
-.header-left {
-  justify-content: flex-start;
-}
-
-.header-right {
-  justify-content: flex-end;
-}
-
-.header-center {
-  flex: 0 0 auto;
-}
-
-.logo {
-  height: 80px;
-}
-
-
-.user-menu {
-  position: relative;
-  display: inline-block;
-  cursor: pointer;
-}
-
-
-.user-menu:hover .dropdown-menu,
-.user-menu.active .dropdown-menu {
-  opacity: 1;
-  transform: translateY(0);
-  pointer-events: auto;
-}
-
-#username-display {
-  font-weight: bold;
-}
-
-.user-menu .dropdown-content a {
-  text-decoration: none;
-  color: var(--blanco);
-  display: block;
-  padding: 5px;
-  background-color: var(--rojo-oscuro);
-  border-radius: 10px;
-  transition: background-color 0.2s ease;
-  box-shadow: 0 2px 8px rgb(243, 247, 7, 0.4);
-  width: 145px;
-}
-
-.user-menu .dropdown-content a:hover {
-  background-color: var(--rojo-oscuro);
-  border-radius: 4px;
-}
-
-
-/*Footer*/
-.footer {
-  background-color: var(--rojo-oscuro);
-  color: #fff;
-  padding: 20px 10px;
-  margin-top: 40px;
-}
-
-.footer-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: 20px;
-}
-
-.footer-contacto a {
-  color: #00b7ff;
-  text-decoration: none;
-}
-
-.footer-contacto a:hover {
-  text-decoration: underline;
-}
-
-.footer-redes .redes-iconos {
-  display: flex;
-  gap: 20px;
-  justify-content: center;
-  font-size: 24px;
-}
-
-.footer-redes i {
-  color: white;
-  transition: transform 0.2s, color 0.2s;
-}
-
-.footer-redes i:hover {
-  transform: scale(1.2);
-  color: #00b7ff;
-}
-
-@media (min-width: 768px) {
-  .footer-content {
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: flex-start;
-    text-align: left;
-    max-width: 1000px;
-    margin: auto;
-  }
-}
 
 
 /* CONTENIDO */
 #main-content {
   padding: 5px 0;
-  max-width: 1200px;
+  max-width: 1500px;
   margin: auto;
+  min-height: 100vh;
 }
+
+.main-columns {
+  display: flex;
+  gap: 20px; /* Espacio entre columnas */
+  margin-top: 20px;
+}
+
+/* Cada columna ocupa 1/3 del ancho */
+.column {
+  flex: 1;
+}
+
+@media screen and (min-width: 768px) {
+  .column{
+    width: 30%;
+  }
+}
+
+/* Solo mostrar la columna derecha en escritorio */
+@media screen and (max-width: 768px) {
+  .main-columns {
+    flex-direction: column;
+  }
+
+  .column-right {
+    display: none; /* El menú aparecerá como panel móvil */
+  }
+
+  .mobile-menu-btn {
+    display: block;
+  }
+}
+
 h1 {
   text-align: center;
   margin-top: 20px;
 }
+
 /* PARTIDOS */
 /* CONTENEDOR GENERAL */
 #partidos-container {
@@ -260,7 +166,7 @@ h1 {
 /* Cada cuota igual, botón pequeño */
 .cuota {
   background-color: #444;
-  padding: 8px 0;
+  padding: 4px;
   text-align: center;
   border-radius: 6px;
   font-weight: 600;
@@ -286,11 +192,499 @@ h1 {
   color: var(--blanco);
 }
 
-.valor-cuota {
+.valor-cuota, .cuota-btn {
+  background-color: transparent; /* Fondo transparente */
+  border: none;                  /* Sin borde (opcional) */
   font-weight: 700;
   font-size: 1.1rem;
-  color: yellow;
+  color: yellow;    /* El color que quieras para el texto */
+  cursor: pointer;              /* Cambia el cursor para que parezca clicable */
+  font-weight: bold;            /* Opcional, para destacar */
+  border-radius: 4px;           /* Opcional, bordes redondeados */
+  transition: background-color 0.3s ease;
 }
+
+.valor-cuota:hover, .cuota-btn:hover {
+  background-color: var(--color-hover-cuota); /* Color de fondo al pasar el mouse */
+  color: var(--color-hover-texto);            /* Cambiar color del texto al hover */
+}
+
+
+/* Menú apuestas */
+/* Estilo general */
+/* ------------------- BET SLIP / USER SIDEBAR ------------------- */
+.user-sidebar {
+  background: var(--fondo);
+  color: #fff;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 80px);          /* debajo del header */
+  overflow: hidden;
+  box-shadow: 0 0 10px rgba(0,0,0,.6);
+  font-size: 16px;
+}
+
+/* cabecera */
+.bs-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: #151515;
+}
+
+.bs-toggle,
+.bs-clear {
+  background: none;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+}
+
+.bs-title {
+  font-weight: 600;
+}
+
+/* pestañas */
+.bs-tabs {
+  display: flex;
+  background: #1c1c1c;
+  margin: 0 10px;
+  border-radius: 25px;
+  padding: 4px;
+}
+
+.bs-tab {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: #888;
+  padding: 6px 0;
+  font-weight: 600;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.bs-tab.active {
+  background: #293047;
+  color: #fff;
+}
+
+/* cuerpo lista */
+.bs-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 12px;
+}
+
+.bs-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* footer */
+.bs-footer {
+  background: #151515;
+  padding: 12px 14px;
+  border-top: 1px solid #222;
+}
+
+.stake-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+  gap: 8px;
+}
+
+.stake-input {
+  display: flex;
+  align-items: center;
+  background: #222;
+  padding: 4px 8px;
+  border-radius: 6px;
+  flex: 1;
+}
+
+.stake-input input {
+  width: 60px;
+  background: transparent;
+  border: none;
+  color: #fff;
+  text-align: right;
+}
+
+.stake-input span {
+  margin-left: 4px;
+  color: #888;
+}
+
+.total-odds {
+  text-align: right;
+}
+
+.tot-label {
+  color: #888;
+}
+
+.tot-value {
+  display: block;
+  font-weight: 700;
+  color: #e74b4b;
+}
+
+.quick-stakes {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+  background-color: rgb(21, 21, 21);
+  padding: 8px;
+}
+
+.qs {
+  flex: 1 1 60px;
+  background: var(--rojo-oscuro);
+  border: none;
+  color: #fff;
+  padding: 6px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.qs:hover {
+  background: var(--rojo);
+}
+
+.accept-btn {
+  width: 100%;
+  border: none;
+  padding: 10px 0;
+  font-weight: 700;
+  border-radius: 50px;
+  cursor: pointer;
+  color: rgb(21, 21, 21);
+}
+
+.accept-btn:hover {
+  background: #797979;
+}
+
+.bs-item {
+  background: #1a1a1d;
+  border-radius: 12px;
+  padding: 12px;
+  color: #fff;
+  margin-bottom: 10px;
+  position: relative;
+}
+
+.bs-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* separa extremos */
+}
+
+.bs-deporte {
+  margin-right: 8px; /* espacio a la derecha */
+}
+
+.bs-tipo {
+  flex-grow: 1;       /* ocupa todo el espacio disponible */
+  text-align: left;   /* asegura que el texto quede a la izquierda */
+}
+
+.bs-cuota {
+  margin-right: 20px;   /* espacio a la izquierda */
+  background: #1e2a3c;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-weight: bold;
+  color: #c2e6ff;
+}
+
+.bs-tipo strong {
+  font-weight: 600;
+  color: #fff;
+}
+
+.bs-info {
+  margin-top: 6px;
+  color: #bbb;
+  font-size: 14px;
+}
+
+.bs-remove {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  background: none;
+  border: none;
+  color: #aaa;
+  cursor: pointer;
+}
+
+.bs-remove:hover {
+  color: #f66;
+}
+
+.bs-footer {  
+  border-top: 1px solid grey;
+}
+
+.stake-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.stake {
+  margin-left: 10px;
+}
+
+.stake-group {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  width: 60%;
+}
+
+.stake-input {
+  display: flex;
+  align-items: center;
+  border-radius: 50px;
+  overflow: hidden;
+}
+
+.stake-input input {
+  width: 100%;
+  padding: 8px;
+  border: none;
+  outline: none;
+}
+
+.stake-input span {
+  padding: 0 8px;
+}
+
+.total-odds {
+  display: flex;
+  align-items: flex-end;
+  width: 40%;
+  margin-top: 10px;
+}
+
+.tot-label {
+  color: #666;
+  font-size: 14px;
+}
+
+.tot-value {
+  font-weight: bold;
+}
+
+.potential-winnings {
+  width: 100%;
+  padding: 10px;
+  border-radius: 6px;
+  display: flex;              /* fila horizontal */
+  align-items: center;        /* centra verticalmente */
+  gap: 8px;                   /* espacio entre elementos */
+}
+
+.pw-label {
+  white-space: nowrap;        /* evita salto de línea */
+}
+
+.pw-divider {
+  flex: 1;                    /* ocupa todo el espacio restante */
+  height: 1px;
+  background: #ccc;
+}
+
+.pw-value {
+  font-weight: bold;
+  color: yellow;
+  white-space: nowrap;
+}
+
+.bet-controls {
+  padding: 10px;
+  border-top: 1px solid #ccc;
+  background-color: #f9f9f9;
+}
+
+.bet-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+#bet-amount {
+  flex: 1;
+  padding: 8px;
+}
+
+#total-odds {
+  min-width: 60px;
+  text-align: right;
+  font-weight: bold;
+}
+
+.potential-win {
+  width: 100%;
+  background-color: #e9ffe9;
+  padding: 8px;
+  text-align: center;
+  font-weight: bold;
+  border: 1px solid #b0e6b0;
+  border-radius: 5px;
+  margin-bottom: 10px;
+}
+
+
+/* ------------- Adaptación para escritorio / móvil ------------- */
+/* Escritorio: fijo a la derecha ya lo tienes en .column-right     */
+/* Móvil: deslizable (clase .open la pones con JS)                 */
+/* Botón flotante para móvil */
+.mobile-menu-btn {
+  display: none; /* por defecto oculto */
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: #e74b4b;
+  color: white;
+  border: none;
+  padding: 14px 18px;
+  border-radius: 50px;
+  font-size: 18px;
+  cursor: pointer;
+  z-index: 1000;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  user-select: none;
+  transition: background 0.3s ease;
+}
+
+.mobile-menu-btn:hover {
+  background: #c0392b;
+}
+
+/* --------- Adaptación móvil --------- */
+@media (max-width: 768px) {
+
+  /* No ocultes la columna derecha, pero ponla fija para contener sidebar */
+  .column-right {
+    display: block; /* antes estaba display:none */
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 80%;       /* ancho sidebar */
+    max-width: 320px; /* ancho max para mejor UX */
+    height: 100vh;
+    background: transparent; /* el fondo está en .user-sidebar */
+    z-index: 999;
+    pointer-events: none; /* desactivamos interacción fuera sidebar */
+  }
+
+  /* Solo el sidebar debe permitir interacción */
+  .column-right .user-sidebar {
+    position: fixed; /* o relative, pero fijo para que se superponga */
+    top: 0;
+    right: 0;
+    width: 100%;
+    height: 100vh;
+    background: #0e0e0e;
+    box-shadow: -5px 0 15px rgba(0,0,0,0.5);
+    border-radius: 0;
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+    z-index: 1000;
+    pointer-events: auto; /* habilitamos interacción */
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Cuando se abre, desliza a la vista */
+  .column-right .user-sidebar.open {
+    transform: translateX(0);
+  }
+
+  /* Botón móvil para abrir menú */
+  .mobile-menu-btn {
+    display: block; /* visible en móvil */
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #e74b4b;
+    color: white;
+    border: none;
+    padding: 14px 18px;
+    border-radius: 50px;
+    font-size: 18px;
+    cursor: pointer;
+    z-index: 1100;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    user-select: none;
+    transition: background 0.3s ease;
+  }
+
+  .mobile-menu-btn:hover {
+    background: #c0392b;
+  }
+
+  /* Opcional: para que el resto de columnas ocupen todo el ancho */
+  .column-left, .column-center {
+    width: 100%;
+  }
+
+  /* Botón móvil para abrir menú */
+  .mobile-menu-btn {
+    display: block; /* visible en móvil */
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #e74b4b;
+    color: white;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 50px;
+    font-weight: 700;
+    font-size: 16px;
+    cursor: pointer;
+    z-index: 1100;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    user-select: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+
+  .mobile-menu-btn img {
+    width: 24px;
+    height: 24px;
+  }
+  #totalOddsText {
+  font-weight: 700;
+  font-size: 16px;
+  color: white;
+  }
+
+  #cartIcon {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+
+
+
 
 /*Register*/
 /* Contenedor general solo para el registro */
@@ -464,6 +858,26 @@ h1 {
     right: 8px;
   }
 }
+
+
+
+.back-home {
+  margin-top: 1rem;
+  text-align: center;
+}
+
+.back-home a {
+  color: var(--rojo);
+  text-decoration: none;
+  font-size: 0.95rem;
+}
+
+.back-home a:hover {
+  text-decoration: underline;
+  color: var(--rojo-oscuro);
+}
+
+
 
 /*Login*/
 .login-page {
