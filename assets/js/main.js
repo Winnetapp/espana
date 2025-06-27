@@ -495,4 +495,4 @@ document.querySelector('.bs-toggle').addEventListener('click', () => {
   sidebar.classList.toggle('open');
 });
 
-});
+
