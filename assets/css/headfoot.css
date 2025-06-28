@@ -2,6 +2,17 @@
 /* HEADER */
 /* Estilos generales del header */
 /* Estructura base del header */
+:root {
+  --rojo-oscuro: #300404;
+  --rojo: #ff0000;
+  --negro: #000000;
+  --blanco: #ffffff;
+  --azul: #0077cc;
+  --azul-hover: #005fa3;
+  --morado-oscuro: #00041a;
+  --fondo: #222222;
+}
+
 header {
   position: fixed;
   top: 0;
