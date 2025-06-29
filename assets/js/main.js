@@ -188,17 +188,6 @@ async function cargarPartidos() {
 }
 cargarPartidos();
 
-/* tu función mostrarPartidos(...) permanece igual */
-
-/* ------- Mostrar partidos (idéntico a tu lógica original) ------- */
-function mostrarPartidos(partidos) {
-  const cont = document.getElementById('partidos-container');
-  cont.innerHTML = '';
-  /* … (tu código de renderizado tal cual) … */
-  // Al final:
-  // — No necesitas asignarEventosCuotas: usamos delegación arriba —
-}
-
 
 // Scroll suave al principio al hacer clic en el logo
 document.getElementById('logo-scroll').addEventListener('click', () => {
@@ -206,10 +195,6 @@ document.getElementById('logo-scroll').addEventListener('click', () => {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 });
 
-// Función para eliminar tildes y normalizar cadenas
-function removeTildes(str) {
-  return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-}
 
 // Mostrar partidos en el contenedor
 function mostrarPartidos(partidos) {
@@ -236,7 +221,6 @@ function mostrarPartidos(partidos) {
       return;
     }
 
-    // Convertir fecha a objeto Date para obtener día semana y día número
     const fechaObj = new Date(partido.fecha + 'T00:00');
     const diaSemana = fechaObj.toLocaleDateString('es-ES', { weekday: 'short' });
     const diaNumero = fechaObj.getDate();
@@ -260,17 +244,27 @@ function mostrarPartidos(partidos) {
     grupo.forEach((partido) => {
       const equipo1 = partido.equipo1;
       const equipo2 = partido.equipo2;
+      const deporte = (partido.deporte || "").toLowerCase();
 
       const escudo1 = `Equipos/${removeTildes(equipo1.toLowerCase().replace(/\s/g, ''))}.png`;
       const escudo2 = `Equipos/${removeTildes(equipo2.toLowerCase().replace(/\s/g, ''))}.png`;
 
+      // NUEVO: nacionalidades para tenis
+      const nacionalidad1 = partido.nacionalidad1 || "";
+      const nacionalidad2 = partido.nacionalidad2 || "";
+
+      // Para las banderas, puedes tenerlas en Banderas/nombre.png
+      // O usa solo el texto si no tienes imágenes
+      const bandera1 = nacionalidad1
+        ? `<img src="Banderas/${removeTildes(nacionalidad1.toLowerCase().replace(/\s/g, ''))}.png" alt="${nacionalidad1}" class="bandera"/>`
+        : '';
+      const bandera2 = nacionalidad2
+        ? `<img src="Banderas/${removeTildes(nacionalidad2.toLowerCase().replace(/\s/g, ''))}.png" alt="${nacionalidad2}" class="bandera"/>`
+        : '';
+
       const horaPartido = partido.hora || '00:00';
 
-      // Buscar cuotas dentro de mercados.resultado.opciones
-      // Asumimos que siempre existen las 3 cuotas: gana local (valor "1"), empate ("X"), gana visitante ("2")
-      let cuota1 = '-';
-      let cuotaX = '-';
-      let cuota2 = '-';
+      let cuota1 = '-', cuotaX = '-', cuota2 = '-';
 
       if (partido.mercados && partido.mercados.resultado && Array.isArray(partido.mercados.resultado.opciones)) {
         partido.mercados.resultado.opciones.forEach(opcion => {
@@ -283,21 +277,15 @@ function mostrarPartidos(partidos) {
       const partidoDiv = document.createElement('div');
       partidoDiv.classList.add('partido');
 
-      partidoDiv.innerHTML = `
-        <div class="info-hora">
-          <div class="info-equipos">
-            <div class="equipo equipo1">
-              <img src="${escudo1}" alt="${equipo1}" class="escudo" />
-              <span>${equipo1}</span>
-            </div>
-            <div class="hora">${horaPartido}</div>
-            <div class="equipo equipo2">
-              <img src="${escudo2}" alt="${equipo2}" class="escudo" />
-              <span>${equipo2}</span>
-            </div>
-          </div>
-        </div>
-        <div class="cuotas">
+      // HTML cuotas diferente según deporte
+      let cuotasHTML = '';
+      let claseCuotas = '';
+
+      // Añade clase según el deporte para estilos diferentes
+      if (deporte === 'futbol') {
+        claseCuotas = 'cuotas-futbol';
+        // Fútbol con empate en medio
+        cuotasHTML = `
           <div class="cuota">
             <div class="nombre-equipo-cuota">${equipo1}</div>
             <div class="valor-cuota cuota-btn"
@@ -322,6 +310,110 @@ function mostrarPartidos(partidos) {
               ${cuota2}
             </div>
           </div>
+        `;
+      } else if (deporte === 'baloncesto') {
+        claseCuotas = 'cuotas-baloncesto';
+        // Solo cuota 1 y cuota 2, pero alineamos cuota 2 a la derecha con una clase especial
+        cuotasHTML = `
+          <div class="cuota">
+            <div class="nombre-equipo-cuota">${equipo1}</div>
+            <div class="valor-cuota cuota-btn"
+                    data-partido="${equipo1} vs ${equipo2}"
+                    data-tipo="${equipo1}">
+              ${cuota1}
+            </div>
+          </div>
+          <div class="cuota cuota-derecha">
+            <div class="nombre-equipo-cuota">${equipo2}</div>
+            <div class="valor-cuota cuota-btn"
+                    data-partido="${equipo1} vs ${equipo2}"
+                    data-tipo="${equipo2}">
+              ${cuota2}
+            </div>
+          </div>
+        `;
+      } else if (deporte === 'tenis') {
+        claseCuotas = 'cuotas-tenis';
+        // TENIS: muestra banderas y no escudos
+        cuotasHTML = `
+          <div class="cuota">
+            <div class="nombre-equipo-cuota">${equipo1}</div>
+            <div class="valor-cuota cuota-btn"
+                    data-partido="${equipo1} vs ${equipo2}"
+                    data-tipo="${equipo1}">
+              ${cuota1}
+            </div>
+          </div>
+          <div class="cuota cuota-derecha">
+            <div class="nombre-equipo-cuota">${equipo2}</div>
+            <div class="valor-cuota cuota-btn"
+                    data-partido="${equipo1} vs ${equipo2}"
+                    data-tipo="${equipo2}">
+              ${cuota2}
+            </div>
+          </div>
+        `;
+      } else {
+        claseCuotas = '';
+        // Por defecto, igual que baloncesto sin empate
+        cuotasHTML = `
+          <div class="cuota">
+            <div class="nombre-equipo-cuota">${equipo1}</div>
+            <div class="valor-cuota cuota-btn"
+                    data-partido="${equipo1} vs ${equipo2}"
+                    data-tipo="${equipo1}">
+              ${cuota1}
+            </div>
+          </div>
+          <div class="cuota cuota-derecha">
+            <div class="nombre-equipo-cuota">${equipo2}</div>
+            <div class="valor-cuota cuota-btn"
+                    data-partido="${equipo1} vs ${equipo2}"
+                    data-tipo="${equipo2}">
+              ${cuota2}
+            </div>
+          </div>
+        `;
+      }
+
+      // --- Cambia el bloque de equipos para tenis ---
+      let equiposHTML = '';
+      if (deporte === "tenis") {
+        equiposHTML = `
+          <div class="info-equipos">
+            <div class="equipo equipo1">
+              ${bandera1}
+              <span>${equipo1}</span>
+            </div>
+            <div class="hora">${horaPartido}</div>
+            <div class="equipo equipo2">
+              ${bandera2}
+              <span>${equipo2}</span>
+            </div>
+          </div>
+        `;
+      } else {
+        equiposHTML = `
+          <div class="info-equipos">
+            <div class="equipo equipo1">
+              <img src="${escudo1}" alt="${equipo1}" class="escudo" />
+              <span>${equipo1}</span>
+            </div>
+            <div class="hora">${horaPartido}</div>
+            <div class="equipo equipo2">
+              <img src="${escudo2}" alt="${equipo2}" class="escudo" />
+              <span>${equipo2}</span>
+            </div>
+          </div>
+        `;
+      }
+
+      partidoDiv.innerHTML = `
+        <div class="info-hora">
+          ${equiposHTML}
+        </div>
+        <div class="cuotas ${claseCuotas}">
+          ${cuotasHTML}
         </div>
       `;
 
@@ -334,6 +426,8 @@ function mostrarPartidos(partidos) {
   asignarEventosCuotas();
   console.log("Partidos mostrados y eventos asignados.");
 }
+
+
 
 /* =========================================================
    AÑADIR APUESTA AL HACER CLIC EN CUALQUIER PARTE DE .cuota
