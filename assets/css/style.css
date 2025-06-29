@@ -66,6 +66,7 @@ h1 {
 
 /* PARTIDOS */
 /* CONTENEDOR GENERAL */
+/* CONTENEDOR GENERAL - SIN CAMBIOS */
 #partidos-container {
   max-width: 480px;
   margin: 0 auto;
@@ -104,20 +105,11 @@ h1 {
   text-align: left;
 }
 
-/* Contenedor equipos + hora */
-.info-hora {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr); /* 3 columnas iguales */
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 12px;
-  text-align: center;
-  color: yellow;
-}
-
 /* Equipos en fila horizontal */
 .info-equipos {
-  display: contents; /* para que sus hijos hereden el grid padre */
+  display: flex;  /* cambio a flex para que sea más fácil manejar alineaciones */
+  justify-content: space-between;
+  gap: 35px;
 }
 
 /* Cada equipo como columna */
@@ -125,12 +117,13 @@ h1 {
   display: flex;
   flex-direction: column;
   align-items: center;
-  text-align: center;
   flex: 1;
   padding: 4px;
 }
 
+/* Texto nombre equipo */
 .equipo span {
+  position: relative;
   white-space: normal;
   word-wrap: break-word;
   word-break: break-word;
@@ -138,6 +131,7 @@ h1 {
   font-size: 16px;
   font-weight: bold;
   color: var(--blanco);
+  text-align: center;
 }
 
 /* Escudo tamaño compacto */
@@ -148,66 +142,101 @@ h1 {
   margin-bottom: 6px;
 }
 
-/* Hora en medio o al lado */
-.escudo {
+.bandera {
   width: 40px;
   height: 40px;
   object-fit: contain;
-  margin-bottom: 6px;
+  margin-bottom: 10px;
 }
 
-/* Contenedor cuotas en fila centrada */
+/* Contenedor cuotas en fila centrada (Fútbol) */
 .cuotas {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
+  gap: 15px;
+}
+
+.cuota-derecha {
+  grid-column-start: 3;
 }
 
 /* Cada cuota igual, botón pequeño */
 .cuota {
   background-color: #444;
-  padding: 4px;
+  padding: 8px;
   text-align: center;
   border-radius: 6px;
-  font-weight: 600;
-  font-size: 1rem;
   cursor: pointer;
   transition: background-color 0.25s ease;
   user-select: none;
   display: flex;
-  flex-direction: column; /* para que nombre y valor estén verticales */
+  flex-direction: column;
   justify-content: center;
   align-items: center;
+  font-size: 14px;
+  width: 90%;
 }
-
 
 .cuota:hover {
   background-color: #666;
 }
 
-.nombre-equipo-cuota {
-  font-weight: 500;
-  font-size: 0.9rem;
-  margin-bottom: 4px;
-  color: var(--blanco);
+.cuotas-tenis, .cuotas-baloncesto {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
 }
 
+.hora {
+  display: block;      /* Asegura que ocupa el 100% */
+  text-align: center;  /* Centrada */
+  margin-top: 16px;    /* Baja la hora, ajusta el valor a tu gusto */
+  color: yellow;
+}
+
+/* Botones de cuota */
 .valor-cuota, .cuota-btn {
-  background-color: transparent; /* Fondo transparente */
-  border: none;                  /* Sin borde (opcional) */
+  background-color: transparent;
+  border: none;
   font-weight: 700;
   font-size: 1.1rem;
-  color: yellow;    /* El color que quieras para el texto */
-  cursor: pointer;              /* Cambia el cursor para que parezca clicable */
-  font-weight: bold;            /* Opcional, para destacar */
-  border-radius: 4px;           /* Opcional, bordes redondeados */
+  color: yellow;
+  cursor: pointer;
+  font-weight: bold;
+  border-radius: 4px;
   transition: background-color 0.3s ease;
 }
 
 .valor-cuota:hover, .cuota-btn:hover {
-  background-color: var(--color-hover-cuota); /* Color de fondo al pasar el mouse */
-  color: var(--color-hover-texto);            /* Cambiar color del texto al hover */
+  background-color: var(--color-hover-cuota);
+  color: var(--color-hover-texto);
 }
+
+/* --- NUEVO: Para TENIS y BALONCESTO --- */
+/* Aquí asumimos que el contenedor .partido tendrá la clase .tenis o .baloncesto */
+/* Puedes agregar estas clases dinámicamente en tu JS para controlar estilos */
+
+.partido.tenis .info-equipos,
+.partido.baloncesto .info-equipos {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+/* cuota dentro de equipo1: queda normal (centrado) */
+.partido.tenis .equipo1 .cuota,
+.partido.baloncesto .equipo1 .cuota {
+  margin: 6px 0 0 0;
+  align-self: center;
+}
+
+/* cuota dentro de equipo2: la movemos a la derecha */
+.partido.tenis .equipo2 .cuota,
+.partido.baloncesto .equipo2 .cuota {
+  margin: 6px 0 0 auto; /* auto en margen izquierdo empuja cuota a la derecha */
+  align-self: flex-end;
+}
+
 
 
 /* Menú apuestas */
