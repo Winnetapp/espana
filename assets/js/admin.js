@@ -21,13 +21,16 @@ const campos = ["deporte","liga","equipo1","equipo2","fecha","hora",
                 "cuota1","cuotaX","cuota2"]
   .reduce((o,k)=>{o[k]=$(k);return o;}, {});
 const msg = $("msg");
+const spinner = $("spinner");
+const modal = $("modalConfirm");
+const modalText = $("modalText");
+const btnConfirm = $("btnConfirm");
+const btnCancel = $("btnCancel");
+const previewContainer = $("previewContainer"); // Para futuras previsualizaciones
 
-const spinner = $("spinner");       
-const modal = $("modalConfirm");    
-const modalText = $("modalText");   
-const btnConfirm = $("btnConfirm"); 
-const btnCancel = $("btnCancel");   
-const previewContainer = $("previewContainer"); // NUEVO: contenedor previsualización
+// Selectores de nacionalidad y sus wrappers (en HTML)
+const wrapperNac1 = document.querySelector(".nacionalidad-1");
+const wrapperNac2 = document.querySelector(".nacionalidad-2");
 
 /* 3️⃣  Datos --------------------------------------------------------------------- */
 const ligasPorDeporte = {
@@ -84,50 +87,76 @@ const ligaDatalist    = $("ligas-list");
 const equiposDatalist = $("equipos-list");
 const cuotaXInput     = campos.cuotaX;
 
-/* 4.1  Al cambiar DEPORTE → llenar lista de ligas */
+// --- Mostrar/ocultar nacionalidades y cuotas según deporte ---
 campos.deporte.addEventListener("change", () => {
   const dep = campos.deporte.value;
-  
+
+  // Limpiar campos menos deporte
   Object.keys(campos).forEach(key => {
     if (key !== "deporte") campos[key].value = "";
   });
 
-  ligaDatalist.innerHTML = "";
-  (ligasPorDeporte[dep] || []).forEach(l => {
-    const opt = document.createElement("option");
-    opt.value = l;
-    ligaDatalist.appendChild(opt);
-  });
+  if (ligaDatalist) {
+    ligaDatalist.innerHTML = "";
+    (ligasPorDeporte[dep] || []).forEach(l => {
+      const opt = document.createElement("option");
+      opt.value = l;
+      ligaDatalist.appendChild(opt);
+    });
+  }
 
-  equiposDatalist.innerHTML = "";
+  if (equiposDatalist) equiposDatalist.innerHTML = "";
 
+  // Mostrar/ocultar cuotaX
   if (dep === "tenis" || dep === "baloncesto") {
-    cuotaXInput.style.display = "none";
-    cuotaXInput.value = "";
+    if (campos.cuotaX) {
+      campos.cuotaX.style.display = "none";
+      campos.cuotaX.value = "";
+    }
   } else {
-    cuotaXInput.style.display = "inline-block";
+    if (campos.cuotaX) campos.cuotaX.style.display = "inline-block";
+  }
+
+  // Mostrar u ocultar nacionalidades según deporte
+  if (dep === "tenis") {
+    if (wrapperNac1) wrapperNac1.style.display = "block";
+    if (wrapperNac2) wrapperNac2.style.display = "block";
+  } else {
+    if (wrapperNac1) wrapperNac1.style.display = "none";
+    if (wrapperNac2) wrapperNac2.style.display = "none";
+    // Limpiar selects de nacionalidad si oculto
+    const sel1 = $("nacionalidad1");
+    const sel2 = $("nacionalidad2");
+    if (sel1) sel1.value = "";
+    if (sel2) sel2.value = "";
   }
 });
 
 /* 4.2  Al cambiar LIGA → llenar lista de equipos/jugadores */
-campos.liga.addEventListener("input", () => {
-  const liga = campos.liga.value.trim();
-  equiposDatalist.innerHTML = "";
+if (campos.liga && equiposDatalist) {
+  campos.liga.addEventListener("input", () => {
+    const liga = campos.liga.value.trim();
+    equiposDatalist.innerHTML = "";
 
-  (equiposPorLiga[liga] || []).forEach(eq => {
-    const opt = document.createElement("option");
-    opt.value = eq;
-    equiposDatalist.appendChild(opt);
+    (equiposPorLiga[liga] || []).forEach(eq => {
+      const opt = document.createElement("option");
+      opt.value = eq;
+      equiposDatalist.appendChild(opt);
+    });
   });
-});
+}
 
 /* 5️⃣  Invertir Equipos (botón ⮃) ------------------------------------------------ */
-$("invertirEquipos").addEventListener("click", () => {
-  [campos.equipo1.value, campos.equipo2.value] =
-    [campos.equipo2.value, campos.equipo1.value];
-  [campos.cuota1.value , campos.cuota2.value ] =
-    [campos.cuota2.value , campos.cuota1.value ];
-});
+const btnInvertir = $("invertirEquipos");
+if (btnInvertir && campos.equipo1 && campos.equipo2 && campos.cuota1 && campos.cuota2) {
+  btnInvertir.addEventListener("click", (e) => {
+    e.preventDefault();
+    [campos.equipo1.value, campos.equipo2.value] =
+      [campos.equipo2.value, campos.equipo1.value];
+    [campos.cuota1.value , campos.cuota2.value ] =
+      [campos.cuota2.value , campos.cuota1.value ];
+  });
+}
 
 /* Validar datos */
 function validarDatos() {
@@ -165,10 +194,22 @@ function validarDatos() {
   if (dep!=="tenis"&&dep!=="baloncesto" && (isNaN(cuotaX)||cuotaX<=1))
     errores.push("La cuota X debe ser > 1.");
 
-  return errores;
+  // Validar nacionalidades solo si están visibles
+  const nac1 = $("nacionalidad1")?.value;
+  const nac2 = $("nacionalidad2")?.value;
+  if (wrapperNac1 && wrapperNac1.style.display !== "none" && !nac1) errores.push("La nacionalidad del equipo/jugador 1 es obligatoria.");
+  if (wrapperNac2 && wrapperNac2.style.display !== "none" && !nac2) errores.push("La nacionalidad del equipo/jugador 2 es obligatoria.");
+
+  if (errores.length) {
+    msg.textContent = errores.join(" ");
+    msg.style.color = "red";
+    return false;
+  }
+  msg.textContent = "";
+  return true;
 }
 
-/* Construir objeto partido */
+/* 6️⃣  Construir objeto partido ------------------------------------------- */
 function construirPartido() {
   const dep   = campos.deporte.value.trim();
   const liga  = campos.liga.value.trim();
@@ -176,6 +217,9 @@ function construirPartido() {
   const eq2   = campos.equipo2.value.trim();
   const fecha = campos.fecha.value;
   const hora  = campos.hora.value;
+
+  const nacionalidad1 = $("nacionalidad1") ? $("nacionalidad1").value.trim() : null;
+  const nacionalidad2 = $("nacionalidad2") ? $("nacionalidad2").value.trim() : null;
 
   const cuota1 = parseFloat(campos.cuota1.value);
   const cuota2 = parseFloat(campos.cuota2.value);
@@ -192,74 +236,73 @@ function construirPartido() {
     deporte: dep,
     liga,
     equipo1: eq1,
+    nacionalidad1,
     equipo2: eq2,
+    nacionalidad2,
     fecha,
     hora,
     mercados:{ resultado:{ nombre:"Resultado final", opciones } }
   };
 }
 
-/* NUEVO: Mostrar previsualización en previewContainer */
-function mostrarPrevisualizacion(partido) {
-  const opts = partido.mercados.resultado.opciones;
-  previewContainer.innerHTML = `
-    <h3>Resumen del partido a crear</h3>
-    <p><strong>Deporte:</strong> ${partido.deporte}</p>
-    <p><strong>Liga:</strong> ${partido.liga}</p>
-    <p><strong>Equipos/Jugadores:</strong> ${partido.equipo1} vs ${partido.equipo2}</p>
-    <p><strong>Fecha y hora:</strong> ${partido.fecha} ${partido.hora}</p>
-    <p><strong>Cuotas:</strong></p>
-    <ul>
-      ${opts.map(o => `<li>${o.nombre}: ${o.cuota}</li>`).join("")}
-    </ul>
-  `;
-}
-
-/* NUEVO: Limpiar previsualización */
-function limpiarPrevisualizacion() {
-  previewContainer.innerHTML = "";
-}
-
-/* 6️⃣  Confirmar antes de enviar -------------------------------------------------- */
-function mostrarModalConfirmacion(partido) {
-  modalText.textContent = "¿Confirmas crear este partido?";
+/* 7️⃣  Mostrar modal y esperar confirmación ----------------------------- */
+function mostrarModal(mensaje) {
+  modalText.textContent = mensaje;
   modal.style.display = "block";
-  mostrarPrevisualizacion(partido); // Mostramos previsualización justo antes del modal
+
+  return new Promise((resolve) => {
+    btnConfirm.onclick = () => {
+      modal.style.display = "none";
+      resolve(true);
+    };
+    btnCancel.onclick = () => {
+      modal.style.display = "none";
+      resolve(false);
+    };
+  });
 }
 
-/* 7️⃣  Guardar en Firebase ------------------------------------------------------- */
-async function guardarPartido(partido) {
+/* 8️⃣  Mostrar/Ocultar spinner ------------------------------------------ */
+function mostrarSpinner(mostrar) {
+  spinner.style.display = mostrar ? "block" : "none";
+}
+
+/* 9️⃣  Guardar partido en Firestore -------------------------------------- */
+async function guardarPartido() {
+  if (!validarDatos()) return;
+
+  const partido = construirPartido();
+  const confirm = await mostrarModal("¿Quieres crear este partido?");
+  if (!confirm) return;
+
+  mostrarSpinner(true);
+
   try {
     await addDoc(collection(db, "partidos"), partido);
-    alert("Partido creado correctamente.");
-    limpiarPrevisualizacion();
-    modal.style.display = "none";
-    Object.values(campos).forEach(c => c.value = "");
+    mostrarSpinner(false);
+    msg.style.color = "green";
+    msg.textContent = "¡Partido creado con éxito!";
+
+    // Reset formulario
+    Object.values(campos).forEach(input => input.value = "");
+    const sel1 = $("nacionalidad1");
+    const sel2 = $("nacionalidad2");
+    if (sel1) sel1.value = "";
+    if (sel2) sel2.value = "";
+    if (campos.cuotaX) campos.cuotaX.style.display = "inline-block";
+
   } catch (error) {
-    alert("Error al guardar el partido: " + error.message);
+    mostrarSpinner(false);
+    msg.style.color = "red";
+    msg.textContent = "Error guardando partido: " + error.message;
   }
 }
 
-/* 8️⃣  Eventos botones modal ----------------------------------------------------- */
-btnConfirm.addEventListener("click", async () => {
-  const partido = construirPartido();
-  await guardarPartido(partido);
-});
-
-btnCancel.addEventListener("click", () => {
-  modal.style.display = "none";
-  limpiarPrevisualizacion();
-});
-
-/* 9️⃣  Enviar formulario --------------------------------------------------------- */
-$("formCrearPartido").addEventListener("submit", e => {
-  e.preventDefault();
-  const errores = validarDatos();
-  if (errores.length > 0) {
-    msg.innerHTML = errores.map(e => `<p>${e}</p>`).join("");
-    return;
-  }
-  msg.innerHTML = "";
-  const partido = construirPartido();
-  mostrarModalConfirmacion(partido);
-});
+/*  🔟  Evento submit ----------------------------------------------------- */
+const form = $("formCrearPartido");
+if (form) {
+  form.addEventListener("submit", e => {
+    e.preventDefault();
+    guardarPartido();
+  });
+}
