@@ -246,8 +246,8 @@ function mostrarPartidos(partidos) {
       const equipo2 = partido.equipo2;
       const deporte = (partido.deporte || "").toLowerCase();
 
-      const escudo1 = `Equipos/${removeTildes(equipo1.toLowerCase().replace(/\s/g, ''))}.png`;
-      const escudo2 = `Equipos/${removeTildes(equipo2.toLowerCase().replace(/\s/g, ''))}.png`;
+      const escudo1 = `equipos/${removeTildes(equipo1.toLowerCase().replace(/\s/g, ''))}.png`;
+      const escudo2 = `equipos/${removeTildes(equipo2.toLowerCase().replace(/\s/g, ''))}.png`;
 
       // NUEVO: nacionalidades para tenis
       const nacionalidad1 = partido.nacionalidad1 || "";
@@ -256,10 +256,10 @@ function mostrarPartidos(partidos) {
       // Para las banderas, puedes tenerlas en Banderas/nombre.png
       // O usa solo el texto si no tienes imágenes
       const bandera1 = nacionalidad1
-        ? `<img src="Banderas/${removeTildes(nacionalidad1.toLowerCase().replace(/\s/g, ''))}.png" alt="${nacionalidad1}" class="bandera"/>`
+        ? `<img src="banderas/${removeTildes(nacionalidad1.toLowerCase().replace(/\s/g, ''))}.png" alt="${nacionalidad1}" class="bandera"/>`
         : '';
       const bandera2 = nacionalidad2
-        ? `<img src="Banderas/${removeTildes(nacionalidad2.toLowerCase().replace(/\s/g, ''))}.png" alt="${nacionalidad2}" class="bandera"/>`
+        ? `<img src="banderas/${removeTildes(nacionalidad2.toLowerCase().replace(/\s/g, ''))}.png" alt="${nacionalidad2}" class="bandera"/>`
         : '';
 
       const horaPartido = partido.hora || '00:00';
@@ -588,5 +588,3 @@ auth.onAuthStateChanged(async (user) => {
 document.querySelector('.bs-toggle').addEventListener('click', () => {
   sidebar.classList.toggle('open');
 });
-
-
