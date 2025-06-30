@@ -521,7 +521,7 @@ auth.onAuthStateChanged(async (user) => {
               font-size: 16px;
               min-width: 140px;
             ">
-            ${userData?.rol === "admin" ? `<a href="admin.html" id="admin-link" style="display:block; padding: 8px; color: white; text-decoration: none;">Panel Admin</a>` : ''}
+            ${userData?.rol === "admin" ? `<a href="adminhub.html" id="admin-link" style="display:block; padding: 8px; color: white; text-decoration: none;">Panel Admin</a>` : ''}
             <a href="#" id="logout-link" style="display:block; padding: 8px; color: white; text-decoration: none;">Cerrar sesión</a>
           </div>
         </div>
