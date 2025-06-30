@@ -246,8 +246,8 @@ function mostrarPartidos(partidos) {
       const equipo2 = partido.equipo2;
       const deporte = (partido.deporte || "").toLowerCase();
 
-      const escudo1 = `equipos/${removeTildes(equipo1.toLowerCase().replace(/\s/g, ''))}.png`;
-      const escudo2 = `equipos/${removeTildes(equipo2.toLowerCase().replace(/\s/g, ''))}.png`;
+      const escudo1 = `Equipos/${removeTildes(equipo1.toLowerCase().replace(/\s/g, ''))}.png`;
+      const escudo2 = `Equipos/${removeTildes(equipo2.toLowerCase().replace(/\s/g, ''))}.png`;
 
       // NUEVO: nacionalidades para tenis
       const nacionalidad1 = partido.nacionalidad1 || "";
