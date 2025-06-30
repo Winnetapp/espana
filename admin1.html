@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Introducir resultados · Admin</title>
+  <link rel="stylesheet" href="assets/css/admin1.css" />
+  <link rel="stylesheet" href="assets/css/headfoot.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+</head>
+<body>
+  <header>
+    <div class="header-left">
+      <a href="adminhub.html" class="header-btn">Admin</a>
+    </div>
+    <div class="header-center">
+      <a href="#top">
+        <img src="logohead.png" alt="Logo" class="logo" id="logo-scroll" />
+      </a>
+    </div>
+    <div class="header-right">
+      <a href="index.html" class="header-btn">Inicio</a>
+    </div>
+  </header>
+
+  <main>
+    <div class="card">
+        <!-- 1. Selección de partido -->
+        <section id="selector-partido">
+        <label for="matchSelect">Selecciona partido:</label>
+        <select id="matchSelect" required>
+            <option value="" disabled selected>— Elige uno —</option>
+        </select>
+        </section>
+
+        <!-- 2. Formulario de resultados -->
+        <form id="resultadoForm" class="hidden">
+
+        <!-- Aquí aparecerán las preguntas dinámicas, incluyendo el select para ganador -->
+        <div id="preguntasDinamicas"></div>
+
+        <button type="submit" class="btn-primary">Guardar resultados</button>
+        </form>
+
+        <div id="estadoGuardado" class="estado"></div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-content">
+      <div class="footer-logo">
+        <h2>Winnet</h2>
+        <p>&copy; 2025 Todos los derechos reservados.</p>
+      </div>
+      <div class="footer-contacto">
+        <h2>Contacto</h2>
+        <p>Email: <a href="mailto:winnetaplicacion@gmail.com">winnetaplicacion@gmail.com</a></p>
+      </div>
+      <div class="footer-redes">
+        <h2>Síguenos</h2>
+        <div class="redes-iconos">
+          <a href="https://youtube.com" target="_blank" aria-label="YouTube">
+            <i class="fab fa-youtube"></i>
+          </a>
+          <a href="https://www.instagram.com/winnetapp?igsh=MXBvazY2anFqN3Nsdw==" target="_blank" aria-label="Instagram">
+            <i class="fab fa-instagram"></i>
+          </a>
+          <a href="https://www.tiktok.com/@winnetapp?_t=ZN-8xTDcL9VuTu&_r=1" target="_blank" aria-label="TikTok">
+            <i class="fab fa-tiktok"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Firebase y script -->
+  <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-firestore.js"></script>
+  <script src="assets/js/admin1.js" type="module"></script>
+</body>
+</html>
