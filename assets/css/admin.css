@@ -1,10 +1,16 @@
-/** ADMIN **/
 :root {
-  --bg: #121212;
-  --panel: #1e1e1e;
-  --pri: #fff;
-  --sec: #ddd;
-  --btn: #ff5959;
+  --rojo-oscuro: #300404;
+  --rojo: #ff0000;
+  --negro: #000000;
+  --blanco: #ffffff;
+  --azul: #0077cc;
+  --azul-hover: #005fa3;
+  --morado-oscuro: #00041a;
+  --fondo: #222222;
+}
+
+html {
+  background-color: var(--bg);
 }
 
 body {
@@ -13,8 +19,8 @@ body {
 .main-admin {
   min-height: 100vh; /* Ocupa al menos toda la altura visible */
   font-family: Arial, Helvetica, sans-serif;
-  background: var(--bg);
-  color: var(--pri);
+  background: var(--fondo);
+  color: yellow;
   display: flex;
   justify-content: center;     /* Centrado horizontal */
   align-items: center;         /* Centrado vertical */
@@ -23,7 +29,7 @@ body {
 }
 
 .card {
-  background: var(--panel);
+  background: #222;
   padding: 2rem 2.5rem;
   border-radius: 8px;
   width: 100%;
@@ -39,7 +45,7 @@ h2 {
 label {
   display: block;
   margin: 1rem 0 0.25rem;
-  color: var(--sec);
+  color: yellow;
   font-size: 0.9rem;
 }
 
@@ -51,7 +57,7 @@ select {
   border-radius: 5px;
   margin-bottom: 0.5rem;
   background: #2b2b2b;
-  color: var(--pri);
+  color: var(--blanco);
   font-size: 1rem;
 }
 
@@ -66,8 +72,8 @@ button {
   width: 100%;
   border: none;
   border-radius: 6px;
-  background: var(--btn);
-  color: #fff;
+  background: var(--rojo-oscuro);
+  color: yellow;
   font-size: 1rem;
   cursor: pointer;
   transition: background 0.25s;
@@ -75,7 +81,7 @@ button {
 }
 
 button:hover {
-  background: #ff7979;
+  background: var(--rojo);
 }
 
 .msg {
