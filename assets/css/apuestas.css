@@ -1,0 +1,416 @@
+:root {
+  --rojo-oscuro: #300404;
+  --rojo: #ff0000;
+  --negro: #000000;
+  --blanco: #ffffff;
+  --azul: #0077cc;
+  --azul-hover: #005fa3;
+  --morado-oscuro: #00041a;
+  --fondo: #222222;
+  --tab-bg: #181821;
+  --tab-active-bg: #990000;
+  --tab-hover-bg: #1a2038;
+  --tab-text: #c2e6ff;
+  --tab-active-text: #fff;
+  --tab-border: #263c5c;
+  --tab-glow: 0 2px 16px 0 #99000099;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  background-color: var(--negro);
+
+}
+main {
+  margin: 100px auto;
+  max-width: 570px;
+  width: 100%;
+}
+
+h1 {
+  color: #990000;
+  text-align: center;
+}
+.tabs {
+  margin-bottom: 1em;
+  display: flex;
+  gap: 0.12em;
+  background: transparent;
+  border-bottom: 2.5px solid var(--tab-border);
+  padding-bottom: 0.1em;
+  position: relative;
+  z-index: 2;
+  font-size: 1rem;
+  align-items: center;
+}
+
+.tab-btn {
+  margin-right: 0.0em;
+  padding: 0.48em 1.55em 0.48em 1.55em;
+  background: var(--tab-bg);
+  border: none;
+  color: var(--tab-text);
+  font-weight: bold;
+  font-size: 1.11rem;
+  cursor: pointer;
+  border-radius: 10px 10px 0 0;
+  outline: none;
+  position: relative;
+  transition: 
+    background .25s cubic-bezier(.77,0,.18,1),
+    color .14s,
+    box-shadow .20s;
+  box-shadow: 0 1px 4px 0 #00000018;
+  border-bottom: 2.5px solid transparent;
+  z-index: 1;
+  letter-spacing: .5px;
+  overflow: hidden;
+}
+
+.tab-btn.active, .tab-btn:focus-visible {
+  background: var(--tab-active-bg);
+  color: var(--tab-active-text);
+  border-bottom: 2.5px solid var(--tab-active-bg);
+  box-shadow: var(--tab-glow);
+  z-index: 2;
+  animation: tab-pop 0.35s cubic-bezier(.77,0,.18,1);
+}
+
+.tab-btn:hover:not(.active) {
+  background: var(--tab-hover-bg);
+  color: #fff;
+  border-bottom: 2.5px solid var(--azul);
+  transition: background .18s, color .12s;
+}
+
+@keyframes tab-pop {
+  0% { 
+    transform: scale(1) translateY(0); 
+    box-shadow: none;
+  }
+  60% { 
+    transform: scale(1.09) translateY(-2px); 
+    box-shadow: 0 4px 24px 0 #99000033;
+  }
+  100% { 
+    transform: scale(1) translateY(0); 
+    box-shadow: var(--tab-glow);
+  }
+}
+
+#apuestas-container {
+  padding: 2em;
+  min-height: 150px;
+  font-size: 1rem;
+  max-width: 600px;
+  border: solid 5px var(--rojo-oscuro);
+  border-radius: 30px;
+  border-top: none;
+  background-color: var(--fondo);
+}
+.apuesta {
+  border-bottom: 1px solid #eee;
+  padding: 1em 0;
+}
+.apuesta:last-child {
+  border-bottom: none;
+}
+.apuesta p {
+  margin: 0.2em 0;
+}
+.apuesta ul {
+  margin: 0.5em 0 0.3em 1.5em;
+  padding: 0;
+}
+.apuesta button {
+  background: #990000;
+  color: #fff;
+  border: none;
+  padding: 0.5em 1.2em;
+  margin-top: 0.6em;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+}
+.apuesta button:hover {
+  background: #cc0000;
+}
+
+/* === Estilo apuestas pendientes tipo bet slip === */
+.pending-bet-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.pending-bet-item {
+  background: #1a1a1d;
+  border-radius: 30px;
+  padding: 14px 16px 16px 16px;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.20);
+  position: relative;
+  transition: box-shadow 0.2s;
+}
+
+.pending-bet-item:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.32);
+}
+
+.pbi-header {
+  align-items: center;
+  margin-bottom: 6px;
+  position: relative;
+  font-size: 1rem;
+}
+
+.pbi-status {
+  background: #293047;
+  color: #fff;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 4px 10px;
+  position: absolute;
+  top: 0;
+  right: 0;
+  margin-right: 1%;
+}
+
+.pbi-stake-footer {
+  font-weight: 600;
+  color: yellow;
+}
+
+.pbi-body {
+  margin: 7px 0 0 0;
+  font-size: 1rem;
+}
+
+.pbi-type-label {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: .5px;
+  color: var(--rojo);
+  display: flex;
+  align-items: center;
+  gap: 10%;
+  margin-left: 5%;
+}
+
+.pbi-total-odds {
+  font-size: 15px;
+  font-weight: 700;
+  color: #ffef77;
+  margin-left: 5px;
+  background: var(--rojo-oscuro);
+  padding: 2px 8px;
+  border-radius: 8px;
+  text-align: center;
+}
+
+/* --- Circulitos unidos por una sola línea vertical --- */
+.pbi-bets-list {
+  position: relative;
+  padding-left: 0;
+  list-style: none;
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+.pbi-bets-list::before {
+  content: "";
+  position: absolute;
+  left: 7px;
+  top: 6px;
+  bottom: 6px;
+  width: 0;
+  border-left: 2px solid yellow;
+  z-index: 0;
+}
+
+.pbi-bet {
+  display: flex;
+  align-items: flex-start;
+  position: relative;
+  min-height: 44px;
+  margin-bottom: 16px;
+  font-size: 1rem;
+}
+
+.pbi-dot {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-right: 8px;
+  border-radius: 50%;
+  border: 2px solid var(--rojo);
+  background: #1a1a1d;
+  position: relative;
+  z-index: 1;
+  background-clip: padding-box;
+}
+
+.pbi-bet:last-child {
+  margin-bottom: 0;
+}
+
+.pbi-type {
+  flex: 1;
+  color: #e2e2e2;
+}
+
+.pbi-type-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-width: 200px;
+  gap: 10px;
+  font-size: 1rem;
+  color: yellow;
+  margin-left: 10px;
+}
+
+.pbi-partido {
+  color: #aaa;
+  font-size: 13px;
+  margin-top: 2px;
+  margin-left: 25px;
+}
+
+.pbi-odds {
+  background: #1e2a3c;
+  color: #c2e6ff;
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-weight: bold;
+  margin-left: 10px;
+  font-size: 16px;
+  min-width: unset;
+  text-align: right;
+  display: inline-block;
+  width: auto;
+}
+
+.pbi-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-top: 10px;
+  font-size: 15px;
+  color: #bbb;
+}
+
+.pbi-potential {
+  color: yellow;
+  font-weight: bold;
+}
+.pbi-fecha {
+  color: #ffef77;
+  font-size: 13px;
+  margin-left: 25px;
+  margin-top: 1px;
+  letter-spacing: 0.3px;
+  font-weight: 600;
+  display: block;
+}
+.pbi-fecha span {
+  color: #fff;
+  font-weight: 400;
+}
+
+.pbi-container {
+  display: flex;
+  gap: 110px;
+  align-items: center;
+}
+
+/* ------------------------------ */
+/* RESPONSIVE PARA MÓVILES */
+/* ------------------------------ */
+
+@media (max-width: 600px) {
+  html {
+    font-size: 16px;
+  }
+  main {
+    margin-top: 100px;
+  }
+  h1 {
+        font-size: 1.5rem;
+        margin: 0.5em 0;
+        text-align: center;
+  }
+  #apuestas-container {
+    padding: 0.8em 0.2em;
+    font-size: 0.93rem;
+  }
+  .apuesta {
+    padding: 0.5em 0;
+    font-size: 0.95em;
+  }
+  .tabs {
+    font-size: 0.95rem;
+    gap: 0.08em;
+  }
+  .tab-btn {
+    font-size: 0.8rem;
+    padding: 0.40em 0.7em 0.40em 0.7em;
+    border-radius: 9px 9px 0 0;
+    min-width: 80px;
+    letter-spacing: 0.3px;
+  }
+  .pending-bet-item {
+    padding: 8px 5px 10px 7px;
+    font-size: 0.97em;
+  }
+  .pbi-header {
+    margin-bottom: 15px;
+  }
+  .pbi-partido {
+    font-size: 12px;
+    margin-left: 13px;
+  }
+  .pbi-type-main {
+    font-size: 1rem;
+    min-width: 130px;
+    gap: 7px;
+  }
+  .pbi-bet {
+    min-height: 32px;
+    margin-bottom: 9px;
+    font-size: 0.97em;
+  }
+  .pbi-dot {
+    width: 9.5px;
+    height: 9.5px;
+    margin-right: 6px;
+    border-width: 1.7px;
+  }
+  .pbi-bets-list::before {
+    left: 5.5px;
+  }
+  .pbi-odds {
+    font-size: 14px;
+    padding: 1.5px 7px;
+    margin-left: 6px;
+    border-radius: 4px;
+  }
+  .pbi-footer {
+    font-size: 16px;
+    margin-top: 15px;
+  }
+  .pbi-potential {
+    font-size: 16px;
+  }
+  .pbi-fecha {
+    font-size: 12px;
+    margin-left: 13px;
+    margin-top: 2px;
+  }
+  .pbi-container {
+    gap: 28px;
+  }
+}
