@@ -36,7 +36,7 @@ const wrapperNac2 = document.querySelector(".nacionalidad-2");
 
 /* 3️⃣  Datos --------------------------------------------------------------------- */
 const ligasPorDeporte = {
-  futbol: ["La Liga","Premier League","Serie A","Bundesliga","Ligue 1","Champions League"],
+  futbol: ["La Liga","Premier League","Serie A","Bundesliga","Ligue 1","Champions League","Mundial de Clubes"],
   baloncesto: ["NBA","Euroliga"],
   tenis: ["ATP Madrid","Roland Garros"]
 };
@@ -44,11 +44,15 @@ const ligasPorDeporte = {
 const equiposPorLiga = {
   "La Liga": [
     "Real Madrid","Barcelona","Atletico Madrid","Sevilla","Valencia",
-    "Real Sociedad","Villarreal","Real Betis","Athletic Bilbao","Celta"
+    "Real Sociedad","Villarreal","Real Betis","Athletic Bilbao","Celta de Vigo",
+    "Getafe","Espanyol","Osasuna","Alavés", "Rayo Vallecano",
+    "Elche","Mallorca","Levante", "Girona", "Oviedo"
   ],
   "Premier League": [
     "Manchester City","Liverpool","Manchester United","Arsenal","Chelsea",
-    "Tottenham","Newcastle United","Everton","Aston Villa","West Ham"
+    "Tottenham","Newcastle","Everton","Aston Villa","West Ham",
+    "Brighton","Crystal Palace", "Wolves", "Leeds United", "Burnley",
+    "Brentford","Fulham","Bournemouth","Nottingham Forest", "Sunderland"
   ],
   "Serie A": [
     "Juventus","AC Milan","Inter Milan","Napoli","Roma",
