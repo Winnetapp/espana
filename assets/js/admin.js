@@ -1,5 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+import { getFirestore, collection, addDoc, doc, setDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
 /* 1️⃣  Firebase ------------------------------------------------------------------ */
 const firebaseConfig = {
@@ -12,8 +13,9 @@ const firebaseConfig = {
   measurementId: "G-12LH5QRVD0"
 };
 
-initializeApp(firebaseConfig);
-const db = getFirestore();
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
 
 /* 2️⃣  Referencias DOM ----------------------------------------------------------- */
 const $ = id => document.getElementById(id);
@@ -242,6 +244,7 @@ function construirPartido() {
     fecha,
     hora,
     mercados:{ resultado:{ nombre:"Resultado final", opciones } }
+    // NO añadas partidoId aquí, lo añadimos después con el ID del documento
   };
 }
 
@@ -269,6 +272,13 @@ function mostrarSpinner(mostrar) {
 
 /* 9️⃣  Guardar partido en Firestore -------------------------------------- */
 async function guardarPartido() {
+  // Comprobar autenticación antes de permitir crear el partido
+  if (!auth.currentUser) {
+    msg.style.color = "red";
+    msg.textContent = "Debes iniciar sesión para crear un partido.";
+    return;
+  }
+
   if (!validarDatos()) return;
 
   const partido = construirPartido();
@@ -278,7 +288,11 @@ async function guardarPartido() {
   mostrarSpinner(true);
 
   try {
-    await addDoc(collection(db, "partidos"), partido);
+    // Primero creamos el partido y obtenemos el id del documento
+    const docRef = await addDoc(collection(db, "partidos"), partido);
+    // Luego actualizamos ese documento para añadir el campo partidoId = docRef.id
+    await setDoc(doc(db, "partidos", docRef.id), { partidoId: docRef.id }, { merge: true });
+
     mostrarSpinner(false);
     msg.style.color = "green";
     msg.textContent = "¡Partido creado con éxito!";
@@ -300,9 +314,26 @@ async function guardarPartido() {
 
 /*  🔟  Evento submit ----------------------------------------------------- */
 const form = $("formCrearPartido");
-if (form) {
-  form.addEventListener("submit", e => {
-    e.preventDefault();
-    guardarPartido();
-  });
-}
+
+// Proteger el panel: solo accesible para usuarios autenticados
+onAuthStateChanged(auth, async (user) => {
+  if (!user) {
+    // No autenticado, redirigir al login
+    window.location.href = "login.html";
+    return;
+  }
+
+  // (Opcional: Si quieres comprobar admin, obtén los claims aquí)
+  // const token = await user.getIdTokenResult();
+  // if (!token.claims.admin) {
+  //   window.location.href = "no-admin.html";
+  //   return;
+  // }
+
+  if (form) {
+    form.addEventListener("submit", e => {
+      e.preventDefault();
+      guardarPartido();
+    });
+  }
+});
