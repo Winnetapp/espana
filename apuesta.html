@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mis Apuestas</title>
+  <link rel="stylesheet" href="assets/css/apuestas.css">
+  <link rel="stylesheet" href="assets/css/headfoot.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+  <!-- Firebase (compat) -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+
+</head>
+<body>
+    <header>
+    <div class="header-left"  id="header-left"></div>
+
+    <div class="header-center">
+      <a href="#top"><img src="logohead.png" alt="Logo" class="logo" id="logo-scroll" /></a>
+    </div>
+
+    <div class="header-right" id="header-right">
+      <div class="user-menu" id="user-menu" style="display:none;">
+        <span id="username-display">Usuario ⌄</span>
+        <div class="dropdown-menu" id="dropdown-menu">
+          <button id="logout-btn">Cerrar sesión</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+    <main>
+    <h1>Mis Apuestas</h1>
+    <div class="tabs">
+        <button class="tab-btn active" data-tab="pendientes">
+        <span>Pendientes</span>
+        </button>
+        <button class="tab-btn" data-tab="porAceptar">
+        <span>Terminadas</span>
+        </button>
+        <button class="tab-btn" data-tab="aceptadas">
+        <span>Terminadas</span>
+        </button>
+        <button class="tab-btn" data-tab="todas">
+        <span>Todas</span>
+        </button>
+    </div>
+    <div id="apuestas-container"></div>
+    </main>
+
+  <footer class="footer">
+    <div class="footer-content">
+      <div class="footer-logo">
+        <h2>Winnet</h2><p>&copy; 2025 Todos los derechos reservados.</p>
+      </div>
+
+      <div class="footer-contacto">
+        <h2>Contacto</h2>
+        <p>Email: <a href="mailto:winnetaplicacion@gmail.com">winnetaplicacion@gmail.com</a></p>
+      </div>
+
+      <div class="footer-redes">
+        <h2>Síguenos</h2>
+        <div class="redes-iconos">
+          <a href="https://youtube.com" target="_blank" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
+          <a href="https://www.instagram.com/winnetapp?igsh=MXBvazY2anFqN3Nsdw==" target="_blank" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+          <a href="https://www.tiktok.com/@winnetapp?_t=ZN-8xTDcL9VuTu&_r=1" target="_blank" aria-label="TikTok"><i class="fab fa-tiktok"></i></a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="assets/js/apuestas.js"></script>
+  <script src="assets/js/main.js"></script>
+</body>
+</html>
