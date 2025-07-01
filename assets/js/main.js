@@ -1,6 +1,7 @@
 /* =========================================================
    1.  CONFIGURACIÓN E INICIALIZACIÓN DE FIREBASE
    ========================================================= */
+   
 const firebaseConfig = {
   apiKey: "AIzaSyDgdI3UcnHuRlcynH-pCHcGORcGBAD3FSU",
   authDomain: "winnet-708db.firebaseapp.com",
@@ -433,46 +434,59 @@ function mostrarPartidos(partidos) {
    AÑADIR APUESTA AL HACER CLIC EN CUALQUIER PARTE DE .cuota
    ========================================================= */
 document.getElementById('partidos-container').addEventListener('click', e => {
-  // 1) ¿Hiciste clic dentro de una caja .cuota (o en sus hijos)?
+  // Solo actuamos si el target es .cuota o un hijo de .cuota
   const cuotaBox = e.target.closest('.cuota');
-  if (!cuotaBox) return;                   // Fuera de .cuota ⟶ no hacer nada
+  if (!cuotaBox) return;
 
-  // 2) El botón real con la cuota numérica vive dentro de esa caja
+  // Busca el div de la cuota numérica
   const btn = cuotaBox.querySelector('.cuota-btn');
-  if (!btn) return;                        // Seguridad: no debería pasar
+  if (!btn) return;
 
-  // 3) Datos de la apuesta
-  const partido = btn.dataset.partido;
-  const tipo    = btn.dataset.tipo;
-  const cuota   = btn.textContent.trim();
+  const partidoNombre = btn.dataset.partido;
+  const tipo = btn.dataset.tipo;
+  const cuota = btn.textContent.trim();
 
-  // ‼️ 4) Solo UNA apuesta por partido
-  if (bets.some(b => b.partido === partido)) {
+  // Buscar el partido en listaPartidos para obtener el partidoId
+  const partidoObj = listaPartidos.find(p => 
+    `${p.equipo1} vs ${p.equipo2}` === partidoNombre
+  );
+  if (!partidoObj) {
+    alert('No se encontró el partido en Firestore.');
+    return;
+  }
+  const partidoId = partidoObj.partidoId;
+
+  // Comprobar si ya hay apuesta de ese partido
+  if (bets.some(b => b.partido === partidoNombre)) {
     alert('Ya tienes una apuesta de este partido en el carrito.');
     return;
   }
 
-  // 5) Añadimos y refrescamos
-  bets.push({ partido, tipo, cuota });
+  bets.push({ partido: partidoNombre, partidoId, tipo, cuota });
   refreshSlip();
+
   if (window.innerWidth <= 768) sidebar.classList.add('open');
 });
 
 
 // Cargar partidos desde Firestore
+let listaPartidos = []; // Variable global para acceder al ID
+
 async function cargarPartidos() {
   console.log("Cargando partidos desde Firestore...");
   try {
     const snapshot = await db.collection('partidos').get();
-    const partidos = snapshot.docs.map(doc => doc.data());
-    console.log("Partidos cargados:", partidos);
-    mostrarPartidos(partidos);
+    listaPartidos = snapshot.docs.map(doc => ({
+      ...doc.data(),
+      partidoId: doc.id // <-- Guarda el ID
+    }));
+    console.log("Partidos cargados:", listaPartidos);
+    mostrarPartidos(listaPartidos);
   } catch (error) {
     console.error("Error al cargar partidos:", error);
   }
 }
-  cargarPartidos();
-
+cargarPartidos();
 
 // Cerrar menú si haces clic fuera (opcional)
 document.addEventListener('click', (e) => {
@@ -485,6 +499,67 @@ document.addEventListener('click', (e) => {
   }
 });
 
+// 8. GUARDAR APUESTA AL PULSAR "ACEPTAR LOS CAMBIOS"
+document.querySelector('.accept-btn').addEventListener('click', async () => {
+  const user = auth.currentUser;
+  if (!user) {
+    alert('Debes iniciar sesión para realizar una apuesta.');
+    return;
+  }
+  if (bets.length === 0) {
+    alert('No hay apuestas en el carrito.');
+    return;
+  }
+  const stake = parseFloat(stakeInput.value) || 0;
+  if (stake <= 0) {
+    alert('El importe debe ser mayor que cero.');
+    return;
+  }
+
+  // Verifica que todos los bets tienen partidoId definido
+  const betsSinPartidoId = bets.filter(b => !b.partidoId);
+  if (betsSinPartidoId.length > 0) {
+    alert('Error interno: Hay una apuesta sin partidoId. Por favor, contacta soporte o vuelve a añadir el partido.');
+    console.error("Apuestas sin partidoId:", betsSinPartidoId);
+    return;
+  }
+
+  // Calcula cuota total y ganancias potenciales
+  const totalOdds = bets.reduce((acc, b) => acc * parseFloat(b.cuota), 1);
+  const potentialWin = stake * totalOdds;
+
+  // Estructura de la apuesta según tu modelo
+  const apuestaData = {
+    usuarioId: user.uid,
+    fecha: firebase.firestore.FieldValue.serverTimestamp(),
+    stake: stake,
+    totalOdds: totalOdds,
+    potentialWin: potentialWin,
+    bets: bets.map(b => ({
+      partido: b.partido,
+      tipo: b.tipo,
+      cuota: parseFloat(b.cuota),
+      partidoId: b.partidoId // Debe estar SIEMPRE definido y ser el id del documento en "partidos"
+    })),
+    estado: "pendiente",           // Estado inicial: pendiente
+    resultado: null,               // Resultado aún no determinado
+    aceptadaPorUsuario: false      // El usuario aún no ha aceptado el resultado
+  };
+
+  try {
+    await db.collection('apuestas').add(apuestaData);
+    alert('¡Apuesta realizada con éxito!');
+    // Limpia el carrito tras apostar
+    bets.length = 0;
+    refreshSlip();
+    stakeInput.value = 5;
+    updatePotentialWinnings();
+    sidebar.classList.remove('open');
+  } catch (error) {
+    console.error('Error al guardar la apuesta:', error);
+    alert('Ocurrió un error al guardar la apuesta. Intenta de nuevo.');
+  }
+});
 
 
 // HEADER //
@@ -522,6 +597,7 @@ auth.onAuthStateChanged(async (user) => {
               min-width: 140px;
             ">
             ${userData?.rol === "admin" ? `<a href="adminhub.html" id="admin-link" style="display:block; padding: 8px; color: white; text-decoration: none;">Panel Admin</a>` : ''}
+            <a href="apuestas.html" id="apuestas-link" style="display:block; padding: 8px; color: white; text-decoration: none;">Mis apuestas</a>
             <a href="#" id="logout-link" style="display:block; padding: 8px; color: white; text-decoration: none;">Cerrar sesión</a>
           </div>
         </div>
