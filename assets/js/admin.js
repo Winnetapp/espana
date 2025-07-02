@@ -55,12 +55,16 @@ const equiposPorLiga = {
     "Brentford","Fulham","Bournemouth","Nottingham Forest", "Sunderland"
   ],
   "Serie A": [
-    "Juventus","AC Milan","Inter Milan","Napoli","Roma",
-    "Lazio","Atalanta","Fiorentina","Torino","Bologna"
+    "Juventus","Milan","Inter","Napoli","Roma",
+    "Lazio","Atalanta","Fiorentina","Torino","Bolonia",
+    "Como", "Udinense","Parma","Leece","Genoa",
+    "Cagliari","Verona", "Sassuolo","Pisa","Cremonese"
   ],
   "Bundesliga": [
-    "Bayern Munich","Borussia Dortmund","RB Leipzig","Bayer Leverkusen",
-    "Eintracht Frankfurt","Wolfsburg","Mönchengladbach","Freiburg","Union Berlin"
+    "Bayern Munich","Borussia Dortmund","Leipzig","Bayer Leverkusen",
+    "Eintracht Frankfurt","Wolfsburg","Mönchengladbach","Freiburg","Union Berlin",
+    "Werder Bremen", "Stuttgart","Hoffenheim","Mainz",
+    "Augsburgo","San Pauli","Heidenheim","Colonia"
   ],
   "Ligue 1": [
     "Paris Saint-Germain","Olympique Lyon","Marseille","Monaco","Lille",
