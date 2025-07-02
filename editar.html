@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Editar Partido</title>
+  <link rel="stylesheet" href="assets/css/editar.css"/>
+  <link rel="stylesheet" href="assets/css/headfoot.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+  <!-- Firebase SDKs -->
+   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+</head>
+<body>
+  <header>
+    <div class="header-left">
+      <a href="adminhub.html" class="header-btn">Admin</a>
+    </div>
+    <div class="header-center">
+      <a href="#top">
+        <img src="logohead.png" alt="Logo" class="logo" id="logo-scroll" />
+      </a>
+    </div>
+    <div class="header-right">
+      <a href="index.html" class="header-btn">Inicio</a>
+    </div>
+  </header>
+
+  <main class="main-admin">
+    <div class="card">
+        <h1>Editar partido</h1>
+        <div>
+        <label for="selectPartido">Selecciona partido:</label>
+        <select id="selectPartido"></select>
+        </div>
+        <!-- El formulario aparece debajo del select -->
+        <form id="editMatchForm" style="display:none;">
+        <div>
+            <label for="deporte">Deporte:</label>
+            <select id="deporte" name="deporte">
+            <option value="">Selecciona un deporte</option>
+            <option value="futbol">Fútbol</option>
+            <option value="baloncesto">Baloncesto</option>
+            <option value="tenis">Tenis</option>
+            </select>
+        </div>
+        <div>
+            <label for="liga">Competición:</label>
+            <input list="ligas-list" id="liga" name="liga" placeholder="Escribe o selecciona liga" autocomplete="off" />
+            <datalist id="ligas-list"></datalist>
+        </div>
+        <div class="equipos-wrapper">
+            <div>
+            <label for="equipo1">Equipo / Jugador 1:</label>
+            <input id="equipo1" list="equipos-list" name="equipo1" placeholder="Elige el equipo o jugador 1" autocomplete="off" />
+            </div>
+            <button id="invertirEquipos" type="button" title="Intercambiar equipos">⮃</button>
+            <div>
+            <label for="equipo2">Equipo / Jugador 2:</label>
+            <input id="equipo2" list="equipos-list" name="equipo2" placeholder="Elige el equipo o jugador 2" autocomplete="off" />
+            </div>
+        </div>
+        <datalist id="equipos-list"></datalist>
+
+        <div id="nacionalidades-wrapper" style="display:none;">
+            <div>
+            <label for="nacionalidad1">Nacionalidad jugador 1:</label>
+            <input name="nacionalidad1" id="nacionalidad1" list="nacionalidades-list" placeholder="Ej: España" autocomplete="off" />
+            </div>
+            <div>
+            <label for="nacionalidad2">Nacionalidad jugador 2:</label>
+            <input name="nacionalidad2" id="nacionalidad2" list="nacionalidades-list" placeholder="Ej: Francia" autocomplete="off" />
+            </div>
+        </div>
+        <datalist id="nacionalidades-list">
+            <option value="España">
+            <option value="Argentina">
+            <option value="Brasil">
+            <option value="Francia">
+            <option value="Alemania">
+            <option value="Italia">
+            <option value="Portugal">
+            <option value="Inglaterra">
+            <option value="México">
+            <option value="Colombia">
+            <option value="Uruguay">
+            <option value="Chile">
+            <option value="Estados Unidos">
+            <option value="Canadá">
+            <option value="Australia">
+            <option value="Japón">
+            <option value="Corea del Sur">
+        </datalist>
+
+        <div>
+            <label for="fecha">Fecha:</label>
+            <input type="date" id="fecha" name="fecha">
+        </div>
+        <div>
+            <label for="hora">Hora:</label>
+            <input type="time" id="hora" name="hora">
+        </div>
+
+        <h3>Cuotas de Resultado</h3>
+        <div id="mercadoCuotasContainer"></div>
+
+        <button type="submit">Guardar cambios</button>
+        </form>
+        <div id="message"></div>
+    </div>
+  </main>
+  <footer class="footer">
+    <div class="footer-content">
+      <div class="footer-logo">
+        <h2>Winnet</h2>
+        <p>&copy; 2025 Todos los derechos reservados.</p>
+      </div>
+      <div class="footer-contacto">
+        <h2>Contacto</h2>
+        <p>Email: <a href="mailto:winnetaplicacion@gmail.com">winnetaplicacion@gmail.com</a></p>
+      </div>
+      <div class="footer-redes">
+        <h2>Síguenos</h2>
+        <div class="redes-iconos">
+          <a href="https://youtube.com" target="_blank" aria-label="YouTube">
+            <i class="fab fa-youtube"></i>
+          </a>
+          <a href="https://www.instagram.com/winnetapp?igsh=MXBvazY2anFqN3Nsdw==" target="_blank" aria-label="Instagram">
+            <i class="fab fa-instagram"></i>
+          </a>
+          <a href="https://www.tiktok.com/@winnetapp?_t=ZN-8xTDcL9VuTu&_r=1" target="_blank" aria-label="TikTok">
+            <i class="fab fa-tiktok"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+  </footer>
+  <script src="assets/js/editar.js"></script>
+</body>
+</html>
