@@ -524,11 +524,22 @@ document.querySelector('.accept-btn').addEventListener('click', async () => {
     return;
   }
 
+  // Cargar saldo actual del usuario
+  const userRef = db.collection('usuarios').doc(user.uid);
+  const userDoc = await userRef.get();
+  const userData = userDoc.data();
+  const saldoActual = parseFloat(userData?.saldo) || 0;
+
+  // Comprobar si hay saldo suficiente
+  if (stake > saldoActual) {
+    alert('No tienes saldo suficiente para realizar esta apuesta.');
+    return;
+  }
+
   // Calcula cuota total y ganancias potenciales
   const totalOdds = bets.reduce((acc, b) => acc * parseFloat(b.cuota), 1);
   const potentialWin = stake * totalOdds;
 
-  // Estructura de la apuesta según tu modelo
   const apuestaData = {
     usuarioId: user.uid,
     fecha: firebase.firestore.FieldValue.serverTimestamp(),
@@ -539,22 +550,30 @@ document.querySelector('.accept-btn').addEventListener('click', async () => {
       partido: b.partido,
       tipo: b.tipo,
       cuota: parseFloat(b.cuota),
-      partidoId: b.partidoId // Debe estar SIEMPRE definido y ser el id del documento en "partidos"
+      partidoId: b.partidoId
     })),
-    estado: "pendiente",           // Estado inicial: pendiente
-    resultado: null,               // Resultado aún no determinado
-    aceptadaPorUsuario: false      // El usuario aún no ha aceptado el resultado
+    estado: "pendiente",
+    resultado: null,
+    aceptadaPorUsuario: false
   };
 
   try {
+    // Registrar la apuesta
     await db.collection('apuestas').add(apuestaData);
+
+    // Restar el importe al saldo del usuario
+    await userRef.update({
+      saldo: firebase.firestore.FieldValue.increment(-stake)
+    });
+
     alert('¡Apuesta realizada con éxito!');
-    // Limpia el carrito tras apostar
     bets.length = 0;
     refreshSlip();
     stakeInput.value = 5;
     updatePotentialWinnings();
     sidebar.classList.remove('open');
+    // Actualizar el saldo en el header al instante:
+    headerLeft.innerHTML = `${(saldoActual - stake).toFixed(2)} €`;
   } catch (error) {
     console.error('Error al guardar la apuesta:', error);
     alert('Ocurrió un error al guardar la apuesta. Intenta de nuevo.');
