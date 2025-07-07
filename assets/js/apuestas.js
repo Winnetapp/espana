@@ -118,6 +118,12 @@ function render() {
     case 'pendientes':
       filtered = apuestas.filter(a => a.estado === 'pendiente');
       break;
+    case 'listas':
+      filtered = apuestas.filter(a => a.estado !== 'pendiente' && (a.aceptadaPorUsuario === false));
+      break;
+    case 'terminadas':
+      filtered = apuestas.filter(a => a.estado !== 'pendiente' && (a.aceptadaPorUsuario === true)); // aceptadas por usuario
+      break;
     case 'porAceptar':
       filtered = apuestas.filter(a => a.estado === 'finalizada' && !a.aceptadaPorUsuario);
       break;
@@ -137,97 +143,140 @@ function renderApuestas(lista) {
     return;
   }
 
-  if (currentTab === 'pendientes') {
-    container.innerHTML = `
-        <ul class="pending-bet-list">
-        ${lista.map(apuesta => {
-        const tipoApuesta = apuesta.bets.length > 1 ? "Combinada" : "Simple";
-        return `
-        <li class="pending-bet-item">
-            <div class="pbi-header">
+  container.innerHTML = `
+      <ul class="pending-bet-list">
+      ${lista.map(apuesta => {
+      const tipoApuesta = apuesta.bets.length > 1 ? "Combinada" : "Simple";
+      // Estado y resultado
+      let estadoTexto = "";
+      if (apuesta.estado === 'pendiente') {
+        estadoTexto = '<span class="pbi-status pendiente">Pendiente</span>';
+      } else if (apuesta.estado === 'ganada') {
+        estadoTexto = '<span class="pbi-status ganada">Ganada</span>';
+      } else if (apuesta.estado === 'perdida') {
+        estadoTexto = '<span class="pbi-status perdida">Perdida</span>';
+      } else {
+        estadoTexto = `<span class="pbi-status ${apuesta.estado}">${apuesta.estado.charAt(0).toUpperCase() + apuesta.estado.slice(1)}</span>`;
+      }
+
+      // Botones para el apartado "Listas"
+      let acciones = "";
+      if (currentTab === "listas") {
+        if (apuesta.estado === "ganada") {
+          acciones = `
+            <div class="pbi-boton-container">
+              <button class="btn-cobrar" onclick="aceptarApuesta('${apuesta.id}', true)">
+                Cobrar ganancia
+                <span class="pbi-ganancias-potenciales">Ganancias potenciales: ${apuesta.potentialWin.toFixed(2)}€</span>
+              </button>
+            </div>
+          `;
+        } else if (apuesta.estado === "perdida") {
+          acciones = `
+            <div class="pbi-boton-container">
+              <button class="btn-perder" onclick="aceptarApuesta('${apuesta.id}', false)">Confirmar pérdida</button>
+            </div>
+          `;
+        }
+      }
+
+      // Mostrar .pbi-footer solo en tabs PENDIENTES y TODAS
+      let mostrarFooter = (currentTab === 'pendientes' || currentTab === 'todas');
+      let footer = '';
+      if (mostrarFooter) {
+        footer = `
+          <div class="pbi-footer">
+            <span class="pbi-stake-footer">Importe: ${apuesta.stake}€</span>
+            <span class="pbi-potential">Ganancias: ${apuesta.potentialWin.toFixed(2)}€</span>
+            ${apuesta.resultado && apuesta.estado !== "pendiente" ? `<span class="pbi-resultado">${apuesta.resultado}</span>` : ""}
+          </div>
+        `;
+      } else {
+        // Solo muestra el resultado si no es pendiente/todas y hay resultado
+        if (apuesta.resultado && apuesta.estado !== "pendiente") {
+          footer = `<div class="pbi-footer"><span class="pbi-resultado">${apuesta.resultado}</span></div>`;
+        }
+      }
+
+      return `
+      <li class="pending-bet-item">
+          <div class="pbi-header">
             <span class="pbi-type-label">
                 ${tipoApuesta}
                 <span class="pbi-total-odds">${apuesta.totalOdds.toFixed(2)}</span>
             </span>
-            <span class="pbi-status">Pendiente</span>
-            </div>
-            <div class="pbi-body">
+            ${estadoTexto}
+          </div>
+          <div class="pbi-body">
             <ul class="pbi-bets-list">
-                ${apuesta.bets.map((b, idx) => {
+              ${apuesta.bets.map((b, idx) => {
                 const [equipo1, equipo2] = b.partido.split(' vs ');
                 let tipoMostrado = "";
                 if (b.tipo === equipo1) {
-                    tipoMostrado = `Gana ${equipo1}`;
+                  tipoMostrado = `Gana ${equipo1}`;
                 } else if (b.tipo === equipo2) {
-                    tipoMostrado = `Gana ${equipo2}`;
+                  tipoMostrado = `Gana ${equipo2}`;
                 } else {
-                    tipoMostrado = b.tipo;
+                  tipoMostrado = b.tipo;
                 }
+                let dotClass = "";
+                if (b.resultado === "ganada") dotClass = "ganada";
+                else if (b.resultado === "perdida") dotClass = "perdida";
+                let dot = `<span class="pbi-dot ${dotClass}"></span>`;
                 return `
-                    <li class="pbi-bet">
-                    <span class="pbi-dot"></span>
+                  <li class="pbi-bet">
+                    ${dot}
                     <div style="flex:1">
-                        <div class="pbi-type-main">
+                      <div class="pbi-type-main">
                         <span>${tipoMostrado}</span>
                         <span class="pbi-odds">${b.cuota}</span>
-                        </div>
-                        <div class="pbi-container">
-                          <div class="pbi-partido">${b.partido}</div>
-                          <div class="pbi-fecha">${b.fechaPartidoFormateada || ""}</div>
-                        </div>
+                      </div>
+                      <div class="pbi-container">
+                        <div class="pbi-partido">${b.partido}</div>
+                        <div class="pbi-fecha">${b.fechaPartidoFormateada || ""}</div>
+                      </div>
                     </div>
-                    </li>
+                  </li>
                 `;
-                }).join('')}
+              }).join('')}
             </ul>
-            </div>
-            <div class="pbi-footer">
-            <span class="pbi-stake-footer">Importe: ${apuesta.stake}€</span>
-            <span class="pbi-potential">Ganancias: ${apuesta.potentialWin.toFixed(2)}€</span>
-            </div>
-        </li>
-        `}).join('')}
-        </ul>
-    `;
-    return;
-    }
-
-  // resto de pestañas (igual que antes, pero con fecha formateada)
-  container.innerHTML = lista.map(apuesta => `
-    <div class="apuesta">
-      <p><strong>Fecha:</strong> ${apuesta.fecha?.toDate?.().toLocaleString?.() || '-'}</p>
-      <p><strong>Stake:</strong> ${apuesta.stake} €</p>
-      <p><strong>Cuota total:</strong> ${apuesta.totalOdds.toFixed(2)}</p>
-      <p><strong>Ganancia potencial:</strong> ${apuesta.potentialWin.toFixed(2)} €</p>
-      <p><strong>Estado:</strong> ${getEstadoText(apuesta.estado)}</p>
-      <p><strong>Resultado:</strong> ${apuesta.resultado ? apuesta.resultado : '-'}</p>
-      <ul>
-        ${apuesta.bets.map(b => `
-          <li>
-            ${b.partido} - ${b.tipo} - cuota: ${b.cuota}
-            <div class="pbi-fecha">${b.fechaPartidoFormateada || ""}</div>
-          </li>
-        `).join('')}
+          </div>
+          ${footer}
+          ${acciones}
+      </li>
+      `}).join('')}
       </ul>
-      ${(apuesta.estado === 'finalizada' && !apuesta.aceptadaPorUsuario) ? `
-        <button onclick="aceptarApuesta('${apuesta.id}', '${apuesta.resultado}')">
-          ${apuesta.resultado === 'ganada' ? 'Aceptar y recibir dinero' : 'Aceptar'}
-        </button>
-      ` : ''}
-    </div>
-  `).join('');
+  `;
 }
 
-window.aceptarApuesta = async function(id, resultado) {
+window.aceptarApuesta = async function(id, ganada) {
   try {
-    // Aquí puedes agregar lógica para actualizar saldo si la apuesta es ganada
-    await db.collection('apuestas').doc(id).update({
-      estado: 'aceptada',
+    const apuestaRef = db.collection('apuestas').doc(id);
+    const apuestaDoc = await apuestaRef.get();
+    const apuesta = apuestaDoc.data();
+
+    // Actualizar apuesta: marcar aceptada por usuario
+    await apuestaRef.update({
       aceptadaPorUsuario: true
     });
+
+    // Si ha ganado, sumar ganancias al saldo
+    if (ganada && apuesta && apuesta.potentialWin) {
+      const userRef = db.collection('usuarios').doc(currentUser.uid);
+      // Actualizar el saldo sumando potentialWin
+      await db.runTransaction(async (transaction) => {
+        const userDoc = await transaction.get(userRef);
+        if (!userDoc.exists) throw "Usuario no existe";
+        const saldoActual = userDoc.data().saldo || 0;
+        const nuevoSaldo = saldoActual + apuesta.potentialWin;
+        transaction.update(userRef, { saldo: nuevoSaldo });
+      });
+    }
+
     await loadApuestas();
   } catch (e) {
     alert("Error al aceptar la apuesta. Intenta de nuevo.");
+    console.error(e);
   }
 };
 
