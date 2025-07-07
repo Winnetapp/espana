@@ -7,6 +7,8 @@ import {
   doc,
   getDoc,
   updateDoc,
+  query,
+  where,
 } from "https://www.gstatic.com/firebasejs/10.5.2/firebase-firestore.js";
 
 /* 1️⃣  Firebase ------------------------------------------------------------------ */
@@ -68,7 +70,6 @@ async function cargarPartidos() {
     matchSelect.appendChild(option);
   }
 }
-
 
 // Construye el formulario dinámico según mercados y deporte
 function construirFormularioDesdeMercados(partidoSeleccionadoData) {
@@ -196,7 +197,75 @@ resultadoForm.addEventListener("submit", async (e) => {
       resultado: resultadoGuardado,
     });
 
-    if (estadoGuardado) estadoGuardado.textContent = "Resultados guardados correctamente.";
+    // --- NUEVO: Actualizar apuestas relacionadas ---
+    const apuestasRef = collection(db, "apuestas");
+    const apuestasSnapshot = await getDocs(apuestasRef);
+
+    for (const apuestaDoc of apuestasSnapshot.docs) {
+      const apuestaData = apuestaDoc.data();
+      let bets = apuestaData.bets || [];
+      let betsModificados = false;
+
+      // Recorremos los bets de la apuesta
+      bets = bets.map((bet) => {
+        if (bet.partidoId === partidoSeleccionadoId) {
+          let resultadoBet = "perdida";
+          // Lógica según tipo de apuesta (ajusta según tus valores)
+          if (
+            bet.tipo === partidoSeleccionadoData.equipo1 && resultadoGuardado.ganador === "1"
+          ) {
+            resultadoBet = "ganada";
+          } else if (
+            bet.tipo === partidoSeleccionadoData.equipo2 && resultadoGuardado.ganador === "2"
+          ) {
+            resultadoBet = "ganada";
+          } else if (
+            bet.tipo === "Empate" && resultadoGuardado.ganador === "X"
+          ) {
+            resultadoBet = "ganada";
+          }
+          betsModificados = true;
+          return { ...bet, resultado: resultadoBet };
+        }
+        return bet;
+      });
+
+      // --- Lógica combinada mejorada ---
+      let nuevoEstadoApuesta = apuestaData.estado || "pendiente";
+      if (bets.length > 1) {
+        // Si algún bet está perdida, la apuesta es perdida
+        if (bets.some(b => b.resultado === "perdida")) {
+          nuevoEstadoApuesta = "perdida";
+        }
+        // Si todos los bets están ganados y hay al menos uno, la apuesta es ganada
+        else if (bets.every(b => b.resultado === "ganada") && bets.length > 0) {
+          nuevoEstadoApuesta = "ganada";
+        }
+        // Si hay algún bet pendiente, la apuesta es pendiente
+        else {
+          nuevoEstadoApuesta = "pendiente";
+        }
+      } else if (bets.length === 1) {
+        nuevoEstadoApuesta = bets[0].resultado || "pendiente";
+      }
+
+      // Solo actualizar si hubo cambios
+      if (betsModificados) {
+        await updateDoc(doc(db, "apuestas", apuestaDoc.id), {
+          bets: bets,
+          estado: nuevoEstadoApuesta,
+          resultado:
+            nuevoEstadoApuesta === "ganada"
+              ? "¡Enhorabuena, tu apuesta es ganadora!"
+              : nuevoEstadoApuesta === "perdida"
+              ? "Tu apuesta no ha resultado ganadora."
+              : null,
+        });
+      }
+    }
+    // --- FIN actualizar apuestas ---
+
+    if (estadoGuardado) estadoGuardado.textContent = "Resultados guardados y apuestas actualizadas correctamente.";
   } catch (error) {
     console.error("Error guardando resultado:", error);
     if (estadoGuardado) estadoGuardado.textContent = "Error al guardar los resultados.";
