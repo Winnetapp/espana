@@ -112,6 +112,24 @@ function formateaFechaHora(fechaStr, horaStr) {
   }
 }
 
+// NUEVA: Formatea el timestamp de Firestore a "dd/mm/yyyy HH:MM"
+function formateaFechaApuesta(fecha) {
+  if (!fecha || !fecha.toDate) return '';
+  const d = fecha.toDate();
+  const dias = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+  const meses = [
+    "enero", "febrero", "marzo", "abril", "mayo", "junio",
+    "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"
+  ];
+  const diaSemana = dias[d.getDay()];
+  const dia = String(d.getDate()).padStart(2, '0');
+  const mes = meses[d.getMonth()];
+  const año = d.getFullYear();
+  const horas = String(d.getHours()).padStart(2, '0');
+  const minutos = String(d.getMinutes()).padStart(2, '0');
+  return `${diaSemana} ${dia} de ${mes} del ${año} a las ${horas}:${minutos}`;
+}
+
 function render() {
   let filtered = [];
   switch(currentTab) {
@@ -122,7 +140,7 @@ function render() {
       filtered = apuestas.filter(a => a.estado !== 'pendiente' && (a.aceptadaPorUsuario === false));
       break;
     case 'terminadas':
-      filtered = apuestas.filter(a => a.estado !== 'pendiente' && (a.aceptadaPorUsuario === true)); // aceptadas por usuario
+      filtered = apuestas.filter(a => a.estado !== 'pendiente' && (a.aceptadaPorUsuario === true));
       break;
     case 'porAceptar':
       filtered = apuestas.filter(a => a.estado === 'finalizada' && !a.aceptadaPorUsuario);
@@ -131,13 +149,18 @@ function render() {
       filtered = apuestas.filter(a => a.estado === 'aceptada');
       break;
     case 'todas':
-      filtered = apuestas;
+      filtered = [...apuestas]; // copia para no modificar el original
+      // Ordenar por fecha descendente (más reciente primero)
+      filtered.sort((a, b) => {
+        if (!a.fecha || !b.fecha) return 0;
+        return b.fecha.seconds - a.fecha.seconds;
+      });
       break;
   }
-  renderApuestas(filtered);
+  renderApuestas(filtered, currentTab);
 }
 
-function renderApuestas(lista) {
+function renderApuestas(lista, currentTab) {
   if (lista.length === 0) {
     container.innerHTML = "<p>No hay apuestas en este apartado.</p>";
     return;
@@ -184,22 +207,55 @@ function renderApuestas(lista) {
       let mostrarFooter = (currentTab === 'pendientes' || currentTab === 'todas');
       let footer = '';
       if (mostrarFooter) {
+        // Oculta apuesta.resultado en el footer si ya hay resultado decorado
+        const mostrarResultadoPlano = !(
+          (currentTab === 'todas' || currentTab === 'listas' || currentTab === 'terminadas') &&
+          apuesta.estado !== "pendiente" &&
+          (apuesta.estado === "ganada" || apuesta.estado === "perdida")
+        );
         footer = `
           <div class="pbi-footer">
             <span class="pbi-stake-footer">Importe: ${apuesta.stake}€</span>
             <span class="pbi-potential">Ganancias: ${apuesta.potentialWin.toFixed(2)}€</span>
-            ${apuesta.resultado && apuesta.estado !== "pendiente" ? `<span class="pbi-resultado">${apuesta.resultado}</span>` : ""}
+            ${mostrarResultadoPlano && apuesta.resultado && apuesta.estado !== "pendiente" ? `<span class="pbi-resultado">${apuesta.resultado}</span>` : ""}
           </div>
         `;
       } else {
-        // Solo muestra el resultado si no es pendiente/todas y hay resultado
-        if (apuesta.resultado && apuesta.estado !== "pendiente") {
+        // Solo muestra el resultado si no es pendiente/todas y hay resultado, y tampoco doble
+        if (
+          apuesta.resultado && apuesta.estado !== "pendiente" &&
+          !((currentTab === 'todas' || currentTab === 'listas' || currentTab === 'terminadas') &&
+            (apuesta.estado === "ganada" || apuesta.estado === "perdida"))
+        ) {
           footer = `<div class="pbi-footer"><span class="pbi-resultado">${apuesta.resultado}</span></div>`;
         }
       }
 
+      // Mostrar fecha de realización encima de la apuesta en las pestañas 'listas', 'terminadas' y 'todas'
+      let fechaApuesta = '';
+      if ((currentTab === "todas" || currentTab === "listas" || currentTab === "terminadas") && apuesta.fecha) {
+        fechaApuesta = `<div class="pbi-fecha-apuesta">${formateaFechaApuesta(apuesta.fecha)}</div>`;
+      }
+
+      // Mostrar resultado decorado en 'listas', 'terminadas' y 'todas', al final de la apuesta
+      let resultadoApuesta = '';
+      if (
+        (currentTab === 'todas' || currentTab === 'listas' || currentTab === 'terminadas') &&
+        apuesta.estado !== 'pendiente' &&
+        (apuesta.estado === 'ganada' || apuesta.estado === 'perdida')
+      ) {
+        const esGanada = apuesta.estado === 'ganada';
+        resultadoApuesta = `
+          <div class="pbi-resultado-apuesta ${esGanada ? 'ganada' : 'perdida'}">
+            <span class="icon">${esGanada ? '🏆' : '❌'}</span>
+            Tu apuesta ha resultado ${esGanada ? 'ganadora' : 'no ganadora'}
+          </div>
+        `;
+      }
+
       return `
       <li class="pending-bet-item">
+          ${fechaApuesta}
           <div class="pbi-header">
             <span class="pbi-type-label">
                 ${tipoApuesta}
@@ -243,6 +299,7 @@ function renderApuestas(lista) {
           </div>
           ${footer}
           ${acciones}
+          ${resultadoApuesta}
       </li>
       `}).join('')}
       </ul>
