@@ -19,8 +19,8 @@
 body {
   font-family: Arial, sans-serif;
   background-color: var(--negro);
-
 }
+
 main {
   margin: 100px auto;
   max-width: 570px;
@@ -149,7 +149,7 @@ h1 {
 .pending-bet-item {
   background: #1a1a1d;
   border-radius: 30px;
-  padding: 14px 16px 16px 16px;
+  padding: 14px 16px 0px 16px;
   color: #fff;
   box-shadow: 0 2px 8px rgba(0,0,0,0.20);
   position: relative;
@@ -321,46 +321,128 @@ h1 {
   font-weight: 400;
 }
 
-.pbi-container {
+.pbi-fecha-apuesta {
+  color: #fff;
+  font-size: 0.97em;
+  font-weight: 600;
+  letter-spacing: 0.35px;
+  background: linear-gradient(90deg, #99000055 0%, #222 100%);
+  border-radius: 16px 16px 0 0;
+  padding: 7px 16px 4px 16px;
+  margin: -14px -16px 10px -16px;
+  border-bottom: 2px solid #99000033;
   display: flex;
-  gap: 110px;
   align-items: center;
+  gap: 8px;
+  box-shadow: 0 2px 8px #99000018;
 }
+
+.pbi-fecha-apuesta .icon {
+  font-size: 1.1em;
+  margin-right: 7px;
+  color: #ffef77;
+}
+
 .pbi-boton-container {
   width: 100%;
-  margin-top: 12px;
+  margin-top: 18px;
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 6px;
+  gap: 10px;
 }
 
 .btn-cobrar, .btn-perder {
   width: 100%;
-  padding: 12px 0; /* Botón más grande y fácil de pulsar */
+  padding: 12px 0; /* Botón más alto y fácil de pulsar */
   font-size: 1.1em;
-  border-radius: 6px;
+  border-radius: 14px;
   border: none;
   cursor: pointer;
   font-weight: bold;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 10px 0 #1116, 0 1.5px 0 #fff2 inset;
+  letter-spacing: 0.5px;
+  position: relative;
+  transition: 
+    background .18s cubic-bezier(.77,0,.18,1),
+    color .12s,
+    box-shadow .18s;
 }
 
 .btn-cobrar {
-  background: #28a745;
-  color: white;
+  background: linear-gradient(90deg, #28a745 0%, #44cf6c 100%);
+  color: #fff;
+  border: 2.2px solid #1f993a;
+  text-shadow: 0 1px 1px #175e24aa;
+}
+
+.btn-cobrar:hover, .btn-cobrar:focus {
+  background: linear-gradient(90deg, #44cf6c 0%, #28a745 100%);
+  color: #fff;
+  box-shadow: 0 4px 16px #28a74544, 0 2px 0 #fff1 inset;
+  filter: brightness(1.08);
 }
 
 .btn-perder {
-  background: #dc3545;
-  color: white;
+  background: linear-gradient(90deg, #dc3545 0%, #ff616d 100%);
+  color: #fff;
+  border: 2.2px solid #b61c2d;
+  text-shadow: 0 1px 1px #850a20aa;
+}
+
+.btn-perder:hover, .btn-perder:focus {
+  background: linear-gradient(90deg, #ff616d 0%, #dc3545 100%);
+  color: #fff;
+  box-shadow: 0 4px 16px #dc354544, 0 2px 0 #fff1 inset;
+  filter: brightness(1.08);
 }
 
 .pbi-ganancias-potenciales {
   text-align: center;
-  color: #222;
+  color: #1a1a1d;
+  font-size: 1.07em;
+  font-weight: 600;
+  background: #fff6;
+  border-radius: 0 0 12px 12px;
+  margin-top: 7px;
+  padding: 6px 0 4px 0;
+  letter-spacing: 0.2px;
+  border-top: 1.5px solid #28a74533;
+  box-shadow: 0 2px 4px #28a74522;
+}
+
+.pbi-resultado-apuesta {
   font-size: 1em;
-  font-weight: 500;
-  padding: 4px 0 0 0;
+  font-weight: 600;
+  letter-spacing: 0.35px;
+  border-radius: 0 0 16px 16px;
+  padding: 7px 16px 4px 16px;
+  margin: -6px -16px 10px -16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 2px 8px #00000018;
+  background: linear-gradient(90deg, #222 0%, #222 100%);
+  border-bottom: 2px solid #444;
+
+}
+
+.pbi-resultado-apuesta .icon {
+  font-size: 1.1em;
+  margin-right: 7px;
+}
+
+.pbi-resultado-apuesta.ganada {
+  background: linear-gradient(90deg, #28a74555 10%, #222 100%);
+  border-bottom: 2px solid #28a74566;
+  color: #28ff7b;
+}
+
+.pbi-resultado-apuesta.perdida {
+  background: linear-gradient(90deg, #99000055 10%, #222 100%);
+  border-bottom: 2px solid #99000066;
+  color: #ff5f5f;
 }
 
 /* ------------------------------ */
@@ -375,9 +457,9 @@ h1 {
     margin-top: 100px;
   }
   h1 {
-        font-size: 1.5rem;
-        margin: 0.5em 0;
-        text-align: center;
+    font-size: 1.5rem;
+    margin: 0.5em 0;
+    text-align: center;
   }
   #apuestas-container {
     padding: 0.8em 0.2em;
@@ -446,7 +528,24 @@ h1 {
     margin-left: 13px;
     margin-top: 2px;
   }
+  .pbi-fecha-apuesta {
+    font-size: 0.96em;
+    padding: 6px 8px 3px 12px;
+    margin: -8px -5px 7px -7px;
+  }
   .pbi-container {
     gap: 28px;
+  }
+  .pbi-resultado-apuesta {
+    font-size: 0.97em;
+    padding: 6px 7px 4px 10px;
+    margin: -6px -7px 7px -7px;
+    border-radius: 0 0 13px 13px;
+    gap: 7px;
+    min-height: 38px;
+  }
+  .pbi-resultado-apuesta .icon {
+    font-size: 1.07em;
+    margin-right: 5px;
   }
 }
