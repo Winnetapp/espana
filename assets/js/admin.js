@@ -64,7 +64,7 @@ const equiposPorLiga = {
     "Bayern Munich","Borussia Dortmund","RB Leipzig","Bayer Leverkusen",
     "Eintracht Frankfurt","Wolfsburg","Mönchengladbach","Freiburg","Union Berlin",
     "Werder Bremen", "Stuttgart","Hoffenheim","Mainz",
-    "Augsburgo","San Pauli","Heidenheim","Colonia"
+    "Augsburgo","San Pauli","Heidenheim","köln"
   ],
   "Ligue 1": [
     "Paris Saint-Germain","Olympique Lyon","Marseille","Monaco","Lille",
