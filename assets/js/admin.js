@@ -61,7 +61,7 @@ const equiposPorLiga = {
     "Cagliari","Verona", "Sassuolo","Pisa","Cremonese"
   ],
   "Bundesliga": [
-    "Bayern Munich","Borussia Dortmund","Leipzig","Bayer Leverkusen",
+    "Bayern Munich","Borussia Dortmund","RB Leipzig","Bayer Leverkusen",
     "Eintracht Frankfurt","Wolfsburg","Mönchengladbach","Freiburg","Union Berlin",
     "Werder Bremen", "Stuttgart","Hoffenheim","Mainz",
     "Augsburgo","San Pauli","Heidenheim","Colonia"
