@@ -46,7 +46,7 @@ const equiposPorLiga = {
     "Real Madrid","Barcelona","Atletico Madrid","Sevilla","Valencia",
     "Real Sociedad","Villarreal","Real Betis","Athletic Bilbao","Celta de Vigo",
     "Getafe","Espanyol","Osasuna","Alavés", "Rayo Vallecano",
-    "Elche","Mallorca","Levante", "Girona", "Oviedo"
+    "Elche","Mallorca","Levante", "Girona", "Real Oviedo"
   ],
   "Premier League": [
     "Manchester City","Liverpool","Manchester United","Arsenal","Chelsea",
