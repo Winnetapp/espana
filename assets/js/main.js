@@ -2,16 +2,21 @@
    1.  CONFIGURACIÓN E INICIALIZACIÓN DE FIREBASE
    ========================================================= */
    
-const firebaseConfig = {
-  apiKey: "AIzaSyDgdI3UcnHuRlcynH-pCHcGORcGBAD3FSU",
-  authDomain: "winnet-708db.firebaseapp.com",
-  projectId: "winnet-708db",
-  storageBucket: "winnet-708db.appspot.com",
-  messagingSenderId: "869401097323",
-  appId: "1:869401097323:web:fddb5e44af9d27a7cfed2e",
-  measurementId: "G-12LH5QRVD0"
-};
-firebase.initializeApp(firebaseConfig);
+// --- SOLO DECLARA E INICIALIZA FIREBASE SI AÚN NO ESTÁ INICIALIZADO ---
+if (typeof firebaseConfig === "undefined") {
+  var firebaseConfig = {
+    apiKey: "AIzaSyDgdI3UcnHuRlcynH-pCHcGORcGBAD3FSU",
+    authDomain: "winnet-708db.firebaseapp.com",
+    projectId: "winnet-708db",
+    storageBucket: "winnet-708db.appspot.com",
+    messagingSenderId: "869401097323",
+    appId: "1:869401097323:web:fddb5e44af9d27a7cfed2e",
+    measurementId: "G-12LH5QRVD0"
+  };
+}
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
 const db   = firebase.firestore();
 const auth = firebase.auth();
 
@@ -208,7 +213,17 @@ function mostrarPartidos(partidos) {
     return;
   }
 
-  partidos.sort((a, b) => {
+  // --- FILTRO: Ocultar partidos ya iniciados ---
+  const ahora = new Date();
+  const partidosFuturos = partidos.filter(p => {
+    if (!p.fecha || !p.hora) return true; // Si falta fecha/hora, mostrar por defecto
+    // p.fecha debe ser 'YYYY-MM-DD' y p.hora 'HH:MM'
+    const fechaHora = new Date(`${p.fecha}T${p.hora}`);
+    return fechaHora > ahora;
+  });
+
+  // Ordenar por fecha/hora como antes
+  partidosFuturos.sort((a, b) => {
     const fechaA = a.fecha ? new Date(a.fecha + 'T' + (a.hora || '00:00')) : new Date(0);
     const fechaB = b.fecha ? new Date(b.fecha + 'T' + (b.hora || '00:00')) : new Date(0);
     return fechaA - fechaB;
@@ -676,6 +691,37 @@ auth.onAuthStateChanged(async (user) => {
     headerRight.innerHTML = `<a href="login.html" class="header-btn">Iniciar sesión</a>`;
   }
 });
+
+// Variable para almacenar el saldo actual del usuario
+let saldoUsuario = 0;
+
+// Cuando cambia el estado de autenticación:
+auth.onAuthStateChanged(async (user) => {
+  // ...tu código actual...
+
+  if (user) {
+    try {
+      const userDoc = await db.collection('usuarios').doc(user.uid).get();
+      const userData = userDoc.data();
+      saldoUsuario = parseFloat(userData?.saldo) || 0; // <-- Aquí guardas el saldo
+      // ...tu código actual...
+    } catch (error) {
+      // ...
+    }
+  } else {
+    saldoUsuario = 0; // Si no hay usuario, saldo 0
+  }
+});
+
+// Listener para el botón ALL-IN
+const allInBtn = document.querySelector('.qs.all-in');
+if (allInBtn) {
+  allInBtn.addEventListener('click', function() {
+    // Usa el saldo actual y ponlo en el input de stake
+    stakeInput.value = saldoUsuario > 0 ? saldoUsuario : '';
+    updatePotentialWinnings();
+  });
+}
 
 /* ----------------------------------------------
    Botón flecha: abre/cierra el user-sidebar
