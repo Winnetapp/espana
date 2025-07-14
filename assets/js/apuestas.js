@@ -1,17 +1,20 @@
 /* =========================================================
    1.  CONFIGURACIÓN E INICIALIZACIÓN DE FIREBASE
    ========================================================= */
-const firebaseConfig = {
-  apiKey: "AIzaSyDgdI3UcnHuRlcynH-pCHcGORcGBAD3FSU",
-  authDomain: "winnet-708db.firebaseapp.com",
-  projectId: "winnet-708db",
-  storageBucket: "winnet-708db.appspot.com",
-  messagingSenderId: "869401097323",
-  appId: "1:869401097323:web:fddb5e44af9d27a7cfed2e",
-  measurementId: "G-12LH5QRVD0"
-};
+// Evita doble declaración de firebaseConfig
+if (typeof firebaseConfig === "undefined") {
+  var firebaseConfig = {
+    apiKey: "AIzaSyDgdI3UcnHuRlcynH-pCHcGORcGBAD3FSU",
+    authDomain: "winnet-708db.firebaseapp.com",
+    projectId: "winnet-708db",
+    storageBucket: "winnet-708db.appspot.com",
+    messagingSenderId: "869401097323",
+    appId: "1:869401097323:web:fddb5e44af9d27a7cfed2e",
+    measurementId: "G-12LH5QRVD0"
+  };
+}
 
-// INICIALIZA LA APP AQUÍ
+// INICIALIZA LA APP SOLO UNA VEZ
 if (!firebase.apps.length) {
   firebase.initializeApp(firebaseConfig);
 }
@@ -190,7 +193,7 @@ function renderApuestas(lista, currentTab) {
             <div class="pbi-boton-container">
               <button class="btn-cobrar" onclick="aceptarApuesta('${apuesta.id}', true)">
                 Cobrar ganancia
-                <span class="pbi-ganancias-potenciales">Ganancias potenciales: ${apuesta.potentialWin.toFixed(2)}€</span>
+                <span class="pbi-ganancias-potenciales">${apuesta.potentialWin.toFixed(2)}€</span>
               </button>
             </div>
           `;
@@ -331,11 +334,29 @@ window.aceptarApuesta = async function(id, ganada) {
     }
 
     await loadApuestas();
+
+    // NUEVO: recargar el saldo en el header tras confirmar ganancia/pérdida
+    await actualizarHeaderSaldo();
+
   } catch (e) {
     alert("Error al aceptar la apuesta. Intenta de nuevo.");
     console.error(e);
   }
 };
+
+// NUEVO: función para refrescar el saldo del header sin recargar la página
+async function actualizarHeaderSaldo() {
+  const headerLeft = document.getElementById('header-left');
+  if (!currentUser) return;
+  try {
+    const userDoc = await db.collection('usuarios').doc(currentUser.uid).get();
+    const userData = userDoc.data();
+    const saldoUsuario = parseFloat(userData?.saldo) || 0;
+    headerLeft.innerHTML = `${saldoUsuario.toFixed(2)} €`;
+  } catch (e) {
+    headerLeft.innerHTML = "";
+  }
+}
 
 function getEstadoText(estado) {
   switch (estado) {
@@ -345,3 +366,99 @@ function getEstadoText(estado) {
     default: return estado;
   }
 }
+
+// HEADER //
+// Mostrar datos de usuario y controlar login/logout
+const headerLeft = document.getElementById('header-left');
+const headerRight = document.getElementById('header-right');
+
+let saldoUsuario = 0;
+
+auth.onAuthStateChanged(async (user) => {
+  if (user) {
+    try {
+      const userDoc = await db.collection('usuarios').doc(user.uid).get();
+      const userData = userDoc.data();
+      saldoUsuario = parseFloat(userData?.saldo) || 0;
+      headerLeft.innerHTML = userData ? `${saldoUsuario.toFixed(2)} €` : '';
+
+      // Construir contenido del headerRight (usuario + menú)
+      headerRight.innerHTML = `
+        <div class="user-menu" style="position: relative; display: inline-block;">
+          <span class="username" style="cursor:pointer;">${userData?.username || user.email}</span>
+          <div class="dropdown-content" id="dropdown-menu" style="
+              display: none;
+              position: absolute;
+              right: 0;
+              top: 100%;
+              box-shadow: 0 4px 8px rgba(255, 255, 0, 0.3);
+              border-radius: 4px;
+              padding: 10px;
+              opacity: 0;
+              transition: opacity 0.3s ease;
+              z-index: 1000;
+              background-color: var(--rojo-oscuro);
+              font-size: 16px;
+              min-width: 140px;
+            ">
+            ${userData?.rol === "admin" ? `<a href="adminhub.html" id="admin-link" style="display:block; padding: 8px; color: white; text-decoration: none;">Panel Admin</a>` : ''}
+            <a href="apuestas.html" id="apuestas-link" style="display:block; padding: 8px; color: white; text-decoration: none;">Mis apuestas</a>
+            <a href="#" id="logout-link" style="display:block; padding: 8px; color: white; text-decoration: none;">Cerrar sesión</a>
+          </div>
+        </div>
+      `;
+
+      const username = document.querySelector('.username');
+      const dropdownMenu = document.getElementById('dropdown-menu');
+
+      let menuOpen = false;
+
+      // Función para abrir menú
+      function openMenu() {
+        dropdownMenu.style.display = 'block';
+        requestAnimationFrame(() => {
+          dropdownMenu.style.opacity = '1';
+        });
+        menuOpen = true;
+      }
+
+      // Función para cerrar menú
+      function closeMenu() {
+        dropdownMenu.style.opacity = '0';
+        setTimeout(() => {
+          dropdownMenu.style.display = 'none';
+        }, 300);
+        menuOpen = false;
+      }
+
+      // Al hacer hover *una vez*, abrir menú y fijar abierto
+      username.addEventListener('mouseenter', () => {
+        if (!menuOpen) openMenu();
+      });
+
+      // Detectar clic fuera del menú y del username para cerrar menú
+      document.addEventListener('click', (event) => {
+        const isClickInsideMenu = dropdownMenu.contains(event.target);
+        const isClickOnUsername = username.contains(event.target);
+
+        if (!isClickInsideMenu && !isClickOnUsername && menuOpen) {
+          closeMenu();
+        }
+      });
+
+      document.getElementById('logout-link').addEventListener('click', async (e) => {
+        e.preventDefault();
+        await auth.signOut();
+        window.location.href = 'login.html';
+      });
+
+    } catch (error) {
+      saldoUsuario = 0;
+      headerLeft.innerHTML = "";
+    }
+  } else {
+    saldoUsuario = 0;
+    headerLeft.innerHTML = `<a href="register.html" class="header-btn">Registrarse</a>`;
+    headerRight.innerHTML = `<a href="login.html" class="header-btn">Iniciar sesión</a>`;
+  }
+});
