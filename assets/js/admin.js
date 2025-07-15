@@ -48,6 +48,13 @@ const equiposPorLiga = {
     "Getafe","Espanyol","Osasuna","Alavés", "Rayo Vallecano",
     "Elche","Mallorca","Levante", "Girona", "Real Oviedo"
   ],
+  "La Liga Hypermotion": [
+    "Albacete","Almería","Andorra","Burgos","Cádiz",
+    "Castellón","Leganés","Ceuta","Córdoba","Cultural Leonesa",
+    "Deportivo","Eibar","Granada","Huesca","Málaga",
+    "Mirandés","Racing Santander","Real Sociedad B","Zaragoza",
+    "Sporting","Las Palmas","Valladolid"
+  ],
   "Premier League": [
     "Manchester City","Liverpool","Manchester United","Arsenal","Chelsea",
     "Tottenham","Newcastle","Everton","Aston Villa","West Ham",
