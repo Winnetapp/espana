@@ -286,8 +286,8 @@ h1 {
   color: #ffe555;
   font-weight: 700;
   border: none;
-  border-radius: 7px;
-  padding: 7px 20px;
+  border-radius: 10px;
+  padding: 10px;
   cursor: pointer;
   font-size: 1.08rem;
   letter-spacing: 0.5px;
@@ -295,6 +295,7 @@ h1 {
   box-shadow: 0 2px 8px #00000016;
   text-decoration: none;
   width: 130px;
+  text-align: center;
 }
 
 .ver-partido-btn:hover,
@@ -803,6 +804,10 @@ h1 {
 /* ----------- Estilos móviles ----------- */
 @media (max-width: 768px) {
   /* Botón móvil flotante: sin cambios */
+  h1 {
+    font-size: 1.8rem;
+    margin-top: 40px;
+  }
   .mobile-menu-btn {
     display: flex !important;
     position: fixed;
