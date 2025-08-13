@@ -7,19 +7,27 @@
   --azul-hover: #005fa3;
   --morado-oscuro: #00041a;
   --fondo: #222222;
+  --color-hover-cuota: #e74b4b;
+  --color-hover-texto: #fffde4;
+  --goleadores-bg: #151617;
+  --goleadores-hover: #23232d;
+  --goleador-cta: #fffde4;
+  --goleador-cuota-bg: #e7b60a;
+}
+
+html, body {
+  width: 100%;
+  overflow-x: hidden;
 }
 
 body {
   font-family: 'Poppins', sans-serif;
   background: var(--negro);
   margin: 0;
-  padding-top: 70px; /* espacio para header fijo */
+  padding-top: 70px;
   color: var(--blanco);
 }
 
-
-
-/* CONTENIDO */
 #main-content {
   padding: 5px 0;
   max-width: 1500px;
@@ -29,11 +37,10 @@ body {
 
 .main-columns {
   display: flex;
-  gap: 20px; /* Espacio entre columnas */
+  gap: 20px;
   margin-top: 20px;
 }
 
-/* Cada columna ocupa 1/3 del ancho */
 .column {
   flex: 1;
 }
@@ -44,16 +51,13 @@ body {
   }
 }
 
-/* Solo mostrar la columna derecha en escritorio */
 @media screen and (max-width: 768px) {
   .main-columns {
     flex-direction: column;
   }
-
   .column-right {
-    display: none; /* El menú aparecerá como panel móvil */
+    display: none;
   }
-
   .mobile-menu-btn {
     display: block;
   }
@@ -62,11 +66,12 @@ body {
 h1 {
   text-align: center;
   margin-top: 20px;
+  letter-spacing: 1px;
+  font-size: 2.2rem;
+  font-weight: 700;
 }
 
-/* PARTIDOS */
-/* CONTENEDOR GENERAL */
-/* CONTENEDOR GENERAL - SIN CAMBIOS */
+/* =============================== PARTIDOS =============================== */
 #partidos-container {
   max-width: 480px;
   margin: 0 auto;
@@ -74,45 +79,61 @@ h1 {
   box-sizing: border-box;
 }
 
-/* PARTIDO como columna vertical */
-.partido {
-  width: 100%;
-  max-width: 480px;
-  margin: 10px auto;
-  background: #222;
-  border-radius: 8px;
-  padding: 12px 16px;
-  box-sizing: border-box;
-  color: white;
-  font-family: 'Arial', sans-serif;
-  user-select: none;
+/* Grupo de fecha */
+.grupo-fecha {
+  background: #17181a;
+  border-radius: 12px;
+  margin-bottom: 28px;
+  box-shadow: 0 6px 32px 0 rgb(0 0 0 / 20%);
+  transition: box-shadow 0.2s;
 }
 
-/* Fecha grande arriba, centrada */
+/* Fecha grande arriba */
 .fecha {
   background-color: var(--rojo-oscuro);
   color: yellow;
   font-weight: bold;
   font-size: 18px;
   padding: 12px;
-  border-radius: 6px 6px 0 0;
+  border-radius: 12px 12px 0 0;
   text-transform: capitalize;
   width: 100%;
   text-align: center;
   user-select: none;
-  height: 40px;
   box-sizing: border-box;
-  text-align: left;
+  letter-spacing: 0.5px;
 }
 
-/* Equipos en fila horizontal */
+/* PARTIDO */
+.partido {
+  width: 100%;
+  max-width: 480px;
+  margin: 10px auto 20px auto;
+  background: #222;
+  border-radius: 12px;
+  padding: 16px 18px 12px 18px;
+  box-sizing: border-box;
+  color: white;
+  font-family: 'Arial', sans-serif;
+  user-select: none;
+  box-shadow: 0 2px 16px 0 rgb(0 0 0 / 17%);
+  transition: box-shadow 0.21s;
+  position: relative;
+  overflow: visible;
+}
+
+.partido:hover {
+  box-shadow: 0 4px 26px 0 rgb(255 0 0 / 12%);
+}
+
+/* Equipos */
 .info-equipos {
-  display: flex;  /* cambio a flex para que sea más fácil manejar alineaciones */
+  display: flex;
   justify-content: space-between;
   gap: 35px;
+  align-items: center;
 }
 
-/* Cada equipo como columna */
 .equipo {
   display: flex;
   flex-direction: column;
@@ -121,17 +142,14 @@ h1 {
   padding: 4px;
 }
 
-/* Texto nombre equipo */
 .equipo span {
-  position: relative;
   white-space: normal;
-  word-wrap: break-word;
   word-break: break-word;
-  max-width: 100%;
   font-size: 16px;
   font-weight: bold;
   color: var(--blanco);
   text-align: center;
+  margin-top: 2px;
 }
 
 /* Escudo tamaño compacto */
@@ -149,67 +167,232 @@ h1 {
   margin-bottom: 10px;
 }
 
-/* Contenedor cuotas en fila centrada (Fútbol) */
+/* Hora */
+.hora {
+  display: block;
+  text-align: center;
+  margin-top: 16px;
+  color: #ffe555;
+  font-size: 1.1em;
+  padding: 2px 0 0 0;
+}
+
+/* =========================== CUOTAS =========================== */
 .cuotas {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 15px;
+  gap: 18px;
+  margin: 18px 0 8px 0;
 }
 
 .cuota-derecha {
   grid-column-start: 3;
 }
 
-/* Cada cuota igual, botón pequeño */
 .cuota {
   background-color: #444;
-  padding: 8px;
+  padding: 10px 0 5px 0;
   text-align: center;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
-  transition: background-color 0.25s ease;
+  transition: background-color 0.25s;
   user-select: none;
   display: flex;
   flex-direction: column;
-  justify-content: center;
   align-items: center;
-  font-size: 14px;
-  width: 90%;
+  font-size: 16px;
+  min-width: 68px;
+  min-height: 53px;
+  box-shadow: 0 0 2px #0004;
 }
 
 .cuota:hover {
-  background-color: #666;
-}
-
-.cuotas-tenis, .cuotas-baloncesto {
-  display: flex;
-  justify-content: space-between;
-  gap: 15px;
-}
-
-.hora {
-  display: block;      /* Asegura que ocupa el 100% */
-  text-align: center;  /* Centrada */
-  margin-top: 16px;    /* Baja la hora, ajusta el valor a tu gusto */
-  color: yellow;
-}
-
-/* Botones de cuota */
-.valor-cuota, .cuota-btn {
-  background-color: transparent;
-  border: none;
-  font-weight: 700;
-  font-size: 1.1rem;
-  color: yellow;
-  cursor: pointer;
-  font-weight: bold;
-  border-radius: 4px;
-  transition: background-color 0.3s ease;
-}
-
-.valor-cuota:hover, .cuota-btn:hover {
   background-color: var(--color-hover-cuota);
   color: var(--color-hover-texto);
+  box-shadow: 0 0 8px #e74b4b66;
+  transform: scale(1.08);
+}
+
+.nombre-equipo-cuota {
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 6px;
+  color: #e7e7e7;
+}
+
+.valor-cuota, .cuota-btn {
+  background: transparent;
+  border: none;
+  font-weight: bold;
+  font-size: 1.18em;
+  color: yellow;
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 6px 13px;
+  margin-top: 2px;
+  margin-bottom: 0;
+  transition: background 0.25s, color 0.25s;
+}
+
+/* Haz que las cuotas de tenis y baloncesto ocupen la mitad del contenedor cada una */
+.cuotas-tenis, .cuotas-baloncesto {
+  display: flex;
+  gap: 20px; /* sin espacio entre cuotas */
+  margin: 0;
+  width: 100%; /* ocupa todo el contenedor */
+}
+
+/* Cada cuota ocupa la mitad exacta del ancho del contenedor */
+.cuotas-tenis .cuota,
+.cuotas-baloncesto .cuota {
+  flex: 1 1 50%;
+  max-width: 50%;
+  min-width: 0;
+  margin: 0; /* elimina márgenes entre cuotas para que se junten */
+  border-radius: 8px !important; /* mantiene esquinas redondeadas */
+  justify-content: center;
+  align-items: center;
+  box-sizing: border-box;
+}
+
+.cuotas-tenis .cuota:not(:last-child),
+.cuotas-baloncesto .cuota:not(:last-child) {
+  /* Opcional: separador vertical fino si lo quieres visualmente */
+  border-right: 1px solid #333;
+}
+
+@media (max-width: 480px) {
+  .cuotas-tenis .cuota,
+  .cuotas-baloncesto .cuota {
+    font-size: 14px;
+    padding: 10px 0 5px 0;
+  }
+}
+
+/* Opcional: si quieres que el hover siga funcionando igual: */
+.cuotas-tenis .cuota:hover,
+.cuotas-baloncesto .cuota:hover {
+  background-color: var(--color-hover-cuota);
+  color: var(--color-hover-texto);
+  box-shadow: 0 0 8px #e74b4b66;
+  transform: scale(1.08);
+}
+
+/* ================================= MERCADOS ================================= */
+.ver-partido-btn {
+  margin: 6px auto 0 auto;
+  display: block;
+  background: var(--goleadores-bg);
+  color: #ffe555;
+  font-weight: 700;
+  border: none;
+  border-radius: 7px;
+  padding: 7px 20px;
+  cursor: pointer;
+  font-size: 1.08rem;
+  letter-spacing: 0.5px;
+  transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+  box-shadow: 0 2px 8px #00000016;
+  text-decoration: none;
+  width: 130px;
+}
+
+.ver-partido-btn:hover,
+.ver-partido-btn.active {
+  background: var(--goleadores-hover);
+  color: #fffde4;
+  box-shadow: 0 0 12px #e7b60a33;
+}
+
+/* ================================= GOLEADORES ================================= */
+.btn-goleadores {
+  margin: 6px auto 0 auto;
+  display: block;
+  background: var(--goleadores-bg);
+  color: #ffe555;
+  font-weight: 700;
+  border: none;
+  border-radius: 7px;
+  padding: 7px 20px;
+  cursor: pointer;
+  font-size: 1.08rem;
+  letter-spacing: 0.5px;
+  transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+  box-shadow: 0 2px 8px #00000016;
+}
+
+.btn-goleadores:hover,
+.btn-goleadores.active {
+  background: var(--goleadores-hover);
+  color: #fffde4;
+  box-shadow: 0 0 12px #e7b60a33;
+}
+
+.goleadores-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.goleadores-lista.active {
+  display: block;
+  animation: fadeIn 0.3s;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-6px);}
+  to { opacity: 1; transform: translateY(0);}
+}
+
+.goleador-opcion {
+  display: grid;
+  grid-template-columns: 1fr min-content;
+  align-items: center;
+  cursor: pointer;
+  padding: 7px 12px;
+  border-radius: 5px;
+  background: #212226;
+  margin-bottom: 5px;
+  transition: background 0.13s;
+}
+
+.goleador-opcion:hover {
+  background: #282934;
+}
+
+.nombre-goleador {
+  font-size: 1.07em;
+  font-weight: 600;
+  color: var(--goleador-cta);
+}
+
+.cuota-goleador {
+  background: var(--goleador-cuota-bg);
+  color: #222;
+  font-size: 1.11em;
+  font-weight: bold;
+  border-radius: 4px;
+  padding: 4px 13px;
+  margin-left: 10px;
+}
+
+.apostar-goleador {
+  background: #e7b60a;
+  color: #222;
+  border: none;
+  border-radius: 4px;
+  padding: 5px 12px;
+  font-weight: 700;
+  font-size: 0.97em;
+  cursor: pointer;
+  transition: background 0.19s, color 0.19s;
+  box-shadow: 0 1px 6px #0001;
+}
+
+.apostar-goleador:hover {
+  background: #ffe555;
+  color: #111;
+  transform: scale(1.085);
 }
 
 /* --- NUEVO: Para TENIS y BALONCESTO --- */
@@ -621,7 +804,7 @@ h1 {
 @media (max-width: 768px) {
   /* Botón móvil flotante: sin cambios */
   .mobile-menu-btn {
-    display: flex;
+    display: flex !important;
     position: fixed;
     bottom: 20px;
     right: 20px;
@@ -633,7 +816,7 @@ h1 {
     font-weight: 700;
     font-size: 16px;
     cursor: pointer;
-    z-index: 1100;
+    z-index: 2001; /* MÁS ALTO que sidebar y overlay */
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
     user-select: none;
     align-items: center;
@@ -671,19 +854,6 @@ h1 {
     display: none;
   }
 
-  /* ----------- Sidebar móvil ----------- */
-  .user-sidebar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;       /* ocupa toda la anchura */
-    height: 100vh;      /* ocupa toda la altura */
-    z-index: 1000;
-    display: flex;
-    flex-direction: column;
-    background: #0e0e0e; /* fondo visible para toda la sidebar */
-  }
-
   .bs-header {
     padding: 15px;
     border-bottom: 1px solid #ccc;
@@ -691,43 +861,36 @@ h1 {
   }
 
   .bs-body {
-    flex: 1;               /* ocupa todo el espacio disponible */
-    overflow-y: auto;      /* scroll solo si contenido excede */
+    flex: 1;
+    overflow-y: auto;
     padding: 15px;
   }
 
-  /* Contenedor para la sidebar en la parte derecha */
+  /* Sidebar y overlay siguen debajo del botón flotante */
   .column-right {
     display: block;
     position: fixed;
-    top: 0;
-    right: 0;
-    width: 100vw;          /* para móviles, ocupa toda la pantalla */
-    height: 100vh;
-    background: transparent;
-    z-index: 999;
+    top: 0; right: 0;
+    width: 100vw; height: 100vh;
+    z-index: 1000;
     pointer-events: none;
   }
-
-  /* Sidebar dentro de .column-right */
   .column-right .user-sidebar {
     position: fixed;
-    top: 0;
-    right: 0;
-    width: 100vw;          /* ancho completo en móvil */
-    height: 100vh;         /* alto completo */
+    top: 0; right: 0; left: 0; bottom: 0;
+    width: 100vw; height: 100vh;
     background: #0e0e0e;
     box-shadow: -5px 0 15px rgba(0, 0, 0, 0.5);
-    transform: translateX(100%);  /* oculta inicialmente */
-    transition: transform 0.3s ease;
+    transform: translateX(100%);
+    transition: transform 0.3s cubic-bezier(.77,0,.18,1);
     z-index: 1000;
-    pointer-events: auto;
     display: flex;
     flex-direction: column;
+    overflow-y: auto;
+    pointer-events: auto;
   }
-
   .column-right .user-sidebar.open {
-    transform: translateX(0); /* se muestra */
+    transform: translateX(0);
   }
 
   .column-left,
@@ -735,11 +898,6 @@ h1 {
     width: 100%;
   }
 }
-
-
-
-
-
 
 
 /*Register*/
