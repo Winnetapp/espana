@@ -68,6 +68,7 @@ header {
   border-radius: 20px;
   font-weight: bold;
   text-decoration: none;
+  text-align: center;
   transition: all 0.3s ease;
   font-size: 24px;
   margin: 0 5px;
@@ -157,12 +158,12 @@ header {
   .header-center,
   .header-right {
     flex: 1;
+    width: 100%;
   }
 
   .header-left {
     order: 1;
     justify-content: center;
-    font-size: 22px;
   }
 
   .header-center {
@@ -176,8 +177,7 @@ header {
   }
 
   .header-btn {
-    padding: 8px;
-    font-size: 22px;
+    font-size: 0.45em;
   }
 
   /* Ajuste menú en móvil */
