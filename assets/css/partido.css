@@ -152,7 +152,7 @@ a.volver-btn:hover {
   padding: 0 18px;
 }
 .mercado-block.open .mercado-content {
-  max-height: 700px;
+  max-height: 3000px;
   opacity: 1;
   padding: 18px;
   transition: max-height 0.42s cubic-bezier(.67,.2,.25,.97),opacity 0.23s;
