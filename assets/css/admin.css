@@ -16,6 +16,7 @@ html {
 body {
   font-family: 'Poppins', sans-serif;
 }
+
 .main-admin {
   min-height: 100vh; /* Ocupa al menos toda la altura visible */
   font-family: Arial, Helvetica, sans-serif;
@@ -212,3 +213,7 @@ button:hover {
   box-shadow: 0 0 15px rgba(0,0,0,0.3);
   color: black;
 }
+
+
+
+
