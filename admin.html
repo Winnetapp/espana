@@ -1,3 +1,7 @@
+<!--
+Solo se muestra el bloque de Tarjetas si el deporte es "futbol".
+Las tablas son dinámicas: puedes cambiar el número de filas (nTarjetas) en el JS.
+-->
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -7,6 +11,35 @@
   <link rel="stylesheet" href="assets/css/admin.css" />
   <link rel="stylesheet" href="assets/css/headfoot.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <style>
+    .tarjetas-tabs, .tarjetas-subtabs {
+      display: flex; gap: 8px; margin-bottom: 6px; margin-top:8px;
+    }
+    .tarjetas-tabs button, .tarjetas-subtabs button {
+      border:none; border-radius:5px; padding:6px 12px; cursor:pointer;
+      background:#353535; color:#ffe16b; font-weight:bold; opacity:.8;
+      transition:.15s;
+    }
+    .tarjetas-tabs button.active, .tarjetas-subtabs button.active {
+      background: #300404; opacity:1;
+    }
+    .tarjetas-table { width:100%; border-collapse: collapse; margin-bottom:8px; }
+    .tarjetas-table th, .tarjetas-table td {
+      padding:4px 7px;
+      text-align: center;
+    }
+    .tarjetas-table input[type=number] {
+      width: 70px;
+      padding: 8px 8px;
+      border-radius: 5px;
+      text-align: right;
+      font-size: 1em;
+      color: #ffe16b;
+    }
+    .tarjetas-table input[type=number]:focus {
+      outline: 2px solid #ffe16b;
+    }
+  </style>
 </head>
 <body>
   <header>
@@ -99,17 +132,35 @@
           <input id="cuota2" type="number" step="0.01" placeholder="Cuota 2" name="cuota2" />
         </div>
 
+        <!-- Bloque para cuotas de goleadores SOLO FÚTBOL -->
+        <div id="goleadores-section" style="margin-top: 20px; display:none;">
+          <h3>Cuotas Goleadores</h3>
+          <div id="goleadores-list" style="margin-bottom: 8px;"></div>
+          <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+            <input id="goleador-nombre" type="text" placeholder="Nombre del jugador" list="goleadores-datalist" />
+            <datalist id="goleadores-datalist"></datalist>
+            <input id="goleador-cuota" type="number" step="0.01" placeholder="Cuota" />
+            <button type="button" id="agregar-goleador">Añadir</button>
+          </div>
+        </div>
+
+        <!-- Bloque Tarjetas Mejorado -->
+        <div id="tarjetas-section" style="margin-top:20px; display:none;">
+          <h3>Cuotas Tarjetas</h3>
+          <div id="tarjetas-tabs" class="tarjetas-tabs"></div>
+          <div id="tarjetas-subtabs" class="tarjetas-subtabs"></div>
+          <div id="tarjetas-tables"></div>
+        </div>
+
         <button id="btnCrear" type="submit">Guardar partido</button>
       </form>
 
-      <!-- Spinner -->
+      <!-- Spinner, modal, preview y mensajes igual que antes... -->
       <div id="spinner" style="display:none; position:fixed;top:0;left:0;width:100vw;height:100vh; 
         background:rgba(0,0,0,0.4); justify-content:center; align-items:center; z-index:9999;">
         <div class="spinner" style="border: 8px solid #f3f3f3; border-top: 8px solid #3498db; 
           border-radius: 50%; width: 60px; height: 60px; animation: spin 1s linear infinite;"></div>
       </div>
-
-      <!-- Modal confirmación -->
       <div id="modalConfirm" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; 
         background:rgba(0,0,0,0.6); justify-content:center; align-items:center; z-index:10000;">
         <div style="background:#fff; padding:20px; border-radius:8px; width:320px; max-width:90%; box-sizing:border-box;">
@@ -119,7 +170,6 @@
           <button id="btnCancel">Cancelar</button>
         </div>
       </div>
-
       <div id="previewContainer" style="display:none; border: 1px solid #ccc; padding: 15px; margin: 15px 0; 
         background: #f9f9f9; border-radius: 8px;"></div>
       <div class="msg" id="msg"></div>
@@ -153,5 +203,4 @@
   </footer>
   <script type="module" src="assets/js/admin.js"></script>
 </body>
-</html>
 </html>
