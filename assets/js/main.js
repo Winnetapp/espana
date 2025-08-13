@@ -75,111 +75,167 @@ window.addBetToSlip = function({ partido, tipo, cuota, partidoId, mercado }) {
   // if (window.innerWidth <= 768) openSidebar();
 };
 
-/* ================= LISTENERS GENERALES ================= */
-if (stakeInput) {
-  stakeInput.addEventListener('input', updatePotentialWinnings);
+// Función para capitalizar la primera letra de una palabra
+function capitalizarPalabra(palabra) {
+  return palabra.charAt(0).toUpperCase() + palabra.slice(1).toLowerCase();
 }
-if (qsButtons.length) {
+
+/* ================= LISTENERS GENERALES ================= */
+// Verificar que stakeInput existe antes de añadir el evento
+if (stakeInput) {
+  console.log('stakeInput existe');
+  stakeInput.addEventListener('input', updatePotentialWinnings);
+} else {
+  console.error('stakeInput no se encuentra en el DOM');
+}
+
+// Verificar que qsButtons tiene botones antes de añadir los eventos
+if (qsButtons && qsButtons.length) {
+  console.log('qsButtons existen y tienen elementos');
   qsButtons.forEach(btn => {
     btn.addEventListener('click', () => {
       const valor = parseFloat(btn.textContent) || 0;
+      console.log(`Valor seleccionado: ${valor}`);
       stakeInput.value = valor;
       updatePotentialWinnings();
     });
   });
+} else {
+  console.error('qsButtons no tiene botones o no está definido');
 }
+
+// Verificar la existencia del botón de borrar apuestas
 const clearBtn = document.getElementById('clear-bets');
 if (clearBtn) {
+  console.log('Botón "Clear Bets" encontrado');
   clearBtn.addEventListener('click', () => {
+    console.log('Limpiando apuestas');
     bets = [];
     guardarCarrito();
     refreshSlip();
     cambiarPestania('simple');
   });
+} else {
+  console.error('No se encontró el botón "Clear Bets"');
 }
 
-// ...código previo igual...
-
 function refreshSlip() {
-  if (!betList) return;
-  betList.innerHTML = '';
-  bets.forEach(({ partido, tipo, cuota, mercado }, i) => {
-    let tipoTexto = tipo;
+  // Verificar si betList existe antes de continuar
+  if (!betList) {
+    console.error('betList no existe en el DOM');
+    return;
+  }
 
-    // Personalización según mercado/acordeón
-    if (mercado === 'resultado') {
-      if (tipo.toLowerCase() === 'empate') {
-        tipoTexto = 'Empate';
-      } else {
-        tipoTexto = `Gana ${tipo}`;
-      }
-    } else if (mercado === 'tarjetas') {
-      // tipo puede ser: "Menos de 1 tarjeta - Ambos equipos - Encuentro"
-      let partes = tipo.split(' - ').map(s => s.trim());
-      let main = '', cantidad = '', equipo = '', periodo = '';
+  console.log('Refrescando la lista de apuestas');
+  betList.innerHTML = ''; // Limpiar la lista de apuestas
 
-      // 1. Extraer valores
-      if (partes.length === 4) {
-        // "Menos de - 1 - Ambos equipos - Encuentro"
-        main = partes[0];
-        cantidad = partes[1];
-        equipo = partes[2];
-        periodo = partes[3];
-      } else if (partes.length === 3) {
-        // "Menos de 1 tarjeta - Ambos equipos - Encuentro"
-        // Extrae correctamente main y cantidad
-        let match = partes[0].match(/(Más de|Menos de|Exactamente)\s*(\d+)/i);
-        if (match) {
-          main = match[1];
-          cantidad = match[2];
+  // Verificar si bets tiene elementos
+  if (bets && bets.length) {
+    console.log(`Hay ${bets.length} apuestas para mostrar`);
+    bets.forEach(({ partido, tipo, cuota, mercado }, i) => {
+      let tipoTexto = tipo;
+      
+      // Verificar el tipo de mercado
+      if (mercado === 'resultado') {
+        tipoTexto = tipo.toLowerCase() === 'empate' ? 'Empate' : `Gana ${tipo}`;
+      } else if (mercado === 'tarjetas') {
+        let partes = tipo.split(' - ').map(s => s.trim());
+        let main = '', cantidad = '', equipo = '', periodo = '';
+
+        if (partes.length === 4) {
+          [main, cantidad, equipo, periodo] = partes;
+        } else if (partes.length === 3) {
+          const match = partes[0].match(/(Más de|Menos de|Exactamente)\s*(\d+)/i);
+          if (match) {
+            [main, cantidad] = [match[1], match[2]];
+          } else {
+            main = partes[0];
+          }
+          [equipo, periodo] = partes.slice(1);
         } else {
-          // Si no matchea, usa todo como main
+          main = tipo;
+        }
+
+        main = main.replace(/\(.*/, '').replace(/\d+\)\s*$/, '').trim();
+        tipoTexto = `Tarjetas: ${main} ${cantidad ? ` ${cantidad} tarjeta${cantidad == 1 ? '' : 's'}` : ''} ${periodo ? ` - ${periodo}` : ''} ${equipo ? ` - ${equipo}` : ''}`;
+      } else if (mercado === 'corners') {
+        let partes = tipo.split(' - ').map(s => s.trim());
+        let main = '', cantidad = '', equipo = '', periodo = '';
+
+        const match = partes[0].match(/(Más de|Menos de|Exactamente)\s*(\d+)?\s*corners?/i);
+        if (match) {
+          [main, cantidad] = [match[1], match[2] || ''];
+        } else {
           main = partes[0];
         }
-        equipo = partes[1];
-        periodo = partes[2];
-      } else {
-        main = tipo; // fallback
+
+        const posiblesPeriodos = ['primera', '1ª mitad', 'segunda', '2ª mitad', 'encuentro'];
+        partes.forEach(parte => {
+          let lower = parte.toLowerCase();
+          if (lower === 'primera') periodo = "1ª Mitad"; 
+          else if (lower === 'segunda') periodo = "2ª Mitad"; 
+          else if (lower === 'encuentro') periodo = "Encuentro"; 
+        });
+
+        equipo = partes.find(parte => {
+          let lower = parte.toLowerCase();
+          if (parte === partes[0] || cantidad === parte || posiblesPeriodos.includes(lower) || /^\d+\)?$/.test(parte)) return false;
+          return true;
+        }) || "";
+
+        tipoTexto = `Corners: ${main} ${cantidad ? ` ${cantidad} corners` : ''} ${periodo ? ` - ${periodo}` : ''} ${equipo ? ` - ${equipo}` : ''}`;
+      } else if (mercado === 'goleadores') {
+        tipoTexto = `Gol de ${tipo}`;
       }
 
-      // 2. Limpiar main de cualquier cosa entre paréntesis o extra
-      main = main.replace(/\(.*/, '').replace(/\d+\)\s*$/, '').trim();
+      betList.insertAdjacentHTML('beforeend', `
+        <li class="bs-item">
+          <div class="bs-top">
+            <span class="bs-deporte">⚽</span>
+            <span class="bs-tipo">${tipoTexto}</span>
+            <span class="bs-cuota">${cuota}</span>
+            <button class="bs-remove" data-index="${i}">✕</button>
+          </div>
+          <div class="bs-info">${partido}</div>
+        </li>
+      `);
+    });
 
-      // 3. Construir texto final
-      let cantidadTexto = cantidad ? ` ${cantidad} tarjeta${cantidad == 1 ? '' : 's'}` : '';
-      tipoTexto = `Tarjetas: ${main} ${periodo ? ' - ' + periodo : ''}${equipo ? ' - ' + equipo : ''}`;
-    } else if (mercado === 'goleadores') {
-      tipoTexto = `Gol de ${tipo}`;
-    } else {
-      tipoTexto = tipo;
-    }
+    // Asignar evento de eliminación a los botones "✕"
+    const removeButtons = document.querySelectorAll('.bs-remove');
+    removeButtons.forEach(button => {
+      button.addEventListener('click', (e) => {
+        const index = parseInt(e.target.dataset.index, 10);
+        console.log(`Eliminando apuesta en el índice ${index}`);
+        bets.splice(index, 1); // Eliminar apuesta del array
+        guardarCarrito();
+        refreshSlip(); // Volver a renderizar la lista de apuestas
+        updatePotentialWinnings(); // Actualizar las posibles ganancias
+      });
+    });
 
-    betList.insertAdjacentHTML('beforeend', `
-      <li class="bs-item">
-        <div class="bs-top">
-          <span class="bs-deporte">⚽</span>
-          <span class="bs-tipo">${tipoTexto}</span>
-          <span class="bs-cuota">${cuota}</span>
-          <button class="bs-remove" data-index="${i}">✕</button>
-        </div>
-        <div class="bs-info">${partido}</div>
-      </li>
-    `);
-  });
+  } else {
+    console.error('No hay apuestas para mostrar');
+  }
 
+  // Calcular la cuota total
   const totalOdds = bets.reduce((acc, b) => acc * parseFloat(b.cuota), 1);
   if (totalOddsEl) {
     totalOddsEl.textContent = bets.length ? totalOdds.toFixed(2).replace('.', ',') : '0,00';
   }
-  // Pestaña combinada (si existe en tu HTML)
+
   const tabCombi = document.querySelector('.bs-tab[data-target="combi"]');
   if (tabCombi) tabCombi.textContent = `Combinada (${bets.length})`;
+
   cambiarPestania && cambiarPestania(bets.length >= 2 ? 'combi' : 'simple');
   updatePotentialWinnings();
   updateMobileButton();
   actualizarBadgeApuestas();
   guardarCarrito();
 }
+
+
+
 
 
 function updatePotentialWinnings() {
@@ -189,6 +245,8 @@ function updatePotentialWinnings() {
   const win   = stake * cuota;
   winEl.textContent = win > 0 ? `${win.toFixed(2).replace('.', ',')} €` : '0,00 €';
 }
+
+
 
 function updateMobileButton() {
   if (!cartIcon || !totalOddsText || !totalOddsEl) return;
@@ -324,7 +382,11 @@ if (acceptBtn) {
       potentialWin: potentialWin,
       bets: bets.map(b => ({
         partido: b.partido,
-        tipo: b.mercado === 'tarjetas' ? limpiaParentesisTarjetas(b.tipo) : b.tipo,
+        tipo: b.mercado === 'tarjetas'
+          ? limpiaParentesisTarjetas(b.tipo)
+          : b.mercado === 'corners'
+            ? limpiaParentesisTarjetas(b.tipo) // <--- aquí
+            : b.tipo,
         cuota: parseFloat(b.cuota),
         partidoId: b.partidoId,
         mercado: b.mercado
