@@ -59,6 +59,12 @@ function limpiaParentesisTarjetas(tipo) {
 /* ============ PUBLIC API PARA OTRAS PÁGINAS ============ */
 // Ahora recibe 'mercado'
 window.addBetToSlip = function({ partido, tipo, cuota, partidoId, mercado }) {
+  // No permitir dos apuestas del mismo partido (independiente del mercado o tipo)
+  if (bets.some(b => b.partidoId === partidoId)) {
+    alert('Ya tienes una apuesta para este partido.');
+    return;
+  }
+  // También sigue comprobando por tipo/mercado (para compatibilidad previa)
   if (bets.some(b => b.partido === partido && b.tipo === tipo && b.mercado === mercado)) {
     alert('Ya tienes una apuesta de este tipo para este partido.');
     return;
@@ -102,7 +108,7 @@ function refreshSlip() {
 
     // Personalización según mercado/acordeón
     if (mercado === 'resultado') {
-      if (tipo === 'Empate') {
+      if (tipo.toLowerCase() === 'empate') {
         tipoTexto = 'Empate';
       } else {
         tipoTexto = `Gana ${tipo}`;
@@ -142,8 +148,8 @@ function refreshSlip() {
       // 3. Construir texto final
       let cantidadTexto = cantidad ? ` ${cantidad} tarjeta${cantidad == 1 ? '' : 's'}` : '';
       tipoTexto = `Tarjetas: ${main} ${periodo ? ' - ' + periodo : ''}${equipo ? ' - ' + equipo : ''}`;
-    } else if (mercado === 'corners') {
-      tipoTexto = `Corners: ${tipo}`;
+    } else if (mercado === 'goleadores') {
+      tipoTexto = `Gol de ${tipo}`;
     } else {
       tipoTexto = tipo;
     }
@@ -360,6 +366,15 @@ let listaPartidos = [];
 
 // Solo ejecuta si existe el contenedor de partidos (página principal)
 if (document.getElementById('partidos-container')) {
+  function partidoHaComenzado(partido) {
+    if (!partido.fecha || !partido.hora) return false;
+    const [anio, mes, dia] = partido.fecha.split('-');
+    const [hora, minuto] = partido.hora.split(':');
+    const fechaHoraPartido = new Date(anio, mes - 1, dia, hora, minuto);
+    const ahora = new Date();
+    return ahora >= fechaHoraPartido;
+  }
+
   async function cargarPartidos() {
     try {
       const snapshot = await db.collection('partidos').get();
@@ -378,26 +393,59 @@ if (document.getElementById('partidos-container')) {
     const container = document.getElementById('partidos-container');
     container.innerHTML = '';
     if (!Array.isArray(partidos)) return;
-    // Agrupa partidos por fecha
+
+    // Agrupa partidos por fecha, y almacena la fecha real (Date) asociada a cada grupo
     const partidosPorFecha = {};
+    const fechaClaves = []; // { claveFecha, fechaObj }
+
     partidos.forEach((partido) => {
       if (!partido.fecha) return;
       const fechaObj = new Date(partido.fecha + 'T00:00');
-      const diaSemana = fechaObj.toLocaleDateString('es-ES', { weekday: 'short' });
-      const diaNumero = fechaObj.getDate();
-      const claveFecha = `${diaSemana} ${diaNumero}`;
-      if (!partidosPorFecha[claveFecha]) partidosPorFecha[claveFecha] = [];
+      const hoyObj = new Date();
+      hoyObj.setHours(0,0,0,0);
+
+      const mananaObj = new Date(hoyObj);
+      mananaObj.setDate(hoyObj.getDate() + 1);
+
+      let claveFecha;
+      if (fechaObj.getTime() === hoyObj.getTime()) {
+        claveFecha = "Hoy";
+      } else if (fechaObj.getTime() === mananaObj.getTime()) {
+        claveFecha = "Mañana";
+      } else {
+        const diaSemana = fechaObj.toLocaleDateString('es-ES', { weekday: 'short' });
+        const diaNumero = fechaObj.getDate();
+        claveFecha = `${diaSemana} ${diaNumero}`;
+      }
+
+      if (!partidosPorFecha[claveFecha]) {
+        partidosPorFecha[claveFecha] = [];
+        fechaClaves.push({ claveFecha, fechaObj });
+      }
       partidosPorFecha[claveFecha].push(partido);
     });
-    for (const claveFecha in partidosPorFecha) {
+
+    // Ordenar el array de claves: "Hoy" primero, luego fechas futuras ordenadas
+    fechaClaves.sort((a, b) => {
+      if (a.claveFecha === "Hoy") return -1;
+      if (b.claveFecha === "Hoy") return 1;
+      return a.fechaObj - b.fechaObj;
+    });
+
+    for (const { claveFecha } of fechaClaves) {
       const grupo = partidosPorFecha[claveFecha];
+      // Filtra partidos NO comenzados
+      const partidosVisibles = grupo.filter(partido => !partidoHaComenzado(partido));
+      if (partidosVisibles.length === 0) continue; // No hay partidos ese día, omite todo el grupo
+
       const grupoDiv = document.createElement('div');
       grupoDiv.classList.add('grupo-fecha');
       const fechaDiv = document.createElement('div');
       fechaDiv.classList.add('fecha');
       fechaDiv.textContent = claveFecha;
       grupoDiv.appendChild(fechaDiv);
-      grupo.forEach((partido) => {
+
+      partidosVisibles.forEach((partido) => {
         const equipo1 = partido.equipo1;
         const equipo2 = partido.equipo2;
         const deporte = (partido.deporte || "").toLowerCase();
@@ -431,7 +479,8 @@ if (document.getElementById('partidos-container')) {
               <div class="nombre-equipo-cuota">${equipo1}</div>
               <div class="valor-cuota cuota-btn"
                       data-partido="${equipo1} vs ${equipo2}"
-                      data-tipo="${equipo1}">
+                      data-tipo="${equipo1}"
+                      data-mercado="resultado">
                 ${cuota1}
               </div>
             </div>
@@ -439,7 +488,8 @@ if (document.getElementById('partidos-container')) {
               <div class="nombre-equipo-cuota">Empate</div>
               <div class="valor-cuota cuota-btn"
                       data-partido="${equipo1} vs ${equipo2}"
-                      data-tipo="Empate">
+                      data-tipo="Empate"
+                      data-mercado="resultado">
                 ${cuotaX}
               </div>
             </div>
@@ -447,7 +497,8 @@ if (document.getElementById('partidos-container')) {
               <div class="nombre-equipo-cuota">${equipo2}</div>
               <div class="valor-cuota cuota-btn"
                       data-partido="${equipo1} vs ${equipo2}"
-                      data-tipo="${equipo2}">
+                      data-tipo="${equipo2}"
+                      data-mercado="resultado">
                 ${cuota2}
               </div>
             </div>
@@ -512,7 +563,6 @@ if (document.getElementById('partidos-container')) {
           partido.mercados.goleadores.opciones.length > 0
         ) {
           const partidoId = partido.partidoId || (partido.id ?? 'p'+Math.random());
-          goleadoresHTML += `<button class="btn-goleadores" data-id="${partidoId}">Ver goleadores</button>`;
           goleadoresHTML += `<div class="goleadores-lista" id="goleadores-${partidoId}" style="display:none;">`;
           partido.mercados.goleadores.opciones.forEach(gol => {
             goleadoresHTML += `
@@ -540,6 +590,7 @@ if (document.getElementById('partidos-container')) {
     }
     asignarEventosGoleadores();
   }
+
   function asignarEventosGoleadores() {
     document.querySelectorAll('.btn-goleadores').forEach(btn => {
       btn.addEventListener('click', function() {
@@ -559,12 +610,12 @@ if (document.getElementById('partidos-container')) {
   if (document.getElementById('partidos-container')) {
     document.getElementById('partidos-container').addEventListener('click', e => {
       // Añadir desde cuotas normales
-      const cuotaBox = e.target.closest('.cuota');
-      if (cuotaBox && cuotaBox.querySelector('.cuota-btn')) {
-        const btn = cuotaBox.querySelector('.cuota-btn');
-        const partidoNombre = btn.dataset.partido;
-        const tipo = btn.dataset.tipo;
-        const cuota = btn.textContent.trim();
+      const cuotaBtn = e.target.closest('.valor-cuota.cuota-btn');
+      if (cuotaBtn) {
+        const partidoNombre = cuotaBtn.dataset.partido;
+        const tipo = cuotaBtn.dataset.tipo;
+        const cuota = cuotaBtn.textContent.trim();
+        const mercado = cuotaBtn.dataset.mercado || undefined;
         const partidoObj = listaPartidos.find(p => 
           `${p.equipo1} vs ${p.equipo2}` === partidoNombre
         );
@@ -573,11 +624,12 @@ if (document.getElementById('partidos-container')) {
           return;
         }
         const partidoId = partidoObj.partidoId;
-        if (bets.some(b => b.partido === partidoNombre && b.tipo === tipo)) {
+        if (bets.some(b => b.partido === partidoNombre && b.tipo === tipo && b.mercado === mercado)) {
           alert('Ya tienes una apuesta de este tipo para este partido.');
           return;
         }
-        bets.push({ partido: partidoNombre, partidoId, tipo, cuota });
+        bets.push({ partido: partidoNombre, partidoId, tipo, cuota, mercado });
+        guardarCarrito();
         refreshSlip();
         // Si quieres que se abra automáticamente en móvil al añadir apuesta, descomenta:
         // if (window.innerWidth <= 768) openSidebar();
@@ -595,6 +647,7 @@ if (document.getElementById('partidos-container')) {
           return;
         }
         bets.push({ partido, partidoId, tipo, cuota });
+        guardarCarrito();
         refreshSlip();
         // Si quieres que se abra automáticamente en móvil al añadir apuesta, descomenta:
         // if (window.innerWidth <= 768) openSidebar();
@@ -714,3 +767,5 @@ if (headerLeft && headerRight) {
     }
   });
 }
+
+window.addBetToSlip
