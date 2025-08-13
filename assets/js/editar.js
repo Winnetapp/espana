@@ -78,6 +78,25 @@ function slugify(text) {
     .replace(/\s+/g, "_");
 }
 
+// ---------- TARJETAS (EDICIÓN) - CONFIG & ESTADO ----------
+const TARJETAS_SEGMENTOS = [
+  { id: 'primera', label: '1ª Mitad' },
+  { id: 'segunda', label: '2ª Mitad' },
+  { id: 'encuentro', label: 'Encuentro' }
+];
+const TARJETAS_EQUIPOS = [
+  { id: 'equipo1', label: 'Equipo 1' },
+  { id: 'equipo2', label: 'Equipo 2' },
+  { id: 'ambos', label: 'Ambos Equipos' }
+];
+const TARJETAS_COLUMNAS = [
+  { id: 'mas', label: 'Más de' },
+  { id: 'exactamente', label: 'Exactamente' },
+  { id: 'menos', label: 'Menos de' }
+];
+const TARJETAS_FILAS = [1,2,3,4,5,6,7,8,9,10];
+let tarjetasOpciones = {}; // Estado global de edición
+
 document.addEventListener("DOMContentLoaded", function () {
   // Firebase config
   const firebaseConfig = {
@@ -207,6 +226,7 @@ document.addEventListener("DOMContentLoaded", function () {
     equiposDatalist.innerHTML = "";
     actualizarNacionalidadesVisibility();
     actualizarJugadoresDatalist();
+    mostrarTarjetasSiFutbol();
   });
 
   ligaInput.addEventListener("input", function() {
@@ -321,6 +341,111 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   });
 
+  // ====================== TARJETAS (EDICIÓN DE MERCADO) ======================
+  function renderTarjetasEditor() {
+    const containerId = "tarjetasAdminContainer";
+    let container = document.getElementById(containerId);
+    if (!container) {
+      container = document.createElement("div");
+      container.id = containerId;
+      container.style.marginTop = "20px";
+      // lo insertamos después de #goleadoresContainer
+      const goleadoresDiv = document.getElementById("goleadoresContainer");
+      goleadoresDiv.parentNode.insertBefore(container, goleadoresDiv.nextSibling);
+    }
+    container.innerHTML = `<h3>Mercado Tarjetas</h3>
+      <div class="tarjetas-tabs" id="edit-tarjetas-tabs"></div>
+      <div class="tarjetas-subtabs" id="edit-tarjetas-subtabs"></div>
+      <div id="edit-tarjetas-table"></div>
+    `;
+
+    // Inicializa seleccionadas
+    if (!window.editTarjetasTabSel) window.editTarjetasTabSel = 'primera';
+    if (!window.editTarjetasSubtabSel) window.editTarjetasSubtabSel = 'equipo1';
+
+    // Tabs segmento
+    const $tabs = document.getElementById("edit-tarjetas-tabs");
+    $tabs.innerHTML = TARJETAS_SEGMENTOS.map(seg =>
+      `<button type="button" class="${window.editTarjetasTabSel === seg.id ? "active" : ""}" data-tab="${seg.id}">${seg.label}</button>`
+    ).join('');
+    // Subtabs equipo
+    const $subtabs = document.getElementById("edit-tarjetas-subtabs");
+    $subtabs.innerHTML = TARJETAS_EQUIPOS.map(eq =>
+      `<button type="button" class="${window.editTarjetasSubtabSel === eq.id ? "active" : ""}" data-subtab="${eq.id}">${eq.label}</button>`
+    ).join('');
+
+    // Inicializa estructura si no existe
+    if (!tarjetasOpciones[window.editTarjetasTabSel]) tarjetasOpciones[window.editTarjetasTabSel] = {};
+    if (!tarjetasOpciones[window.editTarjetasTabSel][window.editTarjetasSubtabSel]) {
+      tarjetasOpciones[window.editTarjetasTabSel][window.editTarjetasSubtabSel] = {};
+      TARJETAS_FILAS.forEach(n => {
+        tarjetasOpciones[window.editTarjetasTabSel][window.editTarjetasSubtabSel][n] = { mas:'', exactamente:'', menos:'' };
+      });
+    }
+    const datos = tarjetasOpciones[window.editTarjetasTabSel][window.editTarjetasSubtabSel];
+
+    // Tabla
+    let html = `<table class="tarjetas-table"><thead><tr><th></th>`;
+    TARJETAS_COLUMNAS.forEach(col => html += `<th>${col.label}</th>`);
+    html += `</tr></thead><tbody>`;
+    TARJETAS_FILAS.forEach(n => {
+      html += `<tr><td>${n} tarjeta${n>1?'s':''}</td>`;
+      TARJETAS_COLUMNAS.forEach(col => {
+        const valor = datos[n][col.id] ?? '';
+        html += `<td>
+          <input type="number" min="1.01" step="0.01" 
+            data-n="${n}" data-col="${col.id}"
+            value="${valor !== undefined ? valor : ''}" 
+            placeholder="-" />
+        </td>`;
+      });
+      html += `</tr>`;
+    });
+    html += `</tbody></table>`;
+
+    document.getElementById("edit-tarjetas-table").innerHTML = html;
+
+    // Eventos para tabs
+    $tabs.querySelectorAll("button").forEach(btn => {
+      btn.onclick = () => {
+        window.editTarjetasTabSel = btn.dataset.tab;
+        renderTarjetasEditor();
+      };
+    });
+    $subtabs.querySelectorAll("button").forEach(btn => {
+      btn.onclick = () => {
+        window.editTarjetasSubtabSel = btn.dataset.subtab;
+        renderTarjetasEditor();
+      };
+    });
+
+    // Evento para inputs
+    document.getElementById("edit-tarjetas-table").querySelectorAll("input[type=number]").forEach(input => {
+      input.addEventListener("input", () => {
+        const n = input.getAttribute("data-n");
+        const col = input.getAttribute("data-col");
+        let v = input.value;
+        if (!tarjetasOpciones[window.editTarjetasTabSel][window.editTarjetasSubtabSel][n])
+          tarjetasOpciones[window.editTarjetasTabSel][window.editTarjetasSubtabSel][n] = { mas:'', exactamente:'', menos:'' };
+        tarjetasOpciones[window.editTarjetasTabSel][window.editTarjetasSubtabSel][n][col] = v;
+      });
+    });
+  }
+
+  // Mostrar el bloque de tarjetas sólo si deporte es fútbol
+  function mostrarTarjetasSiFutbol() {
+    const deporte = deporteSelect.value;
+    const containerId = "tarjetasAdminContainer";
+    let container = document.getElementById(containerId);
+    if (deporte === "futbol") {
+      renderTarjetasEditor();
+      if (container) container.style.display = "block";
+    } else if (container) {
+      container.style.display = "none";
+    }
+  }
+
+  // Al cargar el partido seleccionado, cargar también las tarjetas
   selectPartido.addEventListener("change", async function () {
     const partidoId = this.value;
     if (!editForm) return;
@@ -328,6 +453,8 @@ document.addEventListener("DOMContentLoaded", function () {
       editForm.style.display = "none";
       showMessage("");
       renderGoleadoresList([]);
+      tarjetasOpciones = {};
+      mostrarTarjetasSiFutbol();
       return;
     }
     try {
@@ -356,12 +483,21 @@ document.addEventListener("DOMContentLoaded", function () {
       renderCuotasMercado(opciones);
       const goleadoresOpciones = data.mercados?.goleadores?.opciones || [];
       renderGoleadoresList(goleadoresOpciones);
+      // TARJETAS: cargar estructura si existe
+      if (data.deporte === "futbol" && data.mercados?.tarjetas?.opciones) {
+        tarjetasOpciones = JSON.parse(JSON.stringify(data.mercados.tarjetas.opciones));
+      } else {
+        tarjetasOpciones = {};
+      }
+      mostrarTarjetasSiFutbol();
       editForm.style.display = "block";
       showMessage("");
     } catch (err) {
       showMessage("Error cargando partido: " + err.message, true);
       editForm.style.display = "none";
       renderGoleadoresList([]);
+      tarjetasOpciones = {};
+      mostrarTarjetasSiFutbol();
     }
   });
 
@@ -400,6 +536,27 @@ document.addEventListener("DOMContentLoaded", function () {
         const cuota = parseFloat(fila.querySelector(".goleador-cuota")?.value) || 1;
         nuevasOpcionesGoleadores.push({nombre, valor, cuota});
       }
+
+      // --------- TARJETAS guardar solo si alguna rellenada
+      let tarjetasObj = {};
+      let algunaTarjeta = false;
+      if (deporteSelect.value === "futbol" && tarjetasOpciones) {
+        for (const segmento of TARJETAS_SEGMENTOS) {
+          tarjetasObj[segmento.id] = {};
+          for (const equipo of TARJETAS_EQUIPOS) {
+            tarjetasObj[segmento.id][equipo.id] = {};
+            for (const n of TARJETAS_FILAS) {
+              tarjetasObj[segmento.id][equipo.id][n] = {};
+              for (const col of TARJETAS_COLUMNAS) {
+                const v = (((tarjetasOpciones?.[segmento.id]?.[equipo.id]?.[n]?.[col.id]) || '') + '').trim();
+                if (v !== "") algunaTarjeta = true;
+                tarjetasObj[segmento.id][equipo.id][n][col.id] = v === "" ? null : parseFloat(v);
+              }
+            }
+          }
+        }
+      }
+
       const formData = {
         deporte: deporteSelect.value,
         liga: ligaInput.value,
@@ -423,6 +580,13 @@ document.addEventListener("DOMContentLoaded", function () {
       if (deporteSelect.value === "tenis") {
         formData.nacionalidad1 = nacionalidad1Input.value;
         formData.nacionalidad2 = nacionalidad2Input.value;
+      }
+      // Añadir tarjetas si hay alguna rellena
+      if (deporteSelect.value === "futbol" && algunaTarjeta) {
+        formData.mercados.tarjetas = {
+          nombre: "Tarjetas",
+          opciones: tarjetasObj
+        };
       }
       try {
         await db.collection("partidos").doc(partidoId).update(formData);
