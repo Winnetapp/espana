@@ -188,6 +188,15 @@ function renderizarMercados(mercados, partido) {
     mercadosDiv.innerHTML += renderDesplegableTarjetas(mercados.tarjetas.opciones, partido);
   }
 
+  // MERCADO CORNERS AVANZADO
+  if (
+    mercados.corners &&
+    mercados.corners.opciones &&
+    typeof mercados.corners.opciones === "object"
+  ) {
+    mercadosDiv.innerHTML += renderDesplegableCorners(mercados.corners.opciones, partido);
+  }
+
   // Mercado Corners (misma estructura)
   if (mercados.corners && Array.isArray(mercados.corners.opciones) && mercados.corners.opciones.length) {
     let html = `<div class="mercado-block">
@@ -307,6 +316,7 @@ function renderDesplegableTarjetas(tarjetasObj, partido) {
   return html;
 }
 
+
 function renderTarjetasTabla(tarjetasObj, segId, eqId, columnas, filas, partido) {
   const tablaCont = document.querySelector('.mercado-block .mercado-content #tarjetas-tabla-container');
   if (!tablaCont) return;
@@ -316,22 +326,33 @@ function renderTarjetasTabla(tarjetasObj, segId, eqId, columnas, filas, partido)
   html += "</tr></thead><tbody>";
 
   filas.forEach(n => {
-    html += `<tr><td>${n} tarjeta${n>1?'s':''}</td>`;
+    const tieneDatos = columnas.some(col => {
+      let cuota = eqObj[n]?.[col.id];
+      return cuota !== null && cuota !== undefined && cuota !== "";
+    });
+
+    if (!tieneDatos) return; // ❌ No hay datos → saltar esta fila
+
+    html += `<tr><td>${n}</td>`;
     columnas.forEach(col => {
       let cuota = eqObj[n]?.[col.id];
-      if (cuota === null || cuota === undefined || cuota === "") html += `<td>-</td>`;
-      else html += `<td>
-        <div class="valor-cuota cuota-btn"
-          data-partido="${partido.equipo1} vs ${partido.equipo2}"
-          data-tipo="${col.label} ${n} ${n===1?"tarjeta":"tarjetas"} (${col.label} - ${n}) - ${partido[eqId] || eqId}"
-          data-cuota="${cuota}"
-          data-partidoid="${partido.partidoId}"
-          data-mercado="tarjetas"
-        >${typeof cuota === "number" ? cuota.toFixed(2) : cuota}</div>
-      </td>`;
+      if (cuota === null || cuota === undefined || cuota === "") {
+        html += `<td><div class="cuota cuota-btn cuota-tarjeta-disabled" style="pointer-events:none;opacity:.5;">-</div></td>`;
+      } else {
+        html += `<td>
+          <div class="cuota cuota-btn cuota-tarjeta"
+            data-partido="${partido.equipo1} vs ${partido.equipo2}"
+            data-tipo="${col.label} ${n} ${n===1?"tarjeta":"tarjetas"} (${col.label} - ${n}) - ${getSegmentoLabel(segId)} - ${(eqId==='equipo1')?partido.equipo1:(eqId==='equipo2'?partido.equipo2:"Ambos equipos")}"
+            data-cuota="${cuota}"
+            data-partidoid="${partido.partidoId}"
+            data-mercado="tarjetas"
+          >${typeof cuota === "number" ? cuota.toFixed(2) : cuota}</div>
+        </td>`;
+      }
     });
     html += "</tr>";
   });
+
   html += "</tbody></table>";
   tablaCont.innerHTML = html;
 
@@ -351,6 +372,110 @@ function renderTarjetasTabla(tarjetasObj, segId, eqId, columnas, filas, partido)
     });
   });
 }
+
+
+function renderDesplegableCorners(cornersObj, partido) {
+  const segmentos = [
+    { id: 'encuentro', label: 'Encuentro' },
+    { id: 'primera', label: '1ª Mitad' },
+    { id: 'segunda', label: '2ª Mitad' }
+  ];
+  const equipos = [
+    { id: 'ambos', label: "Ambos equipos" },
+    { id: 'equipo1', label: partido.equipo1 },
+    { id: 'equipo2', label: partido.equipo2 }
+  ];
+  const columnas = [
+    { id: 'mas', label: 'Más de' },
+    { id: 'exactamente', label: 'Exactamente' },
+    { id: 'menos', label: 'Menos de' }
+  ];
+  // Filas de 4 a 17
+  let filas = Array.from({length: 14}, (_, i) => i + 4);
+
+  let html = `<div class="mercado-block">
+    <div class="mercado-header">
+      <span>Corners</span>
+      <span class="flecha">&#x25BC;</span>
+    </div>
+    <div class="mercado-content">
+      <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-bottom:12px;">
+        <label style="font-weight:bold" for="select-corner-segmento"></label>
+        <select id="select-corner-segmento" style="padding:6px 9px;border-radius:5px;font-weight:600;color:white;background-color:#222;">
+          ${segmentos.map(s=>`<option value="${s.id}">${s.label}</option>`).join('')}
+        </select>
+        <label style="font-weight:bold" for="select-corner-equipo"></label>
+        <select id="select-corner-equipo" style="padding:6px 9px;border-radius:5px;font-weight:600;color:white;background-color:#222;">
+          ${equipos.map(e=>`<option value="${e.id}">${e.label}</option>`).join('')}
+        </select>
+      </div>
+      <div id="corners-tabla-container"></div>
+    </div>
+  </div>`;
+
+  setTimeout(() => renderCornersTabla(cornersObj, segmentos[0].id, equipos[0].id, columnas, filas, partido), 0);
+
+  setTimeout(() => {
+    const selectSeg = document.getElementById('select-corner-segmento');
+    const selectEq = document.getElementById('select-corner-equipo');
+    if (!selectSeg || !selectEq) return;
+    function actualizar() {
+      renderCornersTabla(cornersObj, selectSeg.value, selectEq.value, columnas, filas, partido);
+    }
+    selectSeg.onchange = actualizar;
+    selectEq.onchange = actualizar;
+  }, 0);
+
+  return html;
+}
+
+function renderCornersTabla(cornersObj, segId, eqId, columnas, filas, partido) {
+  const tablaCont = document.querySelector('.mercado-block .mercado-content #corners-tabla-container');
+  if (!tablaCont) return;
+  let eqObj = cornersObj[segId]?.[eqId] || {};
+  let html = `<table class="tarjetas-table" style="width:100%;table-layout:fixed;"><thead><tr><th style="width:19%"></th>`;
+  let colWidth = (81 / columnas.length).toFixed(2);
+  columnas.forEach(col => html += `<th style="width:${colWidth}%">${col.label}</th>`);
+  html += "</tr></thead><tbody>";
+  filas.forEach(n => {
+    html += `<tr><td>${n}</td>`;
+    columnas.forEach(col => {
+      let cuota = eqObj[n]?.[col.id];
+      if (cuota === null || cuota === undefined || cuota === "") {
+        html += `<td><div class="cuota cuota-btn cuota-corner-disabled" style="pointer-events:none;opacity:.5;">-</div></td>`;
+      } else {
+        html += `<td>
+          <div class="cuota cuota-btn cuota-corner"
+            data-partido="${partido.equipo1} vs ${partido.equipo2}"
+            data-tipo="${col.label} ${n} ${n===1?"corner":"corners"} (${col.label} - ${n}) - ${segId} - ${(eqId==='equipo1')?partido.equipo1:(eqId==='equipo2'?partido.equipo2:"Ambos equipos")}"
+            data-cuota="${cuota}"
+            data-partidoid="${partido.partidoId}"
+            data-mercado="corners"
+          >${typeof cuota === "number" ? cuota.toFixed(2) : cuota}</div>
+        </td>`;
+      }
+    });
+    html += "</tr>";
+  });
+  html += "</tbody></table>";
+  tablaCont.innerHTML = html;
+
+  document.querySelectorAll('.cuota-btn.cuota-corner').forEach(btn => {
+    btn.addEventListener('click', function () {
+      if (typeof window.addBetToSlip === "function") {
+        let mercado = 'corners';
+        window.addBetToSlip({
+          partido: btn.dataset.partido,
+          tipo: btn.dataset.tipo,
+          cuota: btn.dataset.cuota,
+          partidoId: btn.dataset.partidoid,
+          mercado
+        });
+      }
+    });
+  });
+}
+
 
 // ========== DESPLEGABLES DE MERCADO ==========
 function asignarDesplegablesMercados() {
@@ -373,26 +498,12 @@ function asignarEventosCuotasYMercados() {
         let mercado = '';
         const mercadoBlock = btn.closest('.mercado-block');
         if (mercadoBlock && mercadoBlock.querySelector('.mercado-header span')) {
-          const nombreMercado = mercadoBlock.querySelector('.mercado-header span').textContent.toLowerCase();
-          if (nombreMercado.includes('resultado')) mercado = 'resultado';
-          else if (nombreMercado.includes('goleador')) mercado = 'goleadores';
-          else if (nombreMercado.includes('tarjeta')) mercado = 'tarjetas';
-          else if (nombreMercado.includes('corner')) mercado = 'corners';
-          else mercado = nombreMercado;
+          mercado = mercadoBlock.querySelector('.mercado-header span').textContent
+            .trim()
+            .toLowerCase();
         }
 
-        // COMPROBAR SI YA EXISTE APUESTA DE RESULTADO PARA ESTE PARTIDO
-        if (mercado === 'resultado' && window.localStorage) {
-          let bets = [];
-          try {
-            bets = JSON.parse(localStorage.getItem('carritoApuestas')) || [];
-          } catch {}
-          if (bets.some(b => b.partidoId === btn.dataset.partidoid && b.mercado === 'resultado')) {
-            alert('Ya tienes una apuesta de resultado para este partido.');
-            return;
-          }
-        }
-
+        // Añadir la apuesta sin restricciones
         window.addBetToSlip({
           partido: btn.dataset.partido,
           tipo: btn.dataset.tipo,
@@ -403,6 +514,7 @@ function asignarEventosCuotasYMercados() {
       }
     });
   });
+
   document.querySelectorAll('.goleador-opcion').forEach(div => {
     div.addEventListener('click', function () {
       if (typeof window.addBetToSlip === "function") {
@@ -418,7 +530,6 @@ function asignarEventosCuotasYMercados() {
   });
 }
 
-// ... TODO EL CÓDIGO ANTERIOR IGUAL ...
 
 // ========== RENDER DESPLEGABLE TARJETAS AVANZADO CON SELECTORES ==========
 function renderDesplegableTarjetas(tarjetasObj, partido) {
@@ -506,53 +617,4 @@ function mostrarTarjetaSidebar({ main, cantidad, segId, eqId, partido }) {
   const periodo = getSegmentoLabel(segId);
   const equipo = getEquipoLabel(eqId, partido);
   return `Tarjetas: ${main} ${cantidad} tarjetas - ${periodo} - ${equipo}`;
-}
-
-function renderTarjetasTabla(tarjetasObj, segId, eqId, columnas, filas, partido) {
-  const tablaCont = document.querySelector('.mercado-block .mercado-content #tarjetas-tabla-container');
-  if (!tablaCont) return;
-  let eqObj = tarjetasObj[segId]?.[eqId] || {};
-  let html = `<table class="tarjetas-table" style="width:100%;table-layout:fixed;"><thead><tr><th style="width:19%"></th>`;
-  // Reparto igual de columnas
-  let colWidth = (81 / columnas.length).toFixed(2);
-  columnas.forEach(col => html += `<th style="width:${colWidth}%">${col.label}</th>`);
-  html += "</tr></thead><tbody>";
-  filas.forEach(n => {
-    html += `<tr><td>${n}</td>`;
-    columnas.forEach(col => {
-      let cuota = eqObj[n]?.[col.id];
-      if (cuota === null || cuota === undefined || cuota === "") {
-        html += `<td><div class="cuota cuota-btn cuota-tarjeta-disabled" style="pointer-events:none;opacity:.5;">-</div></td>`;
-      } else {
-        html += `<td>
-          <div class="cuota cuota-btn cuota-tarjeta"
-            data-partido="${partido.equipo1} vs ${partido.equipo2}"
-            data-tipo="${col.label} ${n} ${n===1?"tarjeta":"tarjetas"} (${col.label} - ${n}) - ${getSegmentoLabel(segId)} - ${(eqId==='equipo1')?partido.equipo1:(eqId==='equipo2'?partido.equipo2:"Ambos equipos")}"
-            data-cuota="${cuota}"
-            data-partidoid="${partido.partidoId}"
-            data-mercado="tarjetas"
-          >${typeof cuota === "number" ? cuota.toFixed(2) : cuota}</div>
-        </td>`;
-      }
-    });
-    html += "</tr>";
-  });
-  html += "</tbody></table>";
-  tablaCont.innerHTML = html;
-
-  // Eventos para cuotas-boton de tarjetas
-  document.querySelectorAll('.cuota-btn.cuota-tarjeta').forEach(btn => {
-    btn.addEventListener('click', function () {
-      if (typeof window.addBetToSlip === "function") {
-        let mercado = 'tarjetas';
-        window.addBetToSlip({
-          partido: btn.dataset.partido,
-          tipo: btn.dataset.tipo,
-          cuota: btn.dataset.cuota,
-          partidoId: btn.dataset.partidoid,
-          mercado
-        });
-      }
-    });
-  });
 }
