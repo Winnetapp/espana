@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Mis Apuestas</title>
-  <link rel="stylesheet" href="assets/css/apuestas.css">
+  <title>Winnet</title>
+
+  <!-- Estilos -->
+  <link rel="stylesheet" href="assets/css/style.css" />
   <link rel="stylesheet" href="assets/css/headfoot.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 
@@ -12,10 +14,10 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
-
 </head>
+
 <body>
-    <!-- ===== HEADER ==================================================== -->
+  <!-- ===== HEADER ==================================================== -->
   <header>
     <div class="header-left"  id="header-left"></div>
 
@@ -33,24 +35,100 @@
     </div>
   </header>
 
-    <main>
-    <h1>Mis Apuestas</h1>
-    <div class="tabs">
-        <button class="tab-btn active" data-tab="pendientes">
-          <span>Pendientes</span>
-        </button>
-        <button class="tab-btn" data-tab="listas">
-          <span>Listas</span>
-        </button>
-        <button class="tab-btn" data-tab="terminadas">
-          <span>Terminadas</span>
-        </button>
-        <button class="tab-btn" data-tab="todas">
-          <span>Todas</span>
-        </button>
+  <!-- ===== MAIN ====================================================== -->
+  <main id="main-content">
+    <h1>Partidos Disponibles</h1>
+
+    <div class="main-columns">
+      <div class="column column-left"><!-- Espacio futuro --></div>
+
+      <div class="column column-center">
+        <div id="partidos-container"></div>
+      </div>
+
+      <div class="column column-right">
+        <div class="user-sidebar" id="userSidebar">
+          <!-- ───── CABECERA ───── -->
+          <div class="bs-header">
+            <button class="bs-toggle js-toggle">▼</button>
+            <span class="bs-title">Carrito</span>
+            <button class="bs-clear" id="clear-bets" title="Vaciar">🗑️</button>
+          </div>
+
+          <!-- ───── PESTAÑAS ───── -->
+          <div class="bs-tabs">
+            <button class="bs-tab active js-tab" data-target="simple">Simple</button>
+            <button class="bs-tab js-tab" data-target="combi">Combinada (0)</button>
+            <button class="bs-tab js-tab" data-target="sistema">Sistema</button>
+          </div>
+
+          <!-- Contenido de cada pestaña -->
+          <div class="bs-content">
+            <div data-content="simple" style="display: block;">
+            </div>
+            <div data-content="combi" style="display: none;">
+            </div>
+            <div data-content="sistema" style="display: none;">
+            </div>
+          </div>
+
+
+          <!-- ───── LISTA Apuestas ───── -->
+          <div class="bs-body">
+            <ul id="bet-list" class="bs-list"><!-- tus <li> dinámicos --></ul>
+          </div>
+
+          <!-- ───── FOOTER ───── -->
+          <div class="bs-footer">
+            <div class="stake-row">
+              <div class="stake-group">
+                <label for="stake" class="stake">Importe</label>
+                <div class="stake-input">
+                  <input type="number" id="stake" value="5" min="0" />
+                  <span>€</span>
+                </div>
+              </div>
+
+              <div class="total-odds">
+                <span class="tot-label">Cuota total</span>
+                <span class="tot-value" id="total-odds">0,00</span>
+              </div>
+            </div>
+
+            <!-- Ganancias potenciales en una fila completa -->
+            <div class="potential-winnings">
+              <span class="pw-label">Ganancias potenciales</span>
+              <span class="pw-divider"></span>
+              <span class="pw-value" id="potential-winnings">0,00 €</span>
+            </div>
+          </div>
+
+            <div class="quick-stakes">
+              <button class="qs">2 €</button>
+              <button class="qs">5 €</button>
+              <button class="qs">10 €</button>
+              <button class="qs">20 €</button>
+              <button class="qs all-in">ALL-IN</button>
+            </div>
+
+            <button class="accept-btn">Aceptar los cambios</button>
+          </div>
+        </div>
+
+      </div>
     </div>
-    <div id="apuestas-container"></div>
-    </main>
+
+    <!-- Botón flotante de apuestas -->
+    <!-- Botón para abrir sidebar en móvil -->
+    <button id="mobileMenuBtn" class="mobile-menu-btn">
+      <img src="carrito.png" alt="Carrito" id="cartIcon" />
+      <span id="totalOddsText" style="display:none;"></span>
+
+      <!-- 🔔 contador de apuestas -->
+      <span id="betBadge" class="bet-badge" style="display:none;">0</span>
+    </button>
+
+  </main>
 
   <!-- ===== FOOTER ==================================================== -->
   <footer class="footer">
@@ -75,6 +153,7 @@
     </div>
   </footer>
 
-  <script src="assets/js/apuestas.js"></script>
+  <!-- JS principal -->
+  <script src="assets/js/main.js"></script>
 </body>
 </html>
