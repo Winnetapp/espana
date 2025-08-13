@@ -380,6 +380,19 @@ function asignarEventosCuotasYMercados() {
           else if (nombreMercado.includes('corner')) mercado = 'corners';
           else mercado = nombreMercado;
         }
+
+        // COMPROBAR SI YA EXISTE APUESTA DE RESULTADO PARA ESTE PARTIDO
+        if (mercado === 'resultado' && window.localStorage) {
+          let bets = [];
+          try {
+            bets = JSON.parse(localStorage.getItem('carritoApuestas')) || [];
+          } catch {}
+          if (bets.some(b => b.partidoId === btn.dataset.partidoid && b.mercado === 'resultado')) {
+            alert('Ya tienes una apuesta de resultado para este partido.');
+            return;
+          }
+        }
+
         window.addBetToSlip({
           partido: btn.dataset.partido,
           tipo: btn.dataset.tipo,
