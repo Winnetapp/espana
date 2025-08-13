@@ -13,21 +13,20 @@ html {
   background-color: var(--fondo);
 }
 
-
 body {
   font-family: 'Poppins', sans-serif;
 }
 
 .main-admin {
-  min-height: 100vh; /* Ocupa al menos toda la altura visible */
+  min-height: 100vh;
   font-family: Arial, Helvetica, sans-serif;
   background: var(--fondo);
   color: yellow;
   display: flex;
-  justify-content: center;     /* Centrado horizontal */
-  align-items: center;         /* Centrado vertical */
+  justify-content: center;
+  align-items: center;
   padding: 2rem;
-  box-sizing: border-box;      /* Para que el padding no desborde */
+  box-sizing: border-box;
 }
 
 .card {
@@ -70,14 +69,13 @@ input:focus, select:focus {
   box-shadow: 0 0 5px var(--rojo);
 }
 
-button,
 #editMatchForm button,
 button#invertirEquipos {
   margin-top: 1rem;
   width: 100%;
-  border: none;
+  border: 2px solid var(--rojo-oscuro);
   border-radius: 6px;
-  background: var(--rojo-oscuro);
+  background: #27000041;
   color: yellow;
   font-size: 1rem;
   cursor: pointer;
@@ -138,7 +136,6 @@ button:hover,
   width: 92%;
 }
 
-
 #nacionalidades-wrapper {
   display: flex;
   gap: 20px;
@@ -181,6 +178,76 @@ button:hover,
   padding: 0.5rem;
 }
 
+/* Tarjetas Mercado Edición */
+#tarjetasAdminContainer {
+  margin-top: 24px;
+  background: #232323;
+  border-radius: 8px;
+  padding: 12px 10px 16px 10px;
+  border: 1px solid #404040;
+}
+
+/* ... Resto del CSS ... */
+
+.tarjetas-tabs, .tarjetas-subtabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 6px;
+  margin-top: 8px;
+}
+.tarjetas-tabs button, .tarjetas-subtabs button {
+  border: none;
+  border-radius: 5px;
+  padding: 6px 12px;
+  cursor: pointer;
+  background: #353535;
+  color: #ffe16b;
+  font-weight: bold;
+  opacity: .8;
+  transition: .15s, box-shadow 0.18s;
+  box-shadow: 0 0 0 0 transparent;
+  margin-bottom: 2px;
+  font-size: 1rem;
+}
+.tarjetas-tabs button.active, .tarjetas-subtabs button.active {
+  background: var(--rojo-oscuro);
+  color: #ffe16b;
+  opacity: 1;
+  box-shadow: 0 0 0 2px var(--rojo) inset, 0 2px 10px rgba(255,0,0,0.14);
+  outline: none;
+  border: 2px solid var(--rojo);
+}
+.tarjetas-tabs button:focus-visible,
+.tarjetas-subtabs button:focus-visible {
+  outline: 2px solid var(--azul);
+}
+
+/* ... Resto del CSS ... */
+
+.tarjetas-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 8px;
+}
+.tarjetas-table th, .tarjetas-table td {
+  padding: 4px 7px;
+  text-align: center;
+}
+.tarjetas-table input[type=number] {
+  width: 70px;
+  padding: 8px 8px;
+  border-radius: 5px;
+  text-align: right;
+  font-size: 1em;
+  color: #ffe16b;
+  background: #2b2b2b;
+  border: none;
+}
+.tarjetas-table input[type=number]:focus {
+  outline: 2px solid #ffe16b;
+}
+
+/* Responsive */
 @media (max-width: 600px) {
   .main-admin, .card, main {
     padding: 1rem 0.5rem;
