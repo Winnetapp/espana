@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 
   <!-- Firebase SDKs -->
-   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 </head>
@@ -105,6 +105,15 @@
 
         <h3>Cuotas de Resultado</h3>
         <div id="mercadoCuotasContainer"></div>
+
+        <!-- Datalist dinámico para autocompletar nombres de goleadores -->
+        <datalist id="jugadores-list"></datalist>
+
+        <div id="goleadoresContainer">
+            <h3>Mercado Goleadores</h3>
+            <div id="goleadoresList"></div>
+            <button id="addGoleadorBtn" type="button">Añadir Goleador</button>
+        </div>
 
         <button type="submit">Guardar cambios</button>
         </form>
