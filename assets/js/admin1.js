@@ -1,4 +1,3 @@
-// Importa las funciones necesarias de Firebase (asegúrate de que tu entorno soporte módulos)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.5.2/firebase-app.js";
 import {
   getFirestore,
@@ -6,12 +5,10 @@ import {
   getDocs,
   doc,
   getDoc,
-  updateDoc,
-  query,
-  where,
+  updateDoc
 } from "https://www.gstatic.com/firebasejs/10.5.2/firebase-firestore.js";
 
-/* 1️⃣  Firebase ------------------------------------------------------------------ */
+// 1️⃣  Firebase ------------------------------------------------------------------
 const firebaseConfig = {
   apiKey: "AIzaSyDgdI3UcnHuRlcynH-pCHcGORcGBAD3FSU",
   authDomain: "winnet-708db.firebaseapp.com",
@@ -29,8 +26,6 @@ const db = getFirestore(app);
 const matchSelect = document.getElementById("matchSelect");
 const resultadoForm = document.getElementById("resultadoForm");
 const preguntasWrap = document.getElementById("preguntasDinamicas");
-const homeScoreInput = document.getElementById("homeScore");
-const awayScoreInput = document.getElementById("awayScore");
 const estadoGuardado = document.getElementById("estadoGuardado");
 
 let partidoSeleccionadoData = null;
@@ -40,12 +35,9 @@ let partidoSeleccionadoId = null;
 async function cargarPartidos() {
   try {
     const querySnapshot = await getDocs(collection(db, "partidos"));
-    console.log("Partidos encontrados:", querySnapshot.size);
-
     matchSelect.innerHTML = `<option value="" disabled selected>— Elige uno —</option>`;
 
     if (querySnapshot.empty) {
-      console.log("No hay partidos en Firestore.");
       const option = document.createElement("option");
       option.textContent = "No hay partidos disponibles";
       option.disabled = true;
@@ -55,15 +47,12 @@ async function cargarPartidos() {
 
     querySnapshot.forEach((docu) => {
       const data = docu.data();
-      console.log("Partido:", data);
-
       const option = document.createElement("option");
       option.value = docu.id;
       option.textContent = `${data.equipo1} vs ${data.equipo2} - ${data.fecha} ${data.hora}`;
       matchSelect.appendChild(option);
     });
   } catch (error) {
-    console.error("Error cargando partidos:", error);
     const option = document.createElement("option");
     option.textContent = "Error cargando partidos";
     option.disabled = true;
@@ -71,49 +60,20 @@ async function cargarPartidos() {
   }
 }
 
-// Construye el formulario dinámico según mercados y deporte
+// Construye el formulario dinámico desde JS y mercados del partido
 function construirFormularioDesdeMercados(partidoSeleccionadoData) {
   preguntasWrap.innerHTML = "";
 
-  console.log("Datos partido:", partidoSeleccionadoData);
-
   const mercados = partidoSeleccionadoData.mercados || {};
-  const deporteRaw = partidoSeleccionadoData.deporte || "";
-  const deporte = deporteRaw.toLowerCase();
 
-  console.log("Deporte detectado:", deporte);
-  console.log("Mercados detectados:", mercados);
-
-  if (mercados.resultado) {
+  // 1. Pregunta resultado del partido
+  const resultadoMercado = mercados.resultado || partidoSeleccionadoData.resultado;
+  if (resultadoMercado && Array.isArray(resultadoMercado.opciones)) {
     const div = document.createElement("div");
     div.className = "pregunta-item";
-
-    const opcionesOriginales = mercados.resultado.opciones || [];
-
-    console.log("Opciones originales mercado resultado:", opcionesOriginales);
-
-    let opcionesFiltradas = [];
-
-    if (deporte === "tenis" || deporte === "baloncesto") {
-      // Sin empate para tenis y baloncesto
-      opcionesFiltradas = opcionesOriginales.filter(
-        (op) => op.valor === "1" || op.valor === "2"
-      );
-    } else {
-      opcionesFiltradas = opcionesOriginales;
-    }
-
-    console.log("Opciones filtradas:", opcionesFiltradas);
-
-    if (opcionesFiltradas.length === 0) {
-      preguntasWrap.innerHTML = "<p>No hay opciones disponibles para el mercado resultado.</p>";
-      return;
-    }
-
-    let optionsHtml = opcionesFiltradas
+    let optionsHtml = resultadoMercado.opciones
       .map((op) => `<option value="${op.valor}">${op.nombre}</option>`)
       .join("");
-
     div.innerHTML = `
       <label for="resultadoSelect">¿Quién ganó el partido?</label>
       <select id="resultadoSelect" required>
@@ -121,11 +81,133 @@ function construirFormularioDesdeMercados(partidoSeleccionadoData) {
         ${optionsHtml}
       </select>
     `;
-
     preguntasWrap.appendChild(div);
-  } else {
-    preguntasWrap.innerHTML = "<p>No hay mercado de resultado para este partido.</p>";
   }
+
+  // 2. Pregunta goleadores (checkboxes)
+  if (
+    mercados.goleadores &&
+    Array.isArray(mercados.goleadores.opciones)
+  ) {
+    const goleadoresDiv = document.createElement("div");
+    goleadoresDiv.className = "pregunta-item";
+    goleadoresDiv.innerHTML = `<label>¿Quiénes marcaron?</label>`;
+    const lista = document.createElement("div");
+    lista.className = "goleadores-checkbox-list";
+    mercados.goleadores.opciones.forEach((jug) => {
+      const id = `goleador_${jug.valor}`;
+      const label = document.createElement("label");
+      label.className = "goleador-checkbox-label";
+      label.setAttribute("for", id);
+
+      const input = document.createElement("input");
+      input.type = "checkbox";
+      input.className = "goleador-checkbox";
+      input.id = id;
+      input.value = jug.valor;
+
+      label.appendChild(input);
+      label.appendChild(document.createTextNode(jug.nombre));
+      lista.appendChild(label);
+    });
+    goleadoresDiv.appendChild(lista);
+    preguntasWrap.appendChild(goleadoresDiv);
+  }
+
+  // 3. Pregunta tarjetas (si hay mercado de tarjetas)
+  if (mercados.tarjetas) {
+    // Segmentos y equipos básicos
+    const segmentos = [
+      { id: "encuentro", label: "Encuentro" },
+      { id: "primera", label: "1ª Mitad" },
+      { id: "segunda", label: "2ª Mitad" }
+    ];
+    const equipos = [
+      { id: "ambos", label: "Ambos equipos" },
+      { id: "equipo1", label: partidoSeleccionadoData.equipo1 },
+      { id: "equipo2", label: partidoSeleccionadoData.equipo2 }
+    ];
+
+    const tarjetasDiv = document.createElement("div");
+    tarjetasDiv.className = "pregunta-item";
+    tarjetasDiv.innerHTML = `<label>¿Cuántas tarjetas?</label>`;
+
+    // Bloque visual para cada segmento
+    const tarjetasBloque = document.createElement("div");
+    tarjetasBloque.className = "tarjetas-resultado-bloque";
+
+    segmentos.forEach(seg => {
+      const segBlock = document.createElement("div");
+      segBlock.className = "tarjetas-resultado-segmento";
+      segBlock.innerHTML = `<span class="tarjetas-segmento-label">${seg.label}</span>
+        <div class="tarjetas-resultado-equipos"></div>`;
+      const equiposWrap = segBlock.querySelector('.tarjetas-resultado-equipos');
+      equipos.forEach(eq => {
+        const label = document.createElement('label');
+        label.innerHTML = `<span>${eq.label}</span>
+          <input type="number" min="0" max="20" class="input-tarjetas" data-segmento="${seg.id}" data-equipo="${eq.id}" />`;
+        equiposWrap.appendChild(label);
+      });
+      tarjetasBloque.appendChild(segBlock);
+    });
+    tarjetasDiv.appendChild(tarjetasBloque);
+    preguntasWrap.appendChild(tarjetasDiv);
+  }
+}
+
+// Utilidad para parsear tipo de apuesta de tarjetas
+function parseTarjetaBetTipo(tipo, equipo1 = '', equipo2 = '') {
+  let main = "", cantidad = "", equipo = "ambos", periodo = "encuentro";
+  const partes = tipo.split(" - ").map(s => s.trim());
+  if (partes.length === 4) {
+    main = partes[0];
+    cantidad = partes[1];
+    equipo = partes[2];
+    periodo = partes[3];
+  } else if (partes.length === 3) {
+    let match = partes[0].match(/(Más de|Menos de|Exactamente)\s*(\d+)/i);
+    if (match) {
+      main = match[1];
+      cantidad = match[2];
+    } else {
+      const mt = partes[0].match(/(Exactamente)\s*(\d+)/i);
+      if (mt) {
+        main = mt[1];
+        cantidad = mt[2];
+      } else {
+        main = partes[0];
+      }
+    }
+    let periodoTest = partes[1].toLowerCase();
+    if (
+      ["encuentro", "1ª mitad", "2ª mitad", "primera", "segunda"].includes(periodoTest)
+    ) {
+      periodo = periodoTest;
+      equipo = partes[2].toLowerCase();
+    } else {
+      equipo = partes[1].toLowerCase();
+      periodo = partes[2].toLowerCase();
+    }
+  }
+
+  periodo = periodo
+    .replace(/1ª mitad/i, "primera")
+    .replace(/2ª mitad/i, "segunda")
+    .trim();
+
+  equipo = equipo.trim().toLowerCase();
+  equipo1 = (equipo1 || "").trim().toLowerCase();
+  equipo2 = (equipo2 || "").trim().toLowerCase();
+
+  if (equipo === equipo1) equipo = "equipo1";
+  else if (equipo === equipo2) equipo = "equipo2";
+  else if (equipo === "ambos equipos" || equipo === "ambos") equipo = "ambos";
+
+  return { main, cantidad: Number(cantidad), equipo, periodo };
+}
+
+function limpiaParentesisTarjetas(tipo) {
+  return tipo.replace(/\s*\([^)]+\)\s*/g, " ").replace(/\s{2,}/g, " ").trim();
 }
 
 // Evento al seleccionar partido
@@ -147,17 +229,10 @@ matchSelect.addEventListener("change", async (e) => {
     }
 
     partidoSeleccionadoData = partidoDoc.data();
-
-    // Limpia inputs de goles al cambiar partido
-    if (homeScoreInput) homeScoreInput.value = "";
-    if (awayScoreInput) awayScoreInput.value = "";
-
     construirFormularioDesdeMercados(partidoSeleccionadoData);
-
     resultadoForm.classList.remove("hidden");
     if (estadoGuardado) estadoGuardado.textContent = "";
   } catch (error) {
-    console.error("Error cargando partido seleccionado:", error);
     if (estadoGuardado) estadoGuardado.textContent = "Error cargando partido seleccionado.";
   }
 });
@@ -171,88 +246,149 @@ resultadoForm.addEventListener("submit", async (e) => {
     return;
   }
 
-  const homeScore = Number(homeScoreInput?.value);
-  const awayScore = Number(awayScoreInput?.value);
+  // Obtener valores de los campos
   const resultadoSelect = document.getElementById("resultadoSelect");
+  const goleadorCheckboxes = document.querySelectorAll(".goleador-checkbox");
+  const goleadoresMarcados = [];
+  goleadorCheckboxes.forEach(cb => {
+    if (cb.checked) goleadoresMarcados.push(cb.value);
+  });
 
-  if (
-    homeScore < 0 ||
-    awayScore < 0 ||
-    !resultadoSelect ||
-    resultadoSelect.value === ""
-  ) {
-    alert("Rellena todos los campos correctamente.");
-    return;
-  }
+  // Tarjetas
+  const tarjetasInputs = document.querySelectorAll('.input-tarjetas');
+  const tarjetasResultados = {};
+  tarjetasInputs.forEach(input => {
+    const seg = input.dataset.segmento;
+    const eq = input.dataset.equipo;
+    const val = parseInt(input.value, 10);
+    if (!tarjetasResultados[seg]) tarjetasResultados[seg] = {};
+    tarjetasResultados[seg][eq] = isNaN(val) ? null : val;
+  });
 
   // Construir el resultado a guardar
   const resultadoGuardado = {
-    goles_local: homeScore,
-    goles_visitante: awayScore,
-    ganador: resultadoSelect.value,
+    ganador: resultadoSelect ? resultadoSelect.value : null,
+    goleadores: goleadoresMarcados
   };
+  if (Object.keys(tarjetasResultados).length > 0) {
+    resultadoGuardado.tarjetas = tarjetasResultados;
+  }
+
+  console.log("===> resultadoGuardado:", JSON.stringify(resultadoGuardado, null, 2));
 
   try {
     await updateDoc(doc(db, "partidos", partidoSeleccionadoId), {
       resultado: resultadoGuardado,
     });
 
-    // --- NUEVO: Actualizar apuestas relacionadas ---
+    // Actualizar apuestas
     const apuestasRef = collection(db, "apuestas");
     const apuestasSnapshot = await getDocs(apuestasRef);
 
     for (const apuestaDoc of apuestasSnapshot.docs) {
       const apuestaData = apuestaDoc.data();
+
+      // Solo actualizar si el estado es "pendiente"
+      if (apuestaData.estado && apuestaData.estado !== "pendiente") {
+        continue; // saltar esta apuesta
+      }
+
       let bets = apuestaData.bets || [];
       let betsModificados = false;
 
-      // Recorremos los bets de la apuesta
-      bets = bets.map((bet) => {
+      bets = bets.map((bet, betIndex) => {
         if (bet.partidoId === partidoSeleccionadoId) {
           let resultadoBet = "perdida";
-          // Lógica según tipo de apuesta (ajusta según tus valores)
-          if (
-            bet.tipo === partidoSeleccionadoData.equipo1 && resultadoGuardado.ganador === "1"
-          ) {
-            resultadoBet = "ganada";
-          } else if (
-            bet.tipo === partidoSeleccionadoData.equipo2 && resultadoGuardado.ganador === "2"
-          ) {
-            resultadoBet = "ganada";
-          } else if (
-            bet.tipo === "Empate" && resultadoGuardado.ganador === "X"
+          const tipo = bet.tipo;
+
+          // Tarjetas
+          let tarjetasPartido = null;
+          if (tipo.toLowerCase().includes("tarjeta")) {
+            const periodo = tipo.toLowerCase().includes("1ª mitad") ? "primera"
+                          : tipo.toLowerCase().includes("2ª mitad") ? "segunda"
+                          : "encuentro";
+
+            const equipo = tipo.toLowerCase().includes("equipo1") ? "equipo1"
+                        : tipo.toLowerCase().includes("equipo2") ? "equipo2"
+                        : "ambos";
+
+            if (resultadoGuardado.tarjetas?.[periodo]) {
+              if (equipo === "ambos") {
+                const eq1 = resultadoGuardado.tarjetas[periodo].equipo1 || 0;
+                const eq2 = resultadoGuardado.tarjetas[periodo].equipo2 || 0;
+                tarjetasPartido = eq1 + eq2;
+              } else {
+                tarjetasPartido = resultadoGuardado.tarjetas[periodo][equipo] ?? null;
+              }
+            }
+
+            const numeroApostado = parseInt(tipo.match(/\d+/)?.[0] || 0, 10);
+
+            console.log(`Tarjetas calculadas: ${tarjetasPartido}, número apostado: ${numeroApostado}, periodo: ${periodo}, equipo: ${equipo}`);
+
+            if (tarjetasPartido !== null) {
+              if (tipo.toLowerCase().includes("más de")) {
+                resultadoBet = tarjetasPartido > numeroApostado ? "ganada" : "perdida";
+              } else if (tipo.toLowerCase().includes("menos de")) {
+                resultadoBet = tarjetasPartido < numeroApostado ? "ganada" : "perdida";
+              } else if (tipo.toLowerCase().includes("exactamente")) {
+                resultadoBet = tarjetasPartido === numeroApostado ? "ganada" : "perdida";
+              }
+            }
+          }
+          // Resultado simple 1/X/2
+          else if (
+            (bet.tipo === partidoSeleccionadoData.equipo1 && resultadoGuardado.ganador === "1") ||
+            (bet.tipo === partidoSeleccionadoData.equipo2 && resultadoGuardado.ganador === "2") ||
+            (bet.tipo === "Empate" && resultadoGuardado.ganador === "X")
           ) {
             resultadoBet = "ganada";
           }
+          // Goleador
+          else if (bet.tipoApuesta === "goleador" || ![partidoSeleccionadoData.equipo1, partidoSeleccionadoData.equipo2, "Empate"].includes(tipo)) {
+            let valorGoleador = null;
+            const marcaMatch = tipo.match(/Marca\s*\((.+)\)/i);
+            const opcionesGoleadores = (partidoSeleccionadoData.mercados?.goleadores?.opciones || []);
+            if (marcaMatch) {
+              const nombreJugador = marcaMatch[1].trim();
+              const opcion = opcionesGoleadores.find(j => j.nombre.toLowerCase() === nombreJugador.toLowerCase());
+              if (opcion) valorGoleador = opcion.valor;
+            } else {
+              const opcion = opcionesGoleadores.find(j =>
+                j.nombre.toLowerCase() === tipo.toLowerCase() ||
+                j.valor.toLowerCase() === tipo.toLowerCase()
+              );
+              if (opcion) valorGoleador = opcion.valor;
+            }
+            if (valorGoleador && goleadoresMarcados.includes(valorGoleador)) {
+              resultadoBet = "ganada";
+            }
+          }
+
           betsModificados = true;
+          console.log("Resultado calculado para la apuesta:", resultadoBet);
           return { ...bet, resultado: resultadoBet };
         }
         return bet;
       });
 
-      // --- Lógica combinada mejorada ---
+      // Evaluar estado combinado
       let nuevoEstadoApuesta = apuestaData.estado || "pendiente";
       if (bets.length > 1) {
-        // Si algún bet está perdida, la apuesta es perdida
         if (bets.some(b => b.resultado === "perdida")) {
           nuevoEstadoApuesta = "perdida";
-        }
-        // Si todos los bets están ganados y hay al menos uno, la apuesta es ganada
-        else if (bets.every(b => b.resultado === "ganada") && bets.length > 0) {
+        } else if (bets.every(b => b.resultado === "ganada")) {
           nuevoEstadoApuesta = "ganada";
-        }
-        // Si hay algún bet pendiente, la apuesta es pendiente
-        else {
+        } else {
           nuevoEstadoApuesta = "pendiente";
         }
       } else if (bets.length === 1) {
         nuevoEstadoApuesta = bets[0].resultado || "pendiente";
       }
 
-      // Solo actualizar si hubo cambios
       if (betsModificados) {
         await updateDoc(doc(db, "apuestas", apuestaDoc.id), {
-          bets: bets,
+          bets,
           estado: nuevoEstadoApuesta,
           resultado:
             nuevoEstadoApuesta === "ganada"
@@ -263,14 +399,15 @@ resultadoForm.addEventListener("submit", async (e) => {
         });
       }
     }
-    // --- FIN actualizar apuestas ---
 
     if (estadoGuardado) estadoGuardado.textContent = "Resultados guardados y apuestas actualizadas correctamente.";
   } catch (error) {
-    console.error("Error guardando resultado:", error);
     if (estadoGuardado) estadoGuardado.textContent = "Error al guardar los resultados.";
+    console.error("Error al guardar los resultados:", error);
   }
 });
+
+
 
 // Inicializar (cuando el DOM esté listo)
 if (document.readyState === "loading") {
@@ -278,3 +415,4 @@ if (document.readyState === "loading") {
 } else {
   cargarPartidos();
 }
+
