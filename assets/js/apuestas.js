@@ -133,6 +133,81 @@ function formateaFechaApuesta(fecha) {
   return `${diaSemana} ${dia} de ${mes} del ${año} a las ${horas}:${minutos}`;
 }
 
+// ----------- UTILIDAD MEJORADA PARA FORMATEAR APUESTAS DE TARJETAS Y GOLEADORES -----------
+function formateaTarjetaApuesta(tipo, partido) {
+  // 1. Elimina 'Marca' al principio y TODO entre paréntesis, con espacios alrededor (todas las ocurrencias)
+  // LIMPIEZA COMPLETA DE TIPO
+  tipo = tipo
+    .replace(/^Marca\s*/i, "")               // Quita "Marca" al inicio
+    .replace(/\(.*?-\s*\d+\)/g, "")          // Quita patrones como (Más de - 4), (Menos de - 3), etc.
+    .replace(/\(.*?\)/g, "")                 // Quita cualquier otro texto entre paréntesis
+    .replace(/\s{2,}/g, " ")                 // Reemplaza múltiples espacios
+    .trim();
+
+
+  // 2. Divide en partes tras limpiar
+  const partes = tipo.split(' - ').map(s => s.trim()).filter(Boolean);
+
+  // 3. Extrae condición y cantidad
+  let condicion = "", cantidad = "";
+  let mainPart = partes[0] || "";
+  let match = mainPart.match(/(Más de|Menos de|Exactamente)\s*(\d+)/i);
+  if (match) {
+    condicion = match[1];
+    cantidad = match[2];
+  } else {
+    condicion = mainPart.replace(/tarjetas?/gi, '').trim();
+    cantidad = "";
+  }
+  let main = condicion && cantidad ? `${condicion} ${cantidad} tarjetas` : condicion ? `${condicion} tarjetas` : "";
+
+  // 4. Equipo y periodo: SIEMPRE los dos últimos elementos si existen
+  let equipo = partes.length >= 2 ? partes[partes.length - 1] : "";
+  let periodo = partes.length >= 3 ? partes[partes.length - 2] : "";
+
+  // 5. Traduce periodo y equipo
+  let periodoFinal = (periodo || "")
+    .replace(/1ª Mitad/i, "1ª Mitad")
+    .replace(/2ª Mitad/i, "2ª Mitad")
+    .replace(/primera/i, "1ª Mitad")
+    .replace(/segunda/i, "2ª Mitad")
+    .replace(/encuentro/i, "Encuentro");
+
+  let equipoFinal = (equipo || "")
+    .replace(/ambos equipos?/i, "Ambos equipos")
+    .replace(/equipo1/i, () => {
+      if (!partido) return "Equipo 1";
+      const p = partido.split(' vs ');
+      return (p[0] || "Equipo 1").trim();
+    })
+    .replace(/equipo2/i, () => {
+      if (!partido) return "Equipo 2";
+      const p = partido.split(' vs ');
+      return (p[1] || "Equipo 2").trim();
+    });
+
+  // 6. Monta el texto final limpio
+  return `Tarjetas: ${main} - ${periodoFinal} - ${equipoFinal}`.replace(/\s{2,}/g, ' ').replace(/ - +$/, '').trim();
+}
+
+function formateaTipoApuesta(b, partido) {
+  const [equipo1, equipo2] = (partido || '').split(' vs ');
+  if (b.tipoApuesta === "tarjetas" || (b.mercado && b.mercado.toLowerCase() === "tarjetas")) {
+    return formateaTarjetaApuesta(b.tipo, partido);
+  } else if (b.tipoApuesta === "goleador" || b.esGoleador) {
+    return `Marca ${b.tipo}`;
+  } else if (b.tipo === equipo1) {
+    return `Gana ${equipo1}`;
+  } else if (b.tipo === equipo2) {
+    return `Gana ${equipo2}`;
+  } else {
+    return b.tipo;
+  }
+}
+
+
+// -------------------------------------------------------------------------
+
 function render() {
   let filtered = [];
   switch(currentTab) {
@@ -152,8 +227,7 @@ function render() {
       filtered = apuestas.filter(a => a.estado === 'aceptada');
       break;
     case 'todas':
-      filtered = [...apuestas]; // copia para no modificar el original
-      // Ordenar por fecha descendente (más reciente primero)
+      filtered = [...apuestas];
       filtered.sort((a, b) => {
         if (!a.fecha || !b.fecha) return 0;
         return b.fecha.seconds - a.fecha.seconds;
@@ -206,11 +280,9 @@ function renderApuestas(lista, currentTab) {
         }
       }
 
-      // Mostrar .pbi-footer solo en tabs PENDIENTES y TODAS
       let mostrarFooter = (currentTab === 'pendientes' || currentTab === 'todas');
       let footer = '';
       if (mostrarFooter) {
-        // Oculta apuesta.resultado en el footer si ya hay resultado decorado
         const mostrarResultadoPlano = !(
           (currentTab === 'todas' || currentTab === 'listas' || currentTab === 'terminadas') &&
           apuesta.estado !== "pendiente" &&
@@ -224,7 +296,6 @@ function renderApuestas(lista, currentTab) {
           </div>
         `;
       } else {
-        // Solo muestra el resultado si no es pendiente/todas y hay resultado, y tampoco doble
         if (
           apuesta.resultado && apuesta.estado !== "pendiente" &&
           !((currentTab === 'todas' || currentTab === 'listas' || currentTab === 'terminadas') &&
@@ -234,13 +305,11 @@ function renderApuestas(lista, currentTab) {
         }
       }
 
-      // Mostrar fecha de realización encima de la apuesta en las pestañas 'listas', 'terminadas' y 'todas'
       let fechaApuesta = '';
       if ((currentTab === "todas" || currentTab === "listas" || currentTab === "terminadas") && apuesta.fecha) {
         fechaApuesta = `<div class="pbi-fecha-apuesta">${formateaFechaApuesta(apuesta.fecha)}</div>`;
       }
 
-      // Mostrar resultado decorado en 'listas', 'terminadas' y 'todas', al final de la apuesta
       let resultadoApuesta = '';
       if (
         (currentTab === 'todas' || currentTab === 'listas' || currentTab === 'terminadas') &&
@@ -269,15 +338,11 @@ function renderApuestas(lista, currentTab) {
           <div class="pbi-body">
             <ul class="pbi-bets-list">
               ${apuesta.bets.map((b, idx) => {
-                const [equipo1, equipo2] = b.partido.split(' vs ');
-                let tipoMostrado = "";
-                if (b.tipo === equipo1) {
-                  tipoMostrado = `Gana ${equipo1}`;
-                } else if (b.tipo === equipo2) {
-                  tipoMostrado = `Gana ${equipo2}`;
-                } else {
-                  tipoMostrado = b.tipo;
-                }
+                let tipoMostrado = formateaTipoApuesta(b, b.partido)
+                  .replace(/\(.*?-\s*\d+\)/g, "")  // Quita cosas como (Más de - 4)
+                  .replace(/\(.*?\)/g, "")         // Quita cualquier paréntesis restante
+                  .replace(/\s{2,}/g, " ")         // Quita espacios dobles
+                  .trim();
                 let dotClass = "";
                 if (b.resultado === "ganada") dotClass = "ganada";
                 else if (b.resultado === "perdida") dotClass = "perdida";
