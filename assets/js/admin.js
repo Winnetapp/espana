@@ -30,11 +30,9 @@ const btnConfirm = $("btnConfirm");
 const btnCancel = $("btnCancel");
 const previewContainer = $("previewContainer"); // Para futuras previsualizaciones
 
-// Selectores de nacionalidad y sus wrappers (en HTML)
 const wrapperNac1 = document.querySelector(".nacionalidad-1");
 const wrapperNac2 = document.querySelector(".nacionalidad-2");
 
-// Goleadores section
 const goleadoresSection = document.getElementById("goleadores-section");
 
 /* 3️⃣  Datos --------------------------------------------------------------------- */
@@ -52,10 +50,8 @@ const equiposPorLiga = {
     "Elche","Mallorca","Levante", "Girona", "Real Oviedo"
   ],
   "La Liga Hypermotion": [
-    "Albacete","Almería","Andorra","Burgos","Cádiz",
-    "Castellón","Leganés","Ceuta","Córdoba","Cultural Leonesa",
-    "Deportivo","Eibar","Granada","Huesca","Málaga",
-    "Mirandés","Racing Santander","Real Sociedad B","Zaragoza",
+    "Albacete","Almería","Andorra","Burgos","Cádiz","Castellón","Leganés","Ceuta","Córdoba","Cultural Leonesa",
+    "Deportivo","Eibar","Granada","Huesca","Málaga","Mirandés","Racing Santander","Real Sociedad B","Zaragoza",
     "Sporting","Las Palmas","Valladolid"
   ],
   "Premier League": [
@@ -102,7 +98,6 @@ const equiposPorLiga = {
   ]
 };
 
-// Jugadores por equipo (ejemplo, amplía según necesites)
 const jugadoresPorEquipo = {
   "Real Madrid": ["Vinícius Jr.", "Rodrygo", "Jude Bellingham", "Joselu", "Brahim Díaz"],
   "Barcelona": ["Robert Lewandowski", "Lamine Yamal", "Ferran Torres", "Pedri"],
@@ -134,7 +129,6 @@ campos.equipo2.addEventListener("input", actualizarDatalistGoleadores);
 campos.deporte.addEventListener("change", () => {
   const dep = campos.deporte.value;
 
-  // Limpiar campos menos deporte
   Object.keys(campos).forEach(key => {
     if (key !== "deporte") campos[key].value = "";
   });
@@ -147,7 +141,6 @@ campos.deporte.addEventListener("change", () => {
       ligaDatalist.appendChild(opt);
     });
   }
-
   if (equiposDatalist) equiposDatalist.innerHTML = "";
 
   // Mostrar/ocultar cuotaX
@@ -160,7 +153,6 @@ campos.deporte.addEventListener("change", () => {
     if (campos.cuotaX) campos.cuotaX.style.display = "inline-block";
   }
 
-  // Mostrar u ocultar nacionalidades según deporte
   if (dep === "tenis") {
     if (wrapperNac1) wrapperNac1.style.display = "block";
     if (wrapperNac2) wrapperNac2.style.display = "block";
@@ -173,7 +165,6 @@ campos.deporte.addEventListener("change", () => {
     if (sel2) sel2.value = "";
   }
 
-  // Mostrar/ocultar sección de goleadores solo en fútbol
   if (goleadoresSection) {
     goleadoresSection.style.display = (dep === "futbol") ? "block" : "none";
     if (dep !== "futbol") {
@@ -182,15 +173,12 @@ campos.deporte.addEventListener("change", () => {
     }
   }
 
-  // Mostrar/ocultar sección de tarjetas solo en fútbol
+  // --- Tarjetas ---
   const tarjetasSection = document.getElementById('tarjetas-section');
   if (tarjetasSection) {
     tarjetasSection.style.display = (dep === "futbol" ? "block" : "none");
-    // Si cambias a otro deporte, limpia los campos de tarjetas
     if (dep !== "futbol") {
-      if (window.tarjetasCuotas) {
-        window.tarjetasCuotas = {};
-      }
+      window.tarjetasCuotas = {};
       const tabs = document.getElementById("tarjetas-tabs");
       const subtabs = document.getElementById("tarjetas-subtabs");
       const tables = document.getElementById("tarjetas-tables");
@@ -199,6 +187,23 @@ campos.deporte.addEventListener("change", () => {
       if (tables) tables.innerHTML = "";
     } else {
       if (typeof renderTarjetasTabs === "function") renderTarjetasTabs();
+    }
+  }
+
+  // --- Corners ---
+  const cornersSection = document.getElementById('corners-section');
+  if (cornersSection) {
+    cornersSection.style.display = (dep === "futbol" ? "block" : "none");
+    if (dep !== "futbol") {
+      window.cornersCuotas = {};
+      const tabs = document.getElementById("corners-tabs");
+      const subtabs = document.getElementById("corners-subtabs");
+      const tables = document.getElementById("corners-tables");
+      if (tabs) tabs.innerHTML = "";
+      if (subtabs) subtabs.innerHTML = "";
+      if (tables) tables.innerHTML = "";
+    } else {
+      renderCornersTabs();
     }
   }
 });
@@ -277,7 +282,7 @@ if (btnAgregarGoleador) {
   };
 }
 
-// ---------- BLOQUE TARJETAS AVANZADO (dinámico, tipo tabla) -------------
+// ---------- TARJETAS -------------
 const TARJETAS_SEGMENTOS = [
   { id: 'primera', label: '1ª Mitad' },
   { id: 'segunda', label: '2ª Mitad' },
@@ -295,7 +300,7 @@ const TARJETAS_COLUMNAS = [
 ];
 const TARJETAS_FILAS = [1,2,3,4,5,6,7,8,9,10];
 
-window.tarjetasCuotas = {}; // { segmento: { equipo: { nTarjetas: { mas:..., exactamente:..., menos:... } } } }
+window.tarjetasCuotas = {};
 
 function renderTarjetasTabs() {
   const $tabs = document.getElementById("tarjetas-tabs");
@@ -303,21 +308,16 @@ function renderTarjetasTabs() {
   const $tables = document.getElementById("tarjetas-tables");
   if (!$tabs || !$subtabs || !$tables) return;
 
-  // Estado seleccionado:
   if (!window.tarjetasTabSel) window.tarjetasTabSel = 'primera';
   if (!window.tarjetasSubtabSel) window.tarjetasSubtabSel = 'equipo1';
 
-  // Tabs segmento
   $tabs.innerHTML = TARJETAS_SEGMENTOS.map(seg =>
     `<button type="button" class="${window.tarjetasTabSel === seg.id ? "active" : ""}" data-tab="${seg.id}">${seg.label}</button>`
   ).join('');
-  // Subtabs equipo
   $subtabs.innerHTML = TARJETAS_EQUIPOS.map(eq =>
     `<button type="button" class="${window.tarjetasSubtabSel === eq.id ? "active" : ""}" data-subtab="${eq.id}">${eq.label}</button>`
   ).join('');
 
-  // Tabla
-  // Inicializa estructura si no existe
   if (!window.tarjetasCuotas[window.tarjetasTabSel]) window.tarjetasCuotas[window.tarjetasTabSel] = {};
   if (!window.tarjetasCuotas[window.tarjetasTabSel][window.tarjetasSubtabSel]) {
     window.tarjetasCuotas[window.tarjetasTabSel][window.tarjetasSubtabSel] = {};
@@ -347,7 +347,6 @@ function renderTarjetasTabs() {
 
   $tables.innerHTML = html;
 
-  // Eventos para tabs
   $tabs.querySelectorAll("button").forEach(btn => {
     btn.onclick = () => {
       window.tarjetasTabSel = btn.dataset.tab;
@@ -361,7 +360,6 @@ function renderTarjetasTabs() {
     };
   });
 
-  // Evento para inputs
   $tables.querySelectorAll("input[type=number]").forEach(input => {
     input.addEventListener("input", () => {
       const n = input.getAttribute("data-n");
@@ -374,79 +372,116 @@ function renderTarjetasTabs() {
   });
 }
 
-// --- Validar datos ---
-function validarDatos() {
-  const dep   = campos.deporte.value.trim();
-  const liga  = campos.liga.value.trim();
-  const eq1   = campos.equipo1.value.trim();
-  const eq2   = campos.equipo2.value.trim();
-  const fecha = campos.fecha.value;
-  const hora  = campos.hora.value;
+// ---------- CORNERS AVANZADO -------------
+const CORNERS_SEGMENTOS = [
+  { id: 'primera', label: '1ª Mitad' },
+  { id: 'segunda', label: '2ª Mitad' },
+  { id: 'encuentro', label: 'Encuentro' }
+];
+const CORNERS_EQUIPOS = [
+  { id: 'equipo1', label: 'Equipo 1' },
+  { id: 'equipo2', label: 'Equipo 2' },
+  { id: 'ambos', label: 'Ambos Equipos' }
+];
+const CORNERS_COLUMNAS = [
+  { id: 'mas', label: 'Más de' },
+  { id: 'exactamente', label: 'Exactamente' },
+  { id: 'menos', label: 'Menos de' }
+];
+// Filas de 4 a 17 corners
+const CORNERS_FILAS = Array.from({length: 14}, (_, i) => i+4);
 
-  const cuota1 = parseFloat(campos.cuota1.value);
-  const cuota2 = parseFloat(campos.cuota2.value);
-  const cuotaX = parseFloat(campos.cuotaX.value);
+window.cornersCuotas = {};
 
-  const errores = [];
+function renderCornersTabs() {
+  const $tabs = document.getElementById("corners-tabs");
+  const $subtabs = document.getElementById("corners-subtabs");
+  const $tables = document.getElementById("corners-tables");
+  if (!$tabs || !$subtabs || !$tables) return;
 
-  const oblig = ["deporte","liga","equipo1","equipo2","fecha","hora","cuota1","cuota2"];
-  if (dep !== "tenis" && dep !== "baloncesto") oblig.push("cuotaX");
+  if (!window.cornersTabSel) window.cornersTabSel = 'primera';
+  if (!window.cornersSubtabSel) window.cornersSubtabSel = 'equipo1';
 
-  oblig.forEach(id=>{
-    if(!campos[id].value.trim()) errores.push(`El campo «${id}» es obligatorio.`);
+  $tabs.innerHTML = CORNERS_SEGMENTOS.map(seg =>
+    `<button type="button" class="${window.cornersTabSel === seg.id ? "active" : ""}" data-tab="${seg.id}">${seg.label}</button>`
+  ).join('');
+  $subtabs.innerHTML = CORNERS_EQUIPOS.map(eq =>
+    `<button type="button" class="${window.cornersSubtabSel === eq.id ? "active" : ""}" data-subtab="${eq.id}">${eq.label}</button>`
+  ).join('');
+
+  if (!window.cornersCuotas[window.cornersTabSel]) window.cornersCuotas[window.cornersTabSel] = {};
+  if (!window.cornersCuotas[window.cornersTabSel][window.cornersSubtabSel]) {
+    window.cornersCuotas[window.cornersTabSel][window.cornersSubtabSel] = {};
+    CORNERS_FILAS.forEach(n => {
+      window.cornersCuotas[window.cornersTabSel][window.cornersSubtabSel][n] = { mas:'', exactamente:'', menos:'' };
+    });
+  }
+  const datos = window.cornersCuotas[window.cornersTabSel][window.cornersSubtabSel];
+
+  let html = `<table class="tarjetas-table"><thead><tr><th></th>`;
+  CORNERS_COLUMNAS.forEach(col => html += `<th>${col.label}</th>`);
+  html += `</tr></thead><tbody>`;
+  CORNERS_FILAS.forEach(n => {
+    html += `<tr><td>${n} córner${n>1?'es':''}</td>`;
+    CORNERS_COLUMNAS.forEach(col => {
+      const valor = datos[n][col.id] ?? '';
+      html += `<td>
+        <input type="number" min="1.01" step="0.01" 
+          data-n="${n}" data-col="${col.id}"
+          value="${valor !== undefined ? valor : ''}" 
+          placeholder="-" />
+      </td>`;
+    });
+    html += `</tr>`;
+  });
+  html += `</tbody></table>`;
+
+  $tables.innerHTML = html;
+
+  $tabs.querySelectorAll("button").forEach(btn => {
+    btn.onclick = () => {
+      window.cornersTabSel = btn.dataset.tab;
+      renderCornersTabs();
+    };
+  });
+  $subtabs.querySelectorAll("button").forEach(btn => {
+    btn.onclick = () => {
+      window.cornersSubtabSel = btn.dataset.subtab;
+      renderCornersTabs();
+    };
   });
 
-  if (eq1 && eq2 && eq1.toLowerCase() === eq2.toLowerCase())
-    errores.push("Equipo/Jugador 1 y 2 no pueden ser iguales.");
-
-  if (fecha && hora) {
-    const f = new Date(`${fecha}T${hora}`);
-    if (isNaN(f.getTime()))     errores.push("Fecha u hora con formato inválido.");
-    else if (f < new Date())    errores.push("La fecha/hora debe ser futura.");
-  }
-
-  if (isNaN(cuota1) || cuota1 <= 1) errores.push("La cuota 1 debe ser > 1.");
-  if (isNaN(cuota2) || cuota2 <= 1) errores.push("La cuota 2 debe ser > 1.");
-  if (dep!=="tenis"&&dep!=="baloncesto" && (isNaN(cuotaX)||cuotaX<=1))
-    errores.push("La cuota X debe ser > 1.");
-
-  // Validar nacionalidades solo si están visibles
-  const nac1 = $("nacionalidad1")?.value;
-  const nac2 = $("nacionalidad2")?.value;
-  if (wrapperNac1 && wrapperNac1.style.display !== "none" && !nac1) errores.push("La nacionalidad del equipo/jugador 1 es obligatoria.");
-  if (wrapperNac2 && wrapperNac2.style.display !== "none" && !nac2) errores.push("La nacionalidad del equipo/jugador 2 es obligatoria.");
-
-  // Validar goleadores: cuotas válidas si hay alguno
-  for (const g of goleadores) {
-    if (!g.nombre || isNaN(g.cuota) || g.cuota <= 1) {
-      errores.push(`Cuota de goleador inválida para "${g.nombre || "[sin nombre]"}"`);
-    }
-  }
-
-  // Validar tarjetas avanzadas (tablas)
-  if (dep === "futbol" && window.tarjetasCuotas) {
-    for (const segmento of TARJETAS_SEGMENTOS) {
-      for (const equipo of TARJETAS_EQUIPOS) {
-        for (const n of TARJETAS_FILAS) {
-          for (const col of TARJETAS_COLUMNAS) {
-            const v = (((window.tarjetasCuotas?.[segmento.id]?.[equipo.id]?.[n]?.[col.id]) || '') + '').trim();
-            if (v !== "" && (isNaN(parseFloat(v)) || parseFloat(v) <= 1)) {
-              errores.push(`Cuota de tarjetas inválida en ${segmento.label} - ${equipo.label} - ${n} tarjeta(s) - ${col.label}: debe ser > 1`);
-            }
-          }
-        }
-      }
-    }
-  }
-
-  if (errores.length) {
-    msg.textContent = errores.join(" ");
-    msg.style.color = "red";
-    return false;
-  }
-  msg.textContent = "";
-  return true;
+  $tables.querySelectorAll("input[type=number]").forEach(input => {
+    input.addEventListener("input", () => {
+      const n = input.getAttribute("data-n");
+      const col = input.getAttribute("data-col");
+      let v = input.value;
+      if (!window.cornersCuotas[window.cornersTabSel][window.cornersSubtabSel][n])
+        window.cornersCuotas[window.cornersTabSel][window.cornersSubtabSel][n] = { mas:'', exactamente:'', menos:'' };
+      window.cornersCuotas[window.cornersTabSel][window.cornersSubtabSel][n][col] = v;
+    });
+  });
 }
+
+// Al cargar la página, añade el bloque HTML para corners después de tarjetas (si no existe)
+document.addEventListener("DOMContentLoaded", function() {
+  const tarjetasSection = document.getElementById('tarjetas-section');
+  if (tarjetasSection && !document.getElementById('corners-section')) {
+    const cornersSection = document.createElement('div');
+    cornersSection.id = 'corners-section';
+    cornersSection.style.marginTop = "20px";
+    cornersSection.innerHTML = `
+      <h3>Cuotas Corners</h3>
+      <div id="corners-tabs" class="tarjetas-tabs"></div>
+      <div id="corners-subtabs" class="tarjetas-subtabs"></div>
+      <div id="corners-tables"></div>
+    `;
+    tarjetasSection.parentNode.insertBefore(cornersSection, tarjetasSection.nextSibling);
+    cornersSection.style.display = "none";
+  }
+});
+
+/* --- Validar datos (igual que antes, puedes añadir validaciones para corners si quieres) --- */
 
 /* 6️⃣  Construir objeto partido ------------------------------------------- */
 function construirPartido() {
@@ -508,6 +543,32 @@ function construirPartido() {
       mercados.tarjetas = {
         nombre: "Tarjetas",
         opciones: tarjetasObj
+      };
+    }
+  }
+
+  // ----> Añadir mercado de corners avanzado solo si alguna cuota está rellena
+  let cornersObj = {};
+  let algunCorner = false;
+  if (dep === "futbol" && window.cornersCuotas) {
+    for (const segmento of CORNERS_SEGMENTOS) {
+      cornersObj[segmento.id] = {};
+      for (const equipo of CORNERS_EQUIPOS) {
+        cornersObj[segmento.id][equipo.id] = {};
+        for (const n of CORNERS_FILAS) {
+          cornersObj[segmento.id][equipo.id][n] = {};
+          for (const col of CORNERS_COLUMNAS) {
+            const v = (((window.cornersCuotas?.[segmento.id]?.[equipo.id]?.[n]?.[col.id]) || '') + '').trim();
+            if (v !== "") algunCorner = true;
+            cornersObj[segmento.id][equipo.id][n][col.id] = v === "" ? null : parseFloat(v);
+          }
+        }
+      }
+    }
+    if (algunCorner) {
+      mercados.corners = {
+        nombre: "Corners",
+        opciones: cornersObj
       };
     }
   }
@@ -582,9 +643,11 @@ async function guardarPartido() {
     goleadores.length = 0;
     renderGoleadores();
     actualizarDatalistGoleadores();
-    // Reset tarjetas avanzadas
+    // Reset tarjetas/corners avanzadas
     if (window.tarjetasCuotas) window.tarjetasCuotas = {};
+    if (window.cornersCuotas) window.cornersCuotas = {};
     if (typeof renderTarjetasTabs === "function") renderTarjetasTabs();
+    if (typeof renderCornersTabs === "function") renderCornersTabs();
 
   } catch (error) {
     mostrarSpinner(false);
@@ -608,3 +671,92 @@ onAuthStateChanged(auth, async (user) => {
     });
   }
 });
+
+function validarDatos() {
+  const dep   = campos.deporte.value.trim();
+  const liga  = campos.liga.value.trim();
+  const eq1   = campos.equipo1.value.trim();
+  const eq2   = campos.equipo2.value.trim();
+  const fecha = campos.fecha.value;
+  const hora  = campos.hora.value;
+
+  const cuota1 = parseFloat(campos.cuota1.value);
+  const cuota2 = parseFloat(campos.cuota2.value);
+  const cuotaX = parseFloat(campos.cuotaX.value);
+
+  const errores = [];
+
+  const oblig = ["deporte","liga","equipo1","equipo2","fecha","hora","cuota1","cuota2"];
+  if (dep !== "tenis" && dep !== "baloncesto") oblig.push("cuotaX");
+
+  oblig.forEach(id=>{
+    if(!campos[id].value.trim()) errores.push(`El campo «${id}» es obligatorio.`);
+  });
+
+  if (eq1 && eq2 && eq1.toLowerCase() === eq2.toLowerCase())
+    errores.push("Equipo/Jugador 1 y 2 no pueden ser iguales.");
+
+  if (fecha && hora) {
+    const f = new Date(`${fecha}T${hora}`);
+    if (isNaN(f.getTime()))     errores.push("Fecha u hora con formato inválido.");
+    else if (f < new Date())    errores.push("La fecha/hora debe ser futura.");
+  }
+
+  if (isNaN(cuota1) || cuota1 <= 1) errores.push("La cuota 1 debe ser > 1.");
+  if (isNaN(cuota2) || cuota2 <= 1) errores.push("La cuota 2 debe ser > 1.");
+  if (dep!=="tenis"&&dep!=="baloncesto" && (isNaN(cuotaX)||cuotaX<=1))
+    errores.push("La cuota X debe ser > 1.");
+
+  // Validar nacionalidades solo si están visibles
+  const nac1 = $("nacionalidad1")?.value;
+  const nac2 = $("nacionalidad2")?.value;
+  if (wrapperNac1 && wrapperNac1.style.display !== "none" && !nac1) errores.push("La nacionalidad del equipo/jugador 1 es obligatoria.");
+  if (wrapperNac2 && wrapperNac2.style.display !== "none" && !nac2) errores.push("La nacionalidad del equipo/jugador 2 es obligatoria.");
+
+  // Validar goleadores: cuotas válidas si hay alguno
+  for (const g of goleadores) {
+    if (!g.nombre || isNaN(g.cuota) || g.cuota <= 1) {
+      errores.push(`Cuota de goleador inválida para "${g.nombre || "[sin nombre]"}"`);
+    }
+  }
+
+  // Validar tarjetas avanzadas (tablas)
+  if (dep === "futbol" && window.tarjetasCuotas) {
+    for (const segmento of TARJETAS_SEGMENTOS) {
+      for (const equipo of TARJETAS_EQUIPOS) {
+        for (const n of TARJETAS_FILAS) {
+          for (const col of TARJETAS_COLUMNAS) {
+            const v = (((window.tarjetasCuotas?.[segmento.id]?.[equipo.id]?.[n]?.[col.id]) || '') + '').trim();
+            if (v !== "" && (isNaN(parseFloat(v)) || parseFloat(v) <= 1)) {
+              errores.push(`Cuota de tarjetas inválida en ${segmento.label} - ${equipo.label} - ${n} tarjeta(s) - ${col.label}: debe ser > 1`);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Validar corners avanzadas (tablas)
+  if (dep === "futbol" && window.cornersCuotas) {
+    for (const segmento of CORNERS_SEGMENTOS) {
+      for (const equipo of CORNERS_EQUIPOS) {
+        for (const n of CORNERS_FILAS) {
+          for (const col of CORNERS_COLUMNAS) {
+            const v = (((window.cornersCuotas?.[segmento.id]?.[equipo.id]?.[n]?.[col.id]) || '') + '').trim();
+            if (v !== "" && (isNaN(parseFloat(v)) || parseFloat(v) <= 1)) {
+              errores.push(`Cuota de corners inválida en ${segmento.label} - ${equipo.label} - ${n} córner(s) - ${col.label}: debe ser > 1`);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  if (errores.length) {
+    msg.textContent = errores.join(" ");
+    msg.style.color = "red";
+    return false;
+  }
+  msg.textContent = "";
+  return true;
+}
