@@ -614,12 +614,16 @@ if (document.getElementById('partidos-container')) {
           equiposHTML = `
             <div class="info-equipos">
               <div class="equipo equipo1">
-                <div class="escudo-wrapper"><img src="${escudo1}" alt="${equipo1}" class="escudo" /></div>
+                <div class="bandera-wrapper">
+                  ${bandera1 ? `<img src="banderas/${removeTildes(nacionalidad1.toLowerCase().replace(/\s/g, ''))}.png" alt="${nacionalidad1}" class="bandera" />` : ''}
+                </div>
                 <span>${equipo1}</span>
               </div>
               <div class="hora">${horaPartido}</div>
               <div class="equipo equipo2">
-                <div class="escudo-wrapper"><img src="${escudo2}" alt="${equipo2}" class="escudo" /></div>
+                <div class="bandera-wrapper">
+                  ${bandera2 ? `<img src="banderas/${removeTildes(nacionalidad2.toLowerCase().replace(/\s/g, ''))}.png" alt="${nacionalidad2}" class="bandera" />` : ''}
+                </div>
                 <span>${equipo2}</span>
               </div>
             </div>
