@@ -41,22 +41,50 @@ function renderizarPartido(partido) {
   let escudo1 = `Equipos/${removeTildes(partido.equipo1.toLowerCase().replace(/\s/g, ''))}.png`;
   let escudo2 = `Equipos/${removeTildes(partido.equipo2.toLowerCase().replace(/\s/g, ''))}.png`;
   let nombre = `${partido.equipo1} vs ${partido.equipo2}`;
-  let fechaHora = partido.fecha ? `${partido.fecha} ${partido.hora || ''}` : '';
   let deporte = partido.deporte || "";
-  let mercados = partido.mercados || {};
+  let liga = partido.liga || "";
+  let fechaStr = partido.fecha || "";
+  let horaStr = partido.hora || "";
+
+  // Formatea la fecha a "Jue, 14 Agosto"
+  function formateaFecha(fechaStr) {
+    if (!fechaStr) return "";
+    const meses = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+    const dias = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
+    const [anio, mes, dia] = fechaStr.split('-').map(Number);
+    const d = new Date(anio, mes - 1, dia);
+    return `${dias[d.getDay()]}, ${dia} ${meses[mes-1]}`;
+  }
+
+  let fechaFormateada = formateaFecha(fechaStr);
+  let horaFormateada = horaStr ? horaStr.padStart(5, "0") : "";
+
+  // Icono de deporte (puedes ampliar según el tipo)
+  let iconoDeporte = "";
+  if (deporte.toLowerCase() === "futbol") iconoDeporte = `<i class="fa-solid fa-futbol"></i>`;
+  if (deporte.toLowerCase() === "baloncesto") iconoDeporte = `<i class="fa-solid fa-basketball"></i>`;
+  if (deporte.toLowerCase() === "tenis") iconoDeporte = `<i class="fa-solid fa-table-tennis-paddle-ball"></i>`;
+
+  // Liga (solo si existe)
+  let ligaHtml = liga ? `<span class="partido-liga">${liga}</span>` : "";
 
   detalleDiv.innerHTML = `
     <div class="partido-header">
-      <img src="${escudo1}" class="escudo" alt="${partido.equipo1}" />
+      <div class="escudo-wrapper"><img src="${escudo1}" class="escudo" alt="${partido.equipo1}" /></div>
       <div class="partido-info">
-        <div>${nombre}</div>
-        <div>${deporte} | ${fechaHora}</div>
+        <div class="partido-nombre">${nombre}</div>
+        <div class="partido-datos">
+          <span style="color:#00b7ff;">${iconoDeporte}</span>
+          ${ligaHtml}
+          <br>
+          <span class="partido-fecha">${fechaFormateada} -</span> <span class="partido-hora">${horaFormateada}</span>
+        </div>
       </div>
-      <img src="${escudo2}" class="escudo" alt="${partido.equipo2}" />
+      <div class="escudo-wrapper"><img src="${escudo2}" class="escudo" alt="${partido.equipo2}" /></div>
     </div>
     <div id="mercados-partido"></div>
   `;
-  renderizarMercados(mercados, partido);
+  renderizarMercados(partido.mercados || {}, partido);
 }
 
 function renderizarMercados(mercados, partido) {
