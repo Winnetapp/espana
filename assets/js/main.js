@@ -56,6 +56,14 @@ function limpiaParentesisTarjetas(tipo) {
   return tipo.replace(/\s*\([^)]+\)\s*/g, " ").replace(/\s{2,}/g, " ").trim();
 }
 
+function normalizaPeriodoCorners(tipo) {
+  // Busca los periodos y los reemplaza
+  return tipo
+    .replace(/\bencuentro\b/gi, "Encuentro")
+    .replace(/\bprimera\b/gi, "1ª Mitad")
+    .replace(/\bsegunda\b/gi, "2ª Mitad");
+}
+
 /* ============ PUBLIC API PARA OTRAS PÁGINAS ============ */
 window.addBetToSlip = function({ partido, tipo, cuota, partidoId, mercado }) {
   // Restricción 1: Solo una apuesta "resultado" por partido
@@ -400,7 +408,7 @@ if (acceptBtn) {
         tipo: b.mercado === 'tarjetas'
           ? limpiaParentesisTarjetas(b.tipo)
           : b.mercado === 'corners'
-            ? limpiaParentesisTarjetas(b.tipo) // <--- aquí
+            ? normalizaPeriodoCorners(limpiaParentesisTarjetas(b.tipo))
             : b.tipo,
         cuota: parseFloat(b.cuota),
         partidoId: b.partidoId,
