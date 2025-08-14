@@ -172,11 +172,21 @@ h1 {
   box-shadow: 0 2px 12px #0003;
 }
 
-.bandera {
-  width: 40px;
-  height: 40px;
+.bandera-wrapper{
+  width: 50px;
+  height: 50px;
   object-fit: contain;
-  margin-bottom: 10px;
+  border-radius: 30%;
+  display: block;
+  background-color: transparent;
+  align-items: center;
+  justify-content: space-between;
+}
+.bandera {
+  width: 50px;
+  height: 50px;
+  object-fit: contain;
+  display: block;
 }
 
 /* Hora */
@@ -258,13 +268,14 @@ h1 {
 .cuotas-tenis .cuota,
 .cuotas-baloncesto .cuota {
   flex: 1 1 50%;
-  max-width: 50%;
+  max-width: 100%;
   min-width: 0;
   margin: 0; /* elimina márgenes entre cuotas para que se junten */
-  border-radius: 8px !important; /* mantiene esquinas redondeadas */
+  border-radius: 7px !important; /* mantiene esquinas redondeadas */
   justify-content: center;
   align-items: center;
   box-sizing: border-box;
+  margin-bottom: 10px;
 }
 
 .cuotas-tenis .cuota:not(:last-child),
@@ -273,13 +284,6 @@ h1 {
   border-right: 1px solid #333;
 }
 
-@media (max-width: 480px) {
-  .cuotas-tenis .cuota,
-  .cuotas-baloncesto .cuota {
-    font-size: 14px;
-    padding: 10px 0 5px 0;
-  }
-}
 
 /* Opcional: si quieres que el hover siga funcionando igual: */
 .cuotas-tenis .cuota:hover,
