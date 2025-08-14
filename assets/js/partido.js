@@ -437,7 +437,15 @@ function renderCornersTabla(cornersObj, segId, eqId, columnas, filas, partido) {
   let colWidth = (81 / columnas.length).toFixed(2);
   columnas.forEach(col => html += `<th style="width:${colWidth}%">${col.label}</th>`);
   html += "</tr></thead><tbody>";
+
   filas.forEach(n => {
+    // Solo mostrar la fila si al menos 1 columna tiene cuota
+    const tieneDatos = columnas.some(col => {
+      let cuota = eqObj[n]?.[col.id];
+      return cuota !== null && cuota !== undefined && cuota !== "";
+    });
+    if (!tieneDatos) return; // ❌ No hay datos → saltar esta fila
+
     html += `<tr><td>${n}</td>`;
     columnas.forEach(col => {
       let cuota = eqObj[n]?.[col.id];
@@ -447,7 +455,7 @@ function renderCornersTabla(cornersObj, segId, eqId, columnas, filas, partido) {
         html += `<td>
           <div class="cuota cuota-btn cuota-corner"
             data-partido="${partido.equipo1} vs ${partido.equipo2}"
-            data-tipo="${col.label} ${n} ${n===1?"corner":"corners"} (${col.label} - ${n}) - ${segId} - ${(eqId==='equipo1')?partido.equipo1:(eqId==='equipo2'?partido.equipo2:"Ambos equipos")}"
+            data-tipo="${col.label} ${n} ${n===1?"corner":"corners"} (${col.label} - ${n}) - ${getSegmentoLabel(segId)} - ${(eqId==='equipo1')?partido.equipo1:(eqId==='equipo2'?partido.equipo2:"Ambos equipos")}"
             data-cuota="${cuota}"
             data-partidoid="${partido.partidoId}"
             data-mercado="corners"
@@ -457,9 +465,11 @@ function renderCornersTabla(cornersObj, segId, eqId, columnas, filas, partido) {
     });
     html += "</tr>";
   });
+
   html += "</tbody></table>";
   tablaCont.innerHTML = html;
 
+  // Asignar click para las cuotas válidas
   document.querySelectorAll('.cuota-btn.cuota-corner').forEach(btn => {
     btn.addEventListener('click', function () {
       if (typeof window.addBetToSlip === "function") {
