@@ -7,63 +7,63 @@
   <link rel="stylesheet" href="assets/css/apuestas.css">
   <link rel="stylesheet" href="assets/css/headfoot.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-
+  <!-- Flatpickr para rango de fechas -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
   <!-- Firebase (compat) -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
-
 </head>
 <body>
-    <!-- ===== HEADER ==================================================== -->
+  <!-- ===== HEADER ==================================================== -->
   <header>
-    <div class="header-left"  id="header-left"></div>
-
+    <div class="header-left" id="header-left"></div>
     <div class="header-center">
       <a href="#top"><img src="logohead.png" alt="Logo" class="logo" id="logo-scroll" /></a>
     </div>
-
     <div class="header-right" id="header-right">
-      <div class="user-menu" id="user-menu" style="display:none;">
-        <span id="username-display">Usuario ⌄</span>
-        <div class="dropdown-menu" id="dropdown-menu">
-          <button id="logout-btn">Cerrar sesión</button>
-        </div>
-      </div>
+      <!-- El JS sobrescribe el contenido de header-right -->
     </div>
   </header>
-
-    <main>
+  <main>
     <h1>Mis Apuestas</h1>
     <div class="tabs">
-        <button class="tab-btn active" data-tab="pendientes">
-          <span>Pendientes</span>
-        </button>
-        <button class="tab-btn" data-tab="listas">
-          <span>Listas</span>
-        </button>
-        <button class="tab-btn" data-tab="terminadas">
-          <span>Terminadas</span>
-        </button>
-        <button class="tab-btn" data-tab="todas">
-          <span>Todas</span>
-        </button>
+      <button class="tab-btn active" data-tab="pendientes"><span>Pendientes</span></button>
+      <button class="tab-btn" data-tab="listas"><span>Listas</span></button>
+      <button class="tab-btn" data-tab="terminadas"><span>Terminadas</span></button>
+      <button class="tab-btn" data-tab="todas"><span>Todas</span></button>
+    </div>
+    <!-- FILTRO DINÁMICO SOLO PARA "Todas" -->
+    <div id="filtros-apuestas-todas" style="display:none; margin-bottom:20px;">
+      <div class="filtros-row">
+        <select id="filtro-principal">
+          <option value="">Filtrar por...</option>
+          <option value="estado">Estado</option>
+          <option value="fecha">Fecha</option>
+          <option value="ganancia">Ganancia mínima</option>
+          <option value="perdida">Pérdida mínima</option>
+          <option value="ordenar">Ordenar</option>
+        </select>
+        <span id="filtro-extra"></span>
+        <button id="aplicar-filtros">Filtrar</button>
+        <button id="limpiar-filtros">Limpiar</button>
+      </div>
     </div>
     <div id="apuestas-container"></div>
-    </main>
-
+  </main>
   <!-- ===== FOOTER ==================================================== -->
   <footer class="footer">
     <div class="footer-content">
       <div class="footer-logo">
-        <h2>Winnet</h2><p>&copy; 2025 Todos los derechos reservados.</p>
+        <h2>Winnet</h2>
+        <p>&copy; 2025 Todos los derechos reservados.</p>
       </div>
-
       <div class="footer-contacto">
         <h2>Contacto</h2>
         <p><a href="https://winnetapp.github.io/soporte/">Errores y sugerencias</a></p>
       </div>
-
       <div class="footer-redes">
         <h2>Síguenos</h2>
         <div class="redes-iconos">
@@ -76,7 +76,6 @@
       </div>
     </div>
   </footer>
-
   <script src="assets/js/apuestas.js"></script>
 </body>
 </html>
