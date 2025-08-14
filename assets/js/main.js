@@ -614,12 +614,12 @@ if (document.getElementById('partidos-container')) {
           equiposHTML = `
             <div class="info-equipos">
               <div class="equipo equipo1">
-                ${bandera1}
+                <div class="escudo-wrapper"><img src="${escudo1}" alt="${equipo1}" class="escudo" /></div>
                 <span>${equipo1}</span>
               </div>
               <div class="hora">${horaPartido}</div>
               <div class="equipo equipo2">
-                ${bandera2}
+                <div class="escudo-wrapper"><img src="${escudo2}" alt="${equipo2}" class="escudo" /></div>
                 <span>${equipo2}</span>
               </div>
             </div>
@@ -628,12 +628,12 @@ if (document.getElementById('partidos-container')) {
           equiposHTML = `
             <div class="info-equipos">
               <div class="equipo equipo1">
-                <img src="${escudo1}" alt="${equipo1}" class="escudo" />
+                <div class="escudo-wrapper"><img src="${escudo1}" alt="${equipo1}" class="escudo" /></div>
                 <span>${equipo1}</span>
               </div>
               <div class="hora">${horaPartido}</div>
               <div class="equipo equipo2">
-                <img src="${escudo2}" alt="${equipo2}" class="escudo" />
+                <div class="escudo-wrapper"><img src="${escudo2}" alt="${equipo2}" class="escudo" /></div>
                 <span>${equipo2}</span>
               </div>
             </div>
