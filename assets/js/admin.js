@@ -317,7 +317,7 @@ const TARJETAS_COLUMNAS = [
   { id: 'exactamente', label: 'Exactamente' },
   { id: 'menos', label: 'Menos de' }
 ];
-const TARJETAS_FILAS = [1,2,3,4,5,6,7,8,9,10];
+const TARJETAS_FILAS = [0,1,2,3,4,5,6,7,8,9,10];
 
 window.tarjetasCuotas = {};
 
@@ -350,14 +350,16 @@ function renderTarjetasTabs() {
   TARJETAS_COLUMNAS.forEach(col => html += `<th>${col.label}</th>`);
   html += `</tr></thead><tbody>`;
   TARJETAS_FILAS.forEach(n => {
-    html += `<tr><td>${n} tarjeta${n>1?'s':''}</td>`;
+    html += `<tr><td>${n === 0 ? '0 tarjetas' : `${n} tarjeta${n>1?'s':''}`}</td>`;
     TARJETAS_COLUMNAS.forEach(col => {
       const valor = datos[n][col.id] ?? '';
+      // Bloquear el input si es fila 0 y columna "menos"
+      const disabled = (n === 0 && col.id === "menos") ? "disabled style='background:#eee;pointer-events:none;opacity:.6;'" : "";
       html += `<td>
         <input type="number" min="1.01" step="0.01" 
           data-n="${n}" data-col="${col.id}"
           value="${valor !== undefined ? valor : ''}" 
-          placeholder="-" />
+          placeholder="-" ${disabled} />
       </td>`;
     });
     html += `</tr>`;
@@ -408,7 +410,7 @@ const CORNERS_COLUMNAS = [
   { id: 'menos', label: 'Menos de' }
 ];
 // Filas de 4 a 17 corners
-const CORNERS_FILAS = Array.from({length: 14}, (_, i) => i+4);
+const CORNERS_FILAS = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17];
 
 window.cornersCuotas = {};
 
@@ -441,7 +443,7 @@ function renderCornersTabs() {
   CORNERS_COLUMNAS.forEach(col => html += `<th>${col.label}</th>`);
   html += `</tr></thead><tbody>`;
   CORNERS_FILAS.forEach(n => {
-    html += `<tr><td>${n} córner${n>1?'es':''}</td>`;
+    html += `<tr><td>${n === 1 ? '1 córner' : `${n} córner${n>1?'s':''}`}</td>`;
     CORNERS_COLUMNAS.forEach(col => {
       const valor = datos[n][col.id] ?? '';
       html += `<td>
