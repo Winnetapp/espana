@@ -44,8 +44,8 @@ const ligasPorDeporte = {
 
 const equiposPorLiga = {
   "La Liga": [
-    "Real Madrid","Barcelona","Atletico Madrid","Sevilla","Valencia",
-    "Real Sociedad","Villarreal","Real Betis","Athletic Bilbao","Celta de Vigo",
+    "Real Madrid","Barcelona","Atletico de Madrid","Sevilla","Valencia",
+    "Real Sociedad","Villarreal","Real Betis","Athletic Club","Celta de Vigo",
     "Getafe","Espanyol","Osasuna","Alavés", "Rayo Vallecano",
     "Elche","Mallorca","Levante", "Girona", "Real Oviedo"
   ],
@@ -61,9 +61,9 @@ const equiposPorLiga = {
     "Brentford","Fulham","Bournemouth","Nottingham Forest", "Sunderland"
   ],
   "Serie A": [
-    "Juventus","Milan","Inter","Napoli","Roma",
+    "Juventus","Milan","Inter de Milan","Napoli","Roma",
     "Lazio","Atalanta","Fiorentina","Torino","Bolonia",
-    "Como", "Udinense","Parma","Leece","Genoa",
+    "Como", "Udinense","Parma","Lecce","Genoa",
     "Cagliari","Verona", "Sassuolo","Pisa","Cremonese"
   ],
   "Bundesliga": [
@@ -73,8 +73,10 @@ const equiposPorLiga = {
     "Augsburgo","San Pauli","Heidenheim","köln"
   ],
   "Ligue 1": [
-    "Paris Saint-Germain","Olympique Lyon","Marseille","Monaco","Lille",
-    "Rennes","Nice","Lens","Nantes","Bordeaux"
+    "PSG","Olympique Lyon","Mónaco","Lille", "Angers", 
+    "Rennes","Lens","Nantes", "Auxerre","Havre",
+    "Lorient", "Marsella", "Metz","Niza",
+    "Paris", "Strasburg", "Toulouse", "Brest",
   ],
   "Champions League": [
     "Real Madrid","Manchester City","Bayern Munich","Liverpool","Paris Saint-Germain",
@@ -99,10 +101,27 @@ const equiposPorLiga = {
 };
 
 const jugadoresPorEquipo = {
-  "Real Madrid": ["Vinícius Jr.", "Rodrygo", "Jude Bellingham", "Joselu", "Brahim Díaz"],
-  "Barcelona": ["Robert Lewandowski", "Lamine Yamal", "Ferran Torres", "Pedri"],
-  "Borussia Dortmund": ["Niclas Füllkrug", "Marco Reus", "Julian Brandt", "Karim Adeyemi"],
-  "Bayern Munich": ["Harry Kane", "Thomas Müller", "Serge Gnabry", "Leroy Sané"],
+  // LAliga
+  "Real Madrid": [ "Vinícius Júnior", "Rodrygo Goes", "Jude Bellingham", "Brahim Díaz", "Thibaut Courtois", "Andriy Lunin", "Fran González", "Dean Huijsen", "Raúl Asencio", "Éder Militão", "Antonio Rüdiger", "David Alaba", "Fran García", "Ferland Mendy", "Trent Alexander-Arnold", "Dani Carvajal", "Aurélien Tchouaméni", "Mario Martín", "Federico Valverde", "Eduardo Camavinga", "Dani Ceballos", "Reinier Jesus", "Kylian Mbappé", "Endrick Felipe", "Gonzalo García", "Álvaro Rodríguez", "Álvaro Carreras", "Franco Mastantuono" ],
+  "Atlético de Madrid": [ "Jan Oblak", "Juan Musso", "Robin Le Normand", "Dávid Hancko", "José Giménez", "Clément Lenglet", "Matteo Ruggeri", "César Azpilicueta", "Samuel Lino", "Koke Resurrección", "Thiago Almada", "Álex Baena", "Johnny Cardoso", "Antoine Griezmann", "Julián Álvarez" ],
+  "Barcelona": [ "Iñaki Peña", "Wojciech Szczęsny", "Pau Cubarsí", "Ronald Araújo", "Alejandro Balde", "Jules Koundé", "Andreas Christensen", "Frenkie de Jong", "Pedri González", "Fermín López", "Gavi Páez", "Lamine Yamal", "Raphinha Belloli", "Robert Lewandowski" ],
+  "Real Sociedad": [ "Álex Remiro", "Unai Marrero", "Igor Zubeldia", "Jon Martín", "Duje Caleta-Car", "Jon Pacheco", "Aritz Elustondo", "Aihen Muñoz", "Hamari Traoré", "Brais Méndez", "Beñat Turrientes", "Martín Zubimendi", "Mikel Merino", "Jon Ander Olasagasti", "Arsen Zakharyan", "Takefusa Kubo", "Mikel Oyarzabal", "Umar Sadiq", "Sheraldo Becker" ],
+  "Athletic Club": [ "Unai Simón", "Julen Agirrezabala", "Dani Vivian", "Yeray Álvarez", "Aitor Paredes", "Yuri Berchiche", "Óscar de Marcos", "Iñigo Lekue", "Iker Muniain", "Oihan Sancet", "Unai Gómez", "Nico Williams", "Iñaki Williams", "Gorka Guruzeta", "Asier Villalibre" ],
+  "Valencia": [ "Giorgi Mamardashvili", "Cristian Rivero", "Thierry Rendall", "Dimitri Foulquier", "Cristhian Mosquera", "Cenk Özkaçar", "José Gayà", "Hugo Guillamón", "Pepelu García", "Javi Guerra", "Fran Pérez", "Diego López", "Peter Federico", "Hugo Duro" ],
+  "Villarreal": [ "Filip Jörgensen", "Pepe Reina", "Alfonso Pedraza", "Jorge Cuenca", "Yerson Mosquera", "Juan Foyth", "Kiko Femenía", "Étienne Capoue", "Dani Parejo", "Álex Baena", "Ilias Akhomach", "Yeremi Pino", "Alexander Sørloth", "Gerard Moreno", "José Morales" ],
+  "Sevilla": [ "Marko Dmitrović", "Orjan Nyland", "Jesús Navas", "Adrià Pedrosa", "Loïc Badé", "Tanguy Nianzou", "Nemanja Gudelj", "Marcos Acuña", "Joan Jordán", "Boubakary Soumaré", "Óliver Torres", "Suso Fernández", "Lucas Ocampos", "Dodi Lukebakio", "Youssef En-Nesyri" ],
+  "Real Betis": [ "Rui Silva", "Fran Vieites", "Héctor Bellerín", "Aitor Ruibal", "Germán Pezzella", "Marc Bartra", "Chadi Riad", "Juan Miranda", "Guido Rodríguez", "Marc Roca", "Johnny Cardoso", "Isco Alarcón", "Nabil Fekir", "Pablo Fornals", "Ayoze Pérez", "Willian José", "Borja Iglesias" ],
+  "Celta de Vigo": [ "Vicente Guaita", "Iván Villar", "Joseph Aidoo", "Carl Starfelt", "Unai Núñez", "Manu Sánchez", "Óscar Mingueza", "Kevin Vázquez", "Fran Beltrán", "Luca de la Torre", "Jailson Marques", "Jonathan Bamba", "Carles Pérez", "Anastasios Douvikas", "Iago Aspas", "Jørgen Larsen" ],
+  "Girona": [ "Paulo Gazzaniga", "Juan Carlos", "Miguel Gutiérrez", "Daley Blind", "David López", "Eric García", "Arnau Martínez", "Yan Couto", "Aleix García", "Yangel Herrera", "Iván Martín", "Sávio Moreira", "Viktor Tsygankov", "Artem Dovbyk", "Cristhian Stuani" ],
+  "Getafe": [ "David Soria", "Kiko Casilla", "Djené Dakonam", "Stefan Mitrović", "Domingos Duarte", "Gastón Álvarez", "Juan Iglesias", "Diego Rico", "Mauro Arambarri", "Nemanja Maksimović", "Luis Milla", "Carles Aleñá", "Mason Greenwood", "Borja Mayoral", "Enes Ünal" ],
+  "Osasuna": [ "Sergio Herrera", "Aitor Fernández", "Unai García", "David García", "Juan Cruz", "Rubén Peña", "Jesús Areso", "Moi Gómez", "Lucas Torró", "Jon Moncayola", "Aimar Oroz", "Rubén García", "Abde Ezzalzouli", "Ante Budimir", "Raúl García" ],
+  "Rayo Vallecano": [ "Stole Dimitrievski", "Diego López", "Alfonso Espino", "Florian Lejeune", "Abdul Mumin", "Iván Balliu", "Pep Chavarría", "Óscar Valentín", "Unai López", "Pathé Ciss", "Isi Palazón", "Álvaro García", "Bebé Correia", "Raúl de Tomás", "Sergio Camello" ],
+  "Alavés": [ "Antonio Sivera", "Owono Fedor", "Aleksandar Sedlar", "Abdel Abqar", "Rafa Marín", "Rubén Duarte", "Andoni Gorosabel", "Nahuel Tenaglia", "Antonio Blanco", "Ander Guevara", "Jon Guridi", "Luis Rioja", "Abde Rebbach", "Kike García", "Samu Omorodion" ],
+  "Mallorca": [ "Predrag Rajković", "Dominik Greif", "Antonio Raíllo", "Martin Valjent", "Copete Andreu", "Giovanni González", "Pablo Maffeo", "Jaume Costa", "Samu Costa", "Antonio Sánchez", "Dani Rodríguez", "Sergi Darder", "Amath Ndiaye", "Abdón Prats", "Vedat Muriqi" ],
+  "Espanyol": [ "Fernando Pacheco", "Joan García", "Óscar Gil", "Sergi Gómez", "Fernando Calero", "César Montes", "Leandro Cabrera", "Brian Oliván", "Edu Expósito", "Keidi Bare", "Nico Melamed", "Javi Puado", "Martin Braithwaite", "Joselu Mato" ],
+  "Levante": [ "Andrés Fernández", "Joan Femenías", "Álex Muñoz", "Sergio Postigo", "Róber Pier", "Marc Pubill", "Son Hidalgo", "Pepelu Roca", "Pablo Martínez", "Jorge de Frutos", "Gonzalo Plata", "Mohamed Bouldini" ],
+  "Elche": [ "Edgar Badia", "Axel Werner", "John Donald", "Enzo Roco", "Pedro Bigas", "Helibelton Palacios", "Carlos Clerc", "Gerard Gumbau", "Omar Mascarell", "Raúl Guti", "Fidel Chaves", "Josan Ferrández", "Lucas Boyé", "Pere Milla", "Ezequiel Ponce" ],
+"Real Oviedo": [ "Leo Román", "Tomeu Nadal", "Dani Calvo", "Oier Luengo", "David Costas", "Viti Rozada", "Lucas Ahijado", "Jimmy Suárez", "Luismi Sánchez", "Santi Cazorla", "Masca Álvarez", "Borja Bastón" ],
   // ... añade todos los equipos y jugadores que quieras
 };
 
