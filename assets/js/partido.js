@@ -111,16 +111,15 @@ function renderizarPartido(partido) {
   renderizarMercados(partido.mercados || {}, partido);
 }
 
-
 function renderizarMercados(mercados, partido) {
   const mercadosDiv = document.getElementById('mercados-partido');
   mercadosDiv.innerHTML = '';
 
-  // Mercado 1X2 (Fútbol)
+  // Mercado 1X2 (Fútbol, Baloncesto y Tenis con mismo formato de cuotas)
   if (mercados.resultado && Array.isArray(mercados.resultado.opciones)) {
     let deporte = (partido.deporte || "").toLowerCase();
     let cuotasHTML = '';
-    if (deporte === "futbol") {
+    if (deporte === "futbol" || deporte === "baloncesto" || deporte === "tenis") {
       let cuota1 = mercados.resultado.opciones.find(opt => opt.valor === "1")?.cuota ?? "-";
       let cuotaX = mercados.resultado.opciones.find(opt => opt.valor === "X")?.cuota ?? "-";
       let cuota2 = mercados.resultado.opciones.find(opt => opt.valor === "2")?.cuota ?? "-";
@@ -135,16 +134,21 @@ function renderizarMercados(mercados, partido) {
             ${typeof cuota1 === "number" ? cuota1.toFixed(2) : cuota1}
           </div>
         </div>
-        <div class="cuota">
-          <div class="nombre-equipo-cuota">Empate</div>
-          <div class="valor-cuota cuota-btn"
-            data-partido="${partido.equipo1} vs ${partido.equipo2}"
-            data-tipo="Empate"
-            data-cuota="${cuotaX}"
-            data-partidoid="${partido.partidoId}">
-            ${typeof cuotaX === "number" ? cuotaX.toFixed(2) : cuotaX}
-          </div>
-        </div>
+        ${
+          // Mostrar empate sólo si es fútbol
+          deporte === "futbol"
+            ? `<div class="cuota">
+                <div class="nombre-equipo-cuota">Empate</div>
+                <div class="valor-cuota cuota-btn"
+                  data-partido="${partido.equipo1} vs ${partido.equipo2}"
+                  data-tipo="Empate"
+                  data-cuota="${cuotaX}"
+                  data-partidoid="${partido.partidoId}">
+                  ${typeof cuotaX === "number" ? cuotaX.toFixed(2) : cuotaX}
+                </div>
+              </div>`
+            : ""
+        }
         <div class="cuota">
           <div class="nombre-equipo-cuota">${partido.equipo2}</div>
           <div class="valor-cuota cuota-btn"
@@ -156,43 +160,11 @@ function renderizarMercados(mercados, partido) {
           </div>
         </div>
       `;
-      mercadosDiv.innerHTML += `
-        <div class="mercado-block">
-          <div class="mercado-header">
-            <span>Resultado</span>
-            <span class="flecha">&#x25BC;</span>
-          </div>
-          <div class="mercado-content">
-            <div class="cuotas cuotas-futbol">${cuotasHTML}</div>
-          </div>
-        </div>
-      `;
-    } else if (deporte === "baloncesto" || deporte === "tenis") {
-      let cuota1 = mercados.resultado.opciones.find(opt => opt.valor === "1")?.cuota ?? "-";
-      let cuota2 = mercados.resultado.opciones.find(opt => opt.valor === "2")?.cuota ?? "-";
-      cuotasHTML = `
-        <div class="cuota">
-          <div class="nombre-equipo-cuota">${partido.equipo1}</div>
-          <div class="valor-cuota cuota-btn"
-            data-partido="${partido.equipo1} vs ${partido.equipo2}"
-            data-tipo="${partido.equipo1}"
-            data-cuota="${cuota1}"
-            data-partidoid="${partido.partidoId}">
-            ${typeof cuota1 === "number" ? cuota1.toFixed(2) : cuota1}
-          </div>
-        </div>
-        <div class="cuota cuota-derecha">
-          <div class="nombre-equipo-cuota">${partido.equipo2}</div>
-          <div class="valor-cuota cuota-btn"
-            data-partido="${partido.equipo1} vs ${partido.equipo2}"
-            data-tipo="${partido.equipo2}"
-            data-cuota="${cuota2}"
-            data-partidoid="${partido.partidoId}">
-            ${typeof cuota2 === "number" ? cuota2.toFixed(2) : cuota2}
-          </div>
-        </div>
-      `;
-      let claseCuotas = deporte === "baloncesto" ? "cuotas-baloncesto" : "cuotas-tenis";
+
+      // Aquí el cambio: baloncesto usa la misma clase y estilo que tenis
+      let claseCuotas = "cuotas-futbol";
+      if (deporte === "baloncesto" || deporte === "tenis") claseCuotas = "cuotas-tenis";
+
       mercadosDiv.innerHTML += `
         <div class="mercado-block">
           <div class="mercado-header">
@@ -205,6 +177,7 @@ function renderizarMercados(mercados, partido) {
         </div>
       `;
     }
+
   }
 
   // Mercado Goleadores (igual que antes)
