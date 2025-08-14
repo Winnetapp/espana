@@ -182,6 +182,38 @@ document.addEventListener("DOMContentLoaded", function () {
       .replace(/\s+/g, "_");
   }
 
+  // Crear botón borrar y añadirlo debajo del botón guardar cambios
+  const btnGuardar = editForm.querySelector('button[type="submit"]');
+  let btnBorrar = document.createElement("button");
+  btnBorrar.type = "button";
+  btnBorrar.textContent = "Borrar partido";
+
+  // Insertar después del botón guardar
+  btnGuardar.insertAdjacentElement("afterend", btnBorrar);
+
+  btnBorrar.addEventListener("click", async () => {
+    const partidoId = selectPartido.value;
+    if (!partidoId) {
+      showMessage("Selecciona un partido para borrar", true);
+      return;
+    }
+    const confirmar = confirm("¿Estás seguro de que quieres borrar este partido? Esta acción no se puede deshacer.");
+    if (!confirmar) return;
+
+    try {
+      await db.collection("partidos").doc(partidoId).delete();
+      showMessage("Partido borrado correctamente");
+      // Recargar lista de partidos
+      await cargarPartidos();
+      // Limpiar formulario y ocultar
+      editForm.style.display = "none";
+      selectPartido.value = "";
+    } catch (err) {
+      showMessage("Error borrando partido: " + err.message, true);
+    }
+  });
+
+
   function renderTarjetasEditor() {
     const containerId = "tarjetasAdminContainer";
     let container = document.getElementById(containerId);
@@ -680,11 +712,16 @@ document.addEventListener("DOMContentLoaded", function () {
   if (editForm) {
     editForm.addEventListener("submit", async function (e) {
       e.preventDefault();
+
+      const confirmarGuardar = confirm("¿Estás seguro de que quieres guardar los cambios en este partido?");
+      if (!confirmarGuardar) return;  // Cancela el guardado si no confirma
+
       const partidoId = selectPartido.value;
       if (!partidoId) {
         showMessage("Selecciona un partido", true);
         return;
       }
+      
       const opciones = [];
       const cuotaInputs = mercadoCuotasContainer.querySelectorAll("input[type='number']");
       cuotaInputs.forEach((input, i) => {
