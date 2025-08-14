@@ -675,15 +675,19 @@ function renderDesplegableTarjetas(tarjetasObj, partido) {
     { id: 'menos', label: 'Menos de' }
   ];
   // Detecta número de filas (tarjetas) automáticamente del primer segmento/equipo
-  let filas = [];
-  for (let seg of Object.values(tarjetasObj)) {
-    for (let eq of Object.values(seg)) {
-      filas = Object.keys(eq).map(n=>parseInt(n)).filter(n=>!isNaN(n));
-      filas.sort((a,b)=>a-b);
-      break;
+    let filas = [];
+    for (let seg of Object.values(tarjetasObj)) {
+      for (let eq of Object.values(seg)) {
+        filas = Object.keys(eq).map(n => parseInt(n)).filter(n => !isNaN(n));
+        filas.sort((a, b) => a - b);
+        break;
+      }
+      if (filas.length) break;
     }
-    if(filas.length) break;
-  }
+
+    // Agrega fila 0 tarjetas si no está presente
+    if (!filas.includes(0)) filas.unshift(0);
+
 
   let html = `<div class="mercado-block">
     <div class="mercado-header">
@@ -759,9 +763,12 @@ function renderTarjetasTabla(tarjetasObj, segId, eqId, columnas, filas, partido)
       return cuota !== null && cuota !== undefined && cuota !== "";
     });
 
-    if (!tieneDatos) return; // ❌ No hay datos → saltar esta fila
+    if (!tieneDatos && n !== 0) return; // ❌ No hay datos y no es fila 0 → saltar esta fila
 
-    html += `<tr><td>${n}</td>`;
+    // Etiqueta con número + palabra "tarjeta(s)"
+    let labelFila = n === 0 ? "0 tarjetas" : (n === 1 ? "1 tarjeta" : `${n} tarjetas`);
+
+    html += `<tr><td>${labelFila}</td>`;
     columnas.forEach(col => {
       let cuota = eqObj[n]?.[col.id];
       if (cuota === null || cuota === undefined || cuota === "") {
@@ -770,7 +777,7 @@ function renderTarjetasTabla(tarjetasObj, segId, eqId, columnas, filas, partido)
         html += `<td>
           <div class="cuota cuota-btn cuota-tarjeta"
             data-partido="${partido.equipo1} vs ${partido.equipo2}"
-            data-tipo="${col.label} ${n} ${n===1?"tarjeta":"tarjetas"} (${col.label} - ${n}) - ${getSegmentoLabel(segId)} - ${(eqId==='equipo1')?partido.equipo1:(eqId==='equipo2'?partido.equipo2:"Ambos equipos")}"
+            data-tipo="${col.label} ${n} ${n===1 ? "tarjeta" : "tarjetas"} (${col.label} - ${n}) - ${getSegmentoLabel(segId)} - ${(eqId === 'equipo1') ? partido.equipo1 : (eqId === 'equipo2' ? partido.equipo2 : "Ambos equipos")}"
             data-cuota="${cuota}"
             data-partidoid="${partido.partidoId}"
             data-mercado="tarjetas"
@@ -800,6 +807,8 @@ function renderTarjetasTabla(tarjetasObj, segId, eqId, columnas, filas, partido)
     });
   });
 }
+
+
 
 
 function renderDesplegableCorners(cornersObj, partido) {
@@ -866,15 +875,19 @@ function renderCornersTabla(cornersObj, segId, eqId, columnas, filas, partido) {
   columnas.forEach(col => html += `<th style="width:${colWidth}%">${col.label}</th>`);
   html += "</tr></thead><tbody>";
 
-  filas.forEach(n => {
+  // Forzar filas del 1 al 17 (si quieres otro rango cambia el 17)
+  for (let n = 1; n <= 17; n++) {
     // Solo mostrar la fila si al menos 1 columna tiene cuota
     const tieneDatos = columnas.some(col => {
       let cuota = eqObj[n]?.[col.id];
       return cuota !== null && cuota !== undefined && cuota !== "";
     });
-    if (!tieneDatos) return; // ❌ No hay datos → saltar esta fila
+    if (!tieneDatos) continue; // ❌ No hay datos → saltar esta fila
 
-    html += `<tr><td>${n}</td>`;
+    // Etiqueta "N corner(s)"
+    let labelFila = n === 1 ? "1 corner" : `${n} corners`;
+
+    html += `<tr><td>${labelFila}</td>`;
     columnas.forEach(col => {
       let cuota = eqObj[n]?.[col.id];
       if (cuota === null || cuota === undefined || cuota === "") {
@@ -883,7 +896,7 @@ function renderCornersTabla(cornersObj, segId, eqId, columnas, filas, partido) {
         html += `<td>
           <div class="cuota cuota-btn cuota-corner"
             data-partido="${partido.equipo1} vs ${partido.equipo2}"
-            data-tipo="${col.label} ${n} ${n===1?"corner":"corners"} (${col.label} - ${n}) - ${getSegmentoLabel(segId)} - ${(eqId==='equipo1')?partido.equipo1:(eqId==='equipo2'?partido.equipo2:"Ambos equipos")}"
+            data-tipo="${col.label} ${labelFila} (${col.label} - ${n}) - ${getSegmentoLabel(segId)} - ${(eqId==='equipo1')?partido.equipo1:(eqId==='equipo2'?partido.equipo2:"Ambos equipos")}"
             data-cuota="${cuota}"
             data-partidoid="${partido.partidoId}"
             data-mercado="corners"
@@ -892,7 +905,7 @@ function renderCornersTabla(cornersObj, segId, eqId, columnas, filas, partido) {
       }
     });
     html += "</tr>";
-  });
+  }
 
   html += "</tbody></table>";
   tablaCont.innerHTML = html;
@@ -913,6 +926,7 @@ function renderCornersTabla(cornersObj, segId, eqId, columnas, filas, partido) {
     });
   });
 }
+
 
 
 // ========== DESPLEGABLES DE MERCADO ==========
