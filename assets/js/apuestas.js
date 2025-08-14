@@ -274,24 +274,35 @@ function renderApuestas(lista, currentTab) {
         } else if (apuesta.estado === "perdida") {
           acciones = `
             <div class="pbi-boton-container">
-              <button class="btn-perder" onclick="aceptarApuesta('${apuesta.id}', false)">Confirmar pérdida</button>
+              <button class="btn-perder" onclick="aceptarApuesta('${apuesta.id}', false)">
+                Confirmar pérdida
+                <span class="pbi-importe-perdida">${apuesta.stake.toFixed(2)} €</span>
+              </button>
             </div>
           `;
         }
       }
 
-      let mostrarFooter = (currentTab === 'pendientes' || currentTab === 'todas');
+      let mostrarFooter = (currentTab === 'pendientes' || currentTab === 'todas' || currentTab === 'terminadas');
+      let mostrarResultadoPlano = !(
+        (currentTab === 'todas' || currentTab === 'listas' || currentTab === 'terminadas') &&
+        apuesta.estado !== "pendiente" &&
+        (apuesta.estado === "ganada" || apuesta.estado === "perdida")
+      );
       let footer = '';
       if (mostrarFooter) {
-        const mostrarResultadoPlano = !(
-          (currentTab === 'todas' || currentTab === 'listas' || currentTab === 'terminadas') &&
-          apuesta.estado !== "pendiente" &&
-          (apuesta.estado === "ganada" || apuesta.estado === "perdida")
-        );
+        let derecha = '';
+        if (apuesta.estado === "ganada") {
+          derecha = `<span class="pbi-potential">Ganancias: ${apuesta.potentialWin.toFixed(2)}€</span>`;
+        } else if (apuesta.estado === "perdida") {
+          derecha = `<span class="pbi-perdido">Perdido: ${apuesta.stake.toFixed(2)}€</span>`;
+        } else {
+          derecha = `<span class="pbi-potential">Ganancias: ${apuesta.potentialWin.toFixed(2)}€</span>`;
+        }
         footer = `
           <div class="pbi-footer">
             <span class="pbi-stake-footer">Importe: ${apuesta.stake}€</span>
-            <span class="pbi-potential">Ganancias: ${apuesta.potentialWin.toFixed(2)}€</span>
+            ${derecha}
             ${mostrarResultadoPlano && apuesta.resultado && apuesta.estado !== "pendiente" ? `<span class="pbi-resultado">${apuesta.resultado}</span>` : ""}
           </div>
         `;
