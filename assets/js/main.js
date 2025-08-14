@@ -165,22 +165,34 @@ function refreshSlip() {
         let partes = tipo.split(' - ').map(s => s.trim());
         let main = '', cantidad = '', equipo = '', periodo = '';
 
-        if (partes.length === 4) {
-          [main, cantidad, equipo, periodo] = partes;
-        } else if (partes.length === 3) {
-          const match = partes[0].match(/(Más de|Menos de|Exactamente)\s*(\d+)/i);
-          if (match) {
-            [main, cantidad] = [match[1], match[2]];
-          } else {
-            main = partes[0];
-          }
-          [equipo, periodo] = partes.slice(1);
+        // Eliminar paréntesis del primer fragmento
+        partes[0] = partes[0].replace(/\([^)]*\)/g, '').trim();
+
+        // Extraer frase como "Más de 2", "Exactamente 3", etc.
+        const match = partes[0].match(/(Más de|Menos de|Exactamente)\s*(\d+)/i);
+        if (match) {
+          main = match[1];
+          cantidad = match[2];
         } else {
-          main = tipo;
+          main = partes[0];
         }
 
-        main = main.replace(/\(.*/, '').replace(/\d+\)\s*$/, '').trim();
-        tipoTexto = `Tarjetas: ${main} ${cantidad ? ` ${cantidad} tarjeta${cantidad == 1 ? '' : 's'}` : ''} ${periodo ? ` - ${periodo}` : ''} ${equipo ? ` - ${equipo}` : ''}`;
+        // Eliminar entradas tipo "2)", "1)", etc.
+        partes = partes.filter(p => !/^\d+\)$/.test(p));
+
+        // Buscar periodo (Encuentro, Mitad, etc.)
+        periodo = partes.find(p => /(encuentro|mitad)/i.test(p)) || '';
+
+        // Buscar equipo (cualquier otro que no sea el primero ni el periodo)
+        equipo = partes.find((p, i) =>
+          i > 0 &&
+          p !== periodo &&
+          !/^\d+\)$/.test(p) &&
+          !/(Más de|Menos de|Exactamente)/i.test(p)
+        ) || '';
+
+        tipoTexto = `Tarjetas: ${main} ${cantidad} tarjeta${cantidad === '1' ? '' : 's'}${equipo ? ` - ${equipo}` : ''}${periodo ? ` - ${periodo}` : ''}`;
+
       } else if (mercado === 'corners') {
         let partes = tipo.split(' - ').map(s => s.trim());
         let main = '', cantidad = '', equipo = '', periodo = '';
