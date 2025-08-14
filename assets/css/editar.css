@@ -187,8 +187,6 @@ button:hover,
   border: 1px solid #404040;
 }
 
-/* ... Resto del CSS ... */
-
 .tarjetas-tabs, .tarjetas-subtabs {
   display: flex;
   gap: 8px;
@@ -222,8 +220,6 @@ button:hover,
   outline: 2px solid var(--azul);
 }
 
-/* ... Resto del CSS ... */
-
 .tarjetas-table {
   width: 100%;
   border-collapse: collapse;
@@ -245,6 +241,71 @@ button:hover,
 }
 .tarjetas-table input[type=number]:focus {
   outline: 2px solid #ffe16b;
+}
+
+/* Corners Mercado Edición - igual que tarjetas pero azul */
+#cornersAdminContainer {
+  margin-top: 24px;
+  background: #232323;
+  border-radius: 8px;
+  padding: 12px 10px 16px 10px;
+  border: 1px solid #404040;
+}
+
+.corners-tabs, .corners-subtabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 6px;
+  margin-top: 8px;
+}
+.corners-tabs button, .corners-subtabs button {
+  border: none;
+  border-radius: 5px;
+  padding: 6px 12px;
+  cursor: pointer;
+  background: #353535;
+  color: #82e8ff;
+  font-weight: bold;
+  opacity: .8;
+  transition: .15s, box-shadow 0.18s;
+  box-shadow: 0 0 0 0 transparent;
+  margin-bottom: 2px;
+  font-size: 1rem;
+}
+.corners-tabs button.active, .corners-subtabs button.active {
+  background: var(--azul-hover);
+  color: #82e8ff;
+  opacity: 1;
+  box-shadow: 0 0 0 2px var(--azul) inset, 0 2px 10px #82e8ff26;
+  outline: none;
+  border: 2px solid var(--azul);
+}
+.corners-tabs button:focus-visible,
+.corners-subtabs button:focus-visible {
+  outline: 2px solid var(--azul);
+}
+
+.corners-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 8px;
+}
+.corners-table th, .corners-table td {
+  padding: 4px 7px;
+  text-align: center;
+}
+.corners-table input[type=number] {
+  width: 70px;
+  padding: 8px 8px;
+  border-radius: 5px;
+  text-align: right;
+  font-size: 1em;
+  color: #82e8ff;
+  background: #2b2b2b;
+  border: none;
+}
+.corners-table input[type=number]:focus {
+  outline: 2px solid #82e8ff;
 }
 
 /* Responsive */
