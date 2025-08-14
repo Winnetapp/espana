@@ -106,6 +106,13 @@ a.volver-btn:hover {
   margin-top: 18px;
 }
 
+.bandera, .bandera-wrapper {
+  width: 50px;
+  height: 50px;
+  object-fit: contain;
+  display: block;
+}
+
 /* ========= DESPLEGABLES MERCADOS (Acordeón) =========== */
 .mercado-block {
   background: #19191d;
@@ -164,17 +171,36 @@ a.volver-btn:hover {
 }
 
 /* =========================== CUOTAS =========================== */
+/* Por defecto: 3 columnas para fútbol, etc */
 .cuotas {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 18px;
   margin: 18px 0 8px 0;
+  width: 100%;
 }
 
+/* Por defecto la cuota derecha va en la columna 3 */
 .cuota-derecha {
   grid-column-start: 3;
 }
 
+/* SOLO para cuotas de tenis (y baloncesto si usas .cuotas-baloncesto) */
+/* Ajusta a 2 columnas cuando el contenedor tiene la clase .cuotas-tenis */
+.cuotas-tenis {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 18px;
+  margin: 18px 0 8px 0;
+  width: 100%;
+}
+
+/* La cuota derecha en tenis va en la columna 2 */
+.cuotas-tenis .cuota-derecha {
+  grid-column-start: 2;
+}
+
+/* Cuota general: botón/cuadro de cuota */
 .cuota {
   margin: 0 auto;
   display: flex;
@@ -185,15 +211,15 @@ a.volver-btn:hover {
   font-weight: 700;
   border: none;
   border-radius: 7px;
-  width: 100%;            /* Puedes ajustar este valor para que sean iguales todas */
-  height: 100%;           /* Ajusta según lo alto que quieras el botón */
-  padding: 0;             /* Elimina el padding si usas height fija */
+  width: 100%;
+  height: 100%;
+  padding: 0;
   cursor: pointer;
   font-size: 1.08rem;
   letter-spacing: 0.5px;
   transition: background 1.5s, color 2.5s, box-shadow 0.5s;
   box-shadow: 0 2px 8px #00000016;
-  margin-bottom: 6px;     /* Separación inferior */
+  margin-bottom: 6px;
 }
 
 .cuota:hover {
@@ -488,9 +514,7 @@ a.volver-btn:hover {
   .tarjetas-table th{
     padding: 10px 0 !important;
   }
-  .cuota-tarjeta, .cuota-btn {
-    padding: 2px 0 !important;
-  }
+
   #select-segmento, #select-equipo {
     font-size: 0.82em !important;
     padding: 2.5px 4px !important;
