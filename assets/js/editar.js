@@ -97,6 +97,231 @@ const TARJETAS_COLUMNAS = [
 const TARJETAS_FILAS = [1,2,3,4,5,6,7,8,9,10];
 let tarjetasOpciones = {}; // Estado global de edición
 
+const CORNERS_SEGMENTOS = [
+  { id: 'primera', label: '1ª Mitad' },
+  { id: 'segunda', label: '2ª Mitad' },
+  { id: 'encuentro', label: 'Encuentro' }
+];
+const CORNERS_EQUIPOS = [
+  { id: 'equipo1', label: 'Equipo 1' },
+  { id: 'equipo2', label: 'Equipo 2' },
+  { id: 'ambos', label: 'Ambos Equipos' }
+];
+const CORNERS_COLUMNAS = [
+  { id: 'mas', label: 'Más de' },
+  { id: 'exactamente', label: 'Exactamente' },
+  { id: 'menos', label: 'Menos de' }
+];
+const CORNERS_FILAS = [4,5,6,7,8,9,10,11,12,13,14,15,16,17];
+let cornersOpciones = {}; // Estado global de edición para corners
+
+// ====================== TARJETAS (EDICIÓN DE MERCADO) ======================
+function renderTarjetasEditor() {
+  const containerId = "tarjetasAdminContainer";
+  let container = document.getElementById(containerId);
+  if (!container) {
+    container = document.createElement("div");
+    container.id = containerId;
+    container.style.marginTop = "20px";
+    // lo insertamos después de #goleadoresContainer
+    const goleadoresDiv = document.getElementById("goleadoresContainer");
+    goleadoresDiv.parentNode.insertBefore(container, goleadoresDiv.nextSibling);
+  }
+  container.innerHTML = `<h3>Mercado Tarjetas</h3>
+    <div class="tarjetas-tabs" id="edit-tarjetas-tabs"></div>
+    <div class="tarjetas-subtabs" id="edit-tarjetas-subtabs"></div>
+    <div id="edit-tarjetas-table"></div>
+  `;
+
+  // Inicializa seleccionadas
+  if (!window.editTarjetasTabSel) window.editTarjetasTabSel = 'primera';
+  if (!window.editTarjetasSubtabSel) window.editTarjetasSubtabSel = 'equipo1';
+
+  // Tabs segmento
+  const $tabs = document.getElementById("edit-tarjetas-tabs");
+  $tabs.innerHTML = TARJETAS_SEGMENTOS.map(seg =>
+    `<button type="button" class="${window.editTarjetasTabSel === seg.id ? "active" : ""}" data-tab="${seg.id}">${seg.label}</button>`
+  ).join('');
+  // Subtabs equipo
+  const $subtabs = document.getElementById("edit-tarjetas-subtabs");
+  $subtabs.innerHTML = TARJETAS_EQUIPOS.map(eq =>
+    `<button type="button" class="${window.editTarjetasSubtabSel === eq.id ? "active" : ""}" data-subtab="${eq.id}">${eq.label}</button>`
+  ).join('');
+
+  // Inicializa estructura si no existe
+  if (!tarjetasOpciones[window.editTarjetasTabSel]) tarjetasOpciones[window.editTarjetasTabSel] = {};
+  if (!tarjetasOpciones[window.editTarjetasTabSel][window.editTarjetasSubtabSel]) {
+    tarjetasOpciones[window.editTarjetasTabSel][window.editTarjetasSubtabSel] = {};
+    TARJETAS_FILAS.forEach(n => {
+      tarjetasOpciones[window.editTarjetasTabSel][window.editTarjetasSubtabSel][n] = { mas:'', exactamente:'', menos:'' };
+    });
+  }
+  const datos = tarjetasOpciones[window.editTarjetasTabSel][window.editTarjetasSubtabSel];
+
+  // Tabla
+  let html = `<table class="tarjetas-table"><thead><tr><th></th>`;
+  TARJETAS_COLUMNAS.forEach(col => html += `<th>${col.label}</th>`);
+  html += `</tr></thead><tbody>`;
+  TARJETAS_FILAS.forEach(n => {
+    html += `<tr><td>${n} tarjeta${n>1?'s':''}</td>`;
+    TARJETAS_COLUMNAS.forEach(col => {
+      const valor = datos[n][col.id] ?? '';
+      html += `<td>
+        <input type="number" min="1.01" step="0.01" 
+          data-n="${n}" data-col="${col.id}"
+          value="${valor !== undefined ? valor : ''}" 
+          placeholder="-" />
+      </td>`;
+    });
+    html += `</tr>`;
+  });
+  html += `</tbody></table>`;
+
+  document.getElementById("edit-tarjetas-table").innerHTML = html;
+
+  // Eventos para tabs
+  $tabs.querySelectorAll("button").forEach(btn => {
+    btn.onclick = () => {
+      window.editTarjetasTabSel = btn.dataset.tab;
+      renderTarjetasEditor();
+    };
+  });
+  $subtabs.querySelectorAll("button").forEach(btn => {
+    btn.onclick = () => {
+      window.editTarjetasSubtabSel = btn.dataset.subtab;
+      renderTarjetasEditor();
+    };
+  });
+
+  // Evento para inputs
+  document.getElementById("edit-tarjetas-table").querySelectorAll("input[type=number]").forEach(input => {
+    input.addEventListener("input", () => {
+      const n = input.getAttribute("data-n");
+      const col = input.getAttribute("data-col");
+      let v = input.value;
+      if (!tarjetasOpciones[window.editTarjetasTabSel][window.editTarjetasSubtabSel][n])
+        tarjetasOpciones[window.editTarjetasTabSel][window.editTarjetasSubtabSel][n] = { mas:'', exactamente:'', menos:'' };
+      tarjetasOpciones[window.editTarjetasTabSel][window.editTarjetasSubtabSel][n][col] = v;
+    });
+  });
+}
+
+// Mostrar el bloque de tarjetas sólo si deporte es fútbol
+function mostrarTarjetasSiFutbol() {
+  const deporte = document.getElementById("deporte").value;
+  const containerId = "tarjetasAdminContainer";
+  let container = document.getElementById(containerId);
+  if (deporte === "futbol") {
+    renderTarjetasEditor();
+    if (container) container.style.display = "block";
+  } else if (container) {
+    container.style.display = "none";
+  }
+}
+
+// ================== CORNERS (EDICIÓN DE MERCADO) ==================
+function renderCornersEditor() {
+  const containerId = "cornersAdminContainer";
+  let container = document.getElementById(containerId);
+  if (!container) {
+    container = document.createElement("div");
+    container.id = containerId;
+    container.style.marginTop = "20px";
+    // lo insertamos después de tarjetasAdminContainer
+    const tarjetasDiv = document.getElementById("tarjetasAdminContainer");
+    tarjetasDiv.parentNode.insertBefore(container, tarjetasDiv.nextSibling);
+  }
+  container.innerHTML = `<h3>Mercado Corners</h3>
+    <div class="corners-tabs" id="edit-corners-tabs"></div>
+    <div class="corners-subtabs" id="edit-corners-subtabs"></div>
+    <div id="edit-corners-table"></div>
+  `;
+
+  if (!window.editCornersTabSel) window.editCornersTabSel = 'primera';
+  if (!window.editCornersSubtabSel) window.editCornersSubtabSel = 'equipo1';
+
+  // Tabs segmento
+  const $tabs = document.getElementById("edit-corners-tabs");
+  $tabs.innerHTML = CORNERS_SEGMENTOS.map(seg =>
+    `<button type="button" class="${window.editCornersTabSel === seg.id ? "active" : ""}" data-tab="${seg.id}">${seg.label}</button>`
+  ).join('');
+  // Subtabs equipo
+  const $subtabs = document.getElementById("edit-corners-subtabs");
+  $subtabs.innerHTML = CORNERS_EQUIPOS.map(eq =>
+    `<button type="button" class="${window.editCornersSubtabSel === eq.id ? "active" : ""}" data-subtab="${eq.id}">${eq.label}</button>`
+  ).join('');
+
+  // Inicializa estructura si no existe
+  if (!cornersOpciones[window.editCornersTabSel]) cornersOpciones[window.editCornersTabSel] = {};
+  if (!cornersOpciones[window.editCornersTabSel][window.editCornersSubtabSel]) {
+    cornersOpciones[window.editCornersTabSel][window.editCornersSubtabSel] = {};
+    CORNERS_FILAS.forEach(n => {
+      cornersOpciones[window.editCornersTabSel][window.editCornersSubtabSel][n] = { mas:'', exactamente:'', menos:'' };
+    });
+  }
+  const datos = cornersOpciones[window.editCornersTabSel][window.editCornersSubtabSel];
+
+  // Tabla
+  let html = `<table class="corners-table"><thead><tr><th></th>`;
+  CORNERS_COLUMNAS.forEach(col => html += `<th>${col.label}</th>`);
+  html += `</tr></thead><tbody>`;
+  CORNERS_FILAS.forEach(n => {
+    html += `<tr><td>${n} corner${n>1?'s':''}</td>`;
+    CORNERS_COLUMNAS.forEach(col => {
+      const valor = datos[n][col.id] ?? '';
+      html += `<td>
+        <input type="number" min="1.01" step="0.01" 
+          data-n="${n}" data-col="${col.id}"
+          value="${valor !== undefined ? valor : ''}" 
+          placeholder="-" />
+      </td>`;
+    });
+    html += `</tr>`;
+  });
+  html += `</tbody></table>`;
+
+  document.getElementById("edit-corners-table").innerHTML = html;
+
+  // Eventos para tabs
+  $tabs.querySelectorAll("button").forEach(btn => {
+    btn.onclick = () => {
+      window.editCornersTabSel = btn.dataset.tab;
+      renderCornersEditor();
+    };
+  });
+  $subtabs.querySelectorAll("button").forEach(btn => {
+    btn.onclick = () => {
+      window.editCornersSubtabSel = btn.dataset.subtab;
+      renderCornersEditor();
+    };
+  });
+
+  // Evento para inputs
+  document.getElementById("edit-corners-table").querySelectorAll("input[type=number]").forEach(input => {
+    input.addEventListener("input", () => {
+      const n = input.getAttribute("data-n");
+      const col = input.getAttribute("data-col");
+      let v = input.value;
+      if (!cornersOpciones[window.editCornersTabSel][window.editCornersSubtabSel][n])
+        cornersOpciones[window.editCornersTabSel][window.editCornersSubtabSel][n] = { mas:'', exactamente:'', menos:'' };
+      cornersOpciones[window.editCornersTabSel][window.editCornersSubtabSel][n][col] = v;
+    });
+  });
+}
+
+// Mostrar el bloque de corners sólo si deporte es fútbol
+function mostrarCornersSiFutbol() {
+  const deporte = document.getElementById("deporte").value;
+  const containerId = "cornersAdminContainer";
+  let container = document.getElementById(containerId);
+  if (deporte === "futbol") {
+    renderCornersEditor();
+    if (container) container.style.display = "block";
+  } else if (container) {
+    container.style.display = "none";
+  }
+}
+
 document.addEventListener("DOMContentLoaded", function () {
   // Firebase config
   const firebaseConfig = {
@@ -131,6 +356,25 @@ document.addEventListener("DOMContentLoaded", function () {
   const nacionalidad2Input = document.getElementById("nacionalidad2");
   const nacionalidadesList = document.getElementById("nacionalidades-list");
   const jugadoresList = document.getElementById("jugadores-list");
+
+  // ----- Corners config -----
+  const CORNERS_SEGMENTOS = [
+    { id: 'primera', label: '1ª Mitad' },
+    { id: 'segunda', label: '2ª Mitad' },
+    { id: 'encuentro', label: 'Encuentro' }
+  ];
+  const CORNERS_EQUIPOS = [
+    { id: 'equipo1', label: 'Equipo 1' },
+    { id: 'equipo2', label: 'Equipo 2' },
+    { id: 'ambos', label: 'Ambos Equipos' }
+  ];
+  const CORNERS_COLUMNAS = [
+    { id: 'mas', label: 'Más de' },
+    { id: 'exactamente', label: 'Exactamente' },
+    { id: 'menos', label: 'Menos de' }
+  ];
+  const CORNERS_FILAS = [4,5,6,7,8,9,10,11,12,13,14,15,16,17];
+  let cornersOpciones = {};
 
   // Actualiza el datalist de jugadores según equipos seleccionados
   function actualizarJugadoresDatalist() {
@@ -227,6 +471,7 @@ document.addEventListener("DOMContentLoaded", function () {
     actualizarNacionalidadesVisibility();
     actualizarJugadoresDatalist();
     mostrarTarjetasSiFutbol();
+    mostrarCornersSiFutbol();
   });
 
   ligaInput.addEventListener("input", function() {
@@ -432,20 +677,115 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
-  // Mostrar el bloque de tarjetas sólo si deporte es fútbol
-  function mostrarTarjetasSiFutbol() {
+  // ================== CORNERS (EDICIÓN DE MERCADO) ==================
+  function renderCornersEditor() {
+    const containerId = "cornersAdminContainer";
+    let container = document.getElementById(containerId);
+    if (!container) {
+      container = document.createElement("div");
+      container.id = containerId;
+      container.style.marginTop = "20px";
+      // lo insertamos después de tarjetasAdminContainer
+      const tarjetasDiv = document.getElementById("tarjetasAdminContainer");
+      tarjetasDiv.parentNode.insertBefore(container, tarjetasDiv.nextSibling);
+    }
+    container.innerHTML = `<h3>Mercado Corners</h3>
+      <div class="corners-tabs" id="edit-corners-tabs"></div>
+      <div class="corners-subtabs" id="edit-corners-subtabs"></div>
+      <div id="edit-corners-table"></div>
+    `;
+
+    if (!window.editCornersTabSel) window.editCornersTabSel = 'primera';
+    if (!window.editCornersSubtabSel) window.editCornersSubtabSel = 'equipo1';
+
+    // Tabs segmento
+    const $tabs = document.getElementById("edit-corners-tabs");
+    $tabs.innerHTML = CORNERS_SEGMENTOS.map(seg =>
+      `<button type="button" class="${window.editCornersTabSel === seg.id ? "active" : ""}" data-tab="${seg.id}">${seg.label}</button>`
+    ).join('');
+    // Subtabs equipo
+    const $subtabs = document.getElementById("edit-corners-subtabs");
+    $subtabs.innerHTML = CORNERS_EQUIPOS.map(eq =>
+      `<button type="button" class="${window.editCornersSubtabSel === eq.id ? "active" : ""}" data-subtab="${eq.id}">${eq.label}</button>`
+    ).join('');
+
+    // Inicializa estructura si no existe
+    if (!cornersOpciones[window.editCornersTabSel]) cornersOpciones[window.editCornersTabSel] = {};
+    if (!cornersOpciones[window.editCornersTabSel][window.editCornersSubtabSel]) {
+      cornersOpciones[window.editCornersTabSel][window.editCornersSubtabSel] = {};
+      CORNERS_FILAS.forEach(n => {
+        cornersOpciones[window.editCornersTabSel][window.editCornersSubtabSel][n] = { mas:'', exactamente:'', menos:'' };
+      });
+    }
+    const datos = cornersOpciones[window.editCornersTabSel][window.editCornersSubtabSel];
+
+    // Tabla
+    let html = `<table class="corners-table"><thead><tr><th></th>`;
+    CORNERS_COLUMNAS.forEach(col => html += `<th>${col.label}</th>`);
+    html += `</tr></thead><tbody>`;
+    CORNERS_FILAS.forEach(n => {
+      html += `<tr><td>${n} corner${n>1?'s':''}</td>`;
+      CORNERS_COLUMNAS.forEach(col => {
+        const valor = datos[n][col.id] ?? '';
+        html += `<td>
+          <input type="number" min="1.01" step="0.01" 
+            data-n="${n}" data-col="${col.id}"
+            value="${valor !== undefined ? valor : ''}" 
+            placeholder="-" />
+        </td>`;
+      });
+      html += `</tr>`;
+    });
+    html += `</tbody></table>`;
+
+    document.getElementById("edit-corners-table").innerHTML = html;
+
+    // Eventos para tabs
+    $tabs.querySelectorAll("button").forEach(btn => {
+      btn.onclick = () => {
+        window.editCornersTabSel = btn.dataset.tab;
+        renderCornersEditor();
+      };
+    });
+    $subtabs.querySelectorAll("button").forEach(btn => {
+      btn.onclick = () => {
+        window.editCornersSubtabSel = btn.dataset.subtab;
+        renderCornersEditor();
+      };
+    });
+
+    // Evento para inputs
+    document.getElementById("edit-corners-table").querySelectorAll("input[type=number]").forEach(input => {
+      input.addEventListener("input", () => {
+        const n = input.getAttribute("data-n");
+        const col = input.getAttribute("data-col");
+        let v = input.value;
+        if (!cornersOpciones[window.editCornersTabSel][window.editCornersSubtabSel][n])
+          cornersOpciones[window.editCornersTabSel][window.editCornersSubtabSel][n] = { mas:'', exactamente:'', menos:'' };
+        cornersOpciones[window.editCornersTabSel][window.editCornersSubtabSel][n][col] = v;
+      });
+    });
+  }
+
+  function mostrarCornersSiFutbol() {
     const deporte = deporteSelect.value;
-    const containerId = "tarjetasAdminContainer";
+    const containerId = "cornersAdminContainer";
     let container = document.getElementById(containerId);
     if (deporte === "futbol") {
-      renderTarjetasEditor();
+      renderCornersEditor();
       if (container) container.style.display = "block";
     } else if (container) {
       container.style.display = "none";
     }
   }
 
-  // Al cargar el partido seleccionado, cargar también las tarjetas
+  // Mostrar/ocultar ambos bloques según deporte
+  function mostrarMercadosAvanzados() {
+    mostrarTarjetasSiFutbol();
+    mostrarCornersSiFutbol();
+  }
+
+  // Al cargar el partido seleccionado, cargar también las tarjetas y los corners
   selectPartido.addEventListener("change", async function () {
     const partidoId = this.value;
     if (!editForm) return;
@@ -454,7 +794,8 @@ document.addEventListener("DOMContentLoaded", function () {
       showMessage("");
       renderGoleadoresList([]);
       tarjetasOpciones = {};
-      mostrarTarjetasSiFutbol();
+      cornersOpciones = {};
+      mostrarMercadosAvanzados();
       return;
     }
     try {
@@ -489,7 +830,13 @@ document.addEventListener("DOMContentLoaded", function () {
       } else {
         tarjetasOpciones = {};
       }
-      mostrarTarjetasSiFutbol();
+      // CORNERS: cargar estructura si existe
+      if (data.deporte === "futbol" && data.mercados?.corners?.opciones) {
+        cornersOpciones = JSON.parse(JSON.stringify(data.mercados.corners.opciones));
+      } else {
+        cornersOpciones = {};
+      }
+      mostrarMercadosAvanzados();
       editForm.style.display = "block";
       showMessage("");
     } catch (err) {
@@ -497,7 +844,8 @@ document.addEventListener("DOMContentLoaded", function () {
       editForm.style.display = "none";
       renderGoleadoresList([]);
       tarjetasOpciones = {};
-      mostrarTarjetasSiFutbol();
+      cornersOpciones = {};
+      mostrarMercadosAvanzados();
     }
   });
 
@@ -557,6 +905,26 @@ document.addEventListener("DOMContentLoaded", function () {
         }
       }
 
+      // --------- CORNERS guardar solo si alguna rellenada
+      let cornersObj = {};
+      let algunCorner = false;
+      if (deporteSelect.value === "futbol" && cornersOpciones) {
+        for (const segmento of CORNERS_SEGMENTOS) {
+          cornersObj[segmento.id] = {};
+          for (const equipo of CORNERS_EQUIPOS) {
+            cornersObj[segmento.id][equipo.id] = {};
+            for (const n of CORNERS_FILAS) {
+              cornersObj[segmento.id][equipo.id][n] = {};
+              for (const col of CORNERS_COLUMNAS) {
+                const v = (((cornersOpciones?.[segmento.id]?.[equipo.id]?.[n]?.[col.id]) || '') + '').trim();
+                if (v !== "") algunCorner = true;
+                cornersObj[segmento.id][equipo.id][n][col.id] = v === "" ? null : parseFloat(v);
+              }
+            }
+          }
+        }
+      }
+
       const formData = {
         deporte: deporteSelect.value,
         liga: ligaInput.value,
@@ -586,6 +954,13 @@ document.addEventListener("DOMContentLoaded", function () {
         formData.mercados.tarjetas = {
           nombre: "Tarjetas",
           opciones: tarjetasObj
+        };
+      }
+      // Añadir corners si hay alguna rellena
+      if (deporteSelect.value === "futbol" && algunCorner) {
+        formData.mercados.corners = {
+          nombre: "Corners",
+          opciones: cornersObj
         };
       }
       try {
