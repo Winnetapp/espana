@@ -71,23 +71,24 @@ a.volver-btn:hover {
   justify-content: center;
 }
 
-.partido-header .escudo {
-  width: 62px;
-  height: 62px;
-  border-radius: 50%;
-  background: #eee;
-  object-fit: contain;
-  border: 2.5px solid var(--rojo-oscuro);
-  box-shadow: 0 2px 12px #0003;
-}
+
 
 .partido-info {
   flex: 1;
   text-align: center;
 }
+.partido-liga {
+  color: #00b7ff;
+  font-weight: 200;
+}
+
+.partido-fecha, .partido-hora {
+  color: #d4ff5c;
+  font-weight: 200;
+}
 
 .partido-info > div:first-child {
-  font-size: 2.1rem;
+  font-size: 1.7rem;
   font-weight: 700;
   color: var(--rojo);
   letter-spacing: 0.5px;
@@ -318,7 +319,10 @@ a.volver-btn:hover {
     border-width: 1.5px;
   }
   .partido-info > div:first-child {
-    font-size: 1.17rem;
+    font-size: 1.15rem;
+  }
+  .partido-datos {
+    font-size: 0.9rem !important;
   }
 }
 @media (max-width: 490px) {
