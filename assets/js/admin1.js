@@ -153,6 +153,46 @@ function construirFormularioDesdeMercados(partidoSeleccionadoData) {
     tarjetasDiv.appendChild(tarjetasBloque);
     preguntasWrap.appendChild(tarjetasDiv);
   }
+
+  // ... después del bloque de tarjetas ...
+  // 4. Pregunta corners (si hay mercado de corners)
+  if (mercados.corners) {
+    // Segmentos y equipos igual que tarjetas
+    const segmentos = [
+      { id: "encuentro", label: "Encuentro" },
+      { id: "primera", label: "1ª Mitad" },
+      { id: "segunda", label: "2ª Mitad" }
+    ];
+    const equipos = [
+      { id: "ambos", label: "Ambos equipos" },
+      { id: "equipo1", label: partidoSeleccionadoData.equipo1 },
+      { id: "equipo2", label: partidoSeleccionadoData.equipo2 }
+    ];
+
+    const cornersDiv = document.createElement("div");
+    cornersDiv.className = "pregunta-item";
+    cornersDiv.innerHTML = `<label>¿Cuántos corners?</label>`;
+
+    const cornersBloque = document.createElement("div");
+    cornersBloque.className = "corners-resultado-bloque";
+
+    segmentos.forEach(seg => {
+      const segBlock = document.createElement("div");
+      segBlock.className = "corners-resultado-segmento";
+      segBlock.innerHTML = `<span class="corners-segmento-label">${seg.label}</span>
+        <div class="corners-resultado-equipos"></div>`;
+      const equiposWrap = segBlock.querySelector('.corners-resultado-equipos');
+      equipos.forEach(eq => {
+        const label = document.createElement('label');
+        label.innerHTML = `<span>${eq.label}</span>
+          <input type="number" min="0" max="30" class="input-corners" data-segmento="${seg.id}" data-equipo="${eq.id}" />`;
+        equiposWrap.appendChild(label);
+      });
+      cornersBloque.appendChild(segBlock);
+    });
+    cornersDiv.appendChild(cornersBloque);
+    preguntasWrap.appendChild(cornersDiv);
+  }
 }
 
 // Utilidad para parsear tipo de apuesta de tarjetas
@@ -254,7 +294,7 @@ resultadoForm.addEventListener("submit", async (e) => {
     if (cb.checked) goleadoresMarcados.push(cb.value);
   });
 
-  // Tarjetas
+  // ... Tarjetas
   const tarjetasInputs = document.querySelectorAll('.input-tarjetas');
   const tarjetasResultados = {};
   tarjetasInputs.forEach(input => {
@@ -265,6 +305,17 @@ resultadoForm.addEventListener("submit", async (e) => {
     tarjetasResultados[seg][eq] = isNaN(val) ? null : val;
   });
 
+  // Corners
+  const cornersInputs = document.querySelectorAll('.input-corners');
+  const cornersResultados = {};
+  cornersInputs.forEach(input => {
+    const seg = input.dataset.segmento;
+    const eq = input.dataset.equipo;
+    const val = parseInt(input.value, 10);
+    if (!cornersResultados[seg]) cornersResultados[seg] = {};
+    cornersResultados[seg][eq] = isNaN(val) ? null : val;
+  });
+
   // Construir el resultado a guardar
   const resultadoGuardado = {
     ganador: resultadoSelect ? resultadoSelect.value : null,
@@ -272,6 +323,9 @@ resultadoForm.addEventListener("submit", async (e) => {
   };
   if (Object.keys(tarjetasResultados).length > 0) {
     resultadoGuardado.tarjetas = tarjetasResultados;
+  }
+  if (Object.keys(cornersResultados).length > 0) {
+    resultadoGuardado.corners = cornersResultados;
   }
 
   console.log("===> resultadoGuardado:", JSON.stringify(resultadoGuardado, null, 2));
@@ -333,6 +387,37 @@ resultadoForm.addEventListener("submit", async (e) => {
                 resultadoBet = tarjetasPartido < numeroApostado ? "ganada" : "perdida";
               } else if (tipo.toLowerCase().includes("exactamente")) {
                 resultadoBet = tarjetasPartido === numeroApostado ? "ganada" : "perdida";
+              }
+            }
+          }
+          // Corners
+          else if (bet.mercado === "corners" || tipo.toLowerCase().includes("corner")) {
+            // Detectar periodo y equipo igual que en tarjetas
+            const periodo = tipo.toLowerCase().includes("1ª mitad") ? "primera"
+                          : tipo.toLowerCase().includes("2ª mitad") ? "segunda"
+                          : "encuentro";
+            const equipo = tipo.toLowerCase().includes("equipo1") ? "equipo1"
+                        : tipo.toLowerCase().includes("equipo2") ? "equipo2"
+                        : "ambos";
+            let cornersPartido = null;
+            if (resultadoGuardado.corners?.[periodo]) {
+              if (equipo === "ambos") {
+                const eq1 = resultadoGuardado.corners[periodo].equipo1 || 0;
+                const eq2 = resultadoGuardado.corners[periodo].equipo2 || 0;
+                cornersPartido = eq1 + eq2;
+              } else {
+                cornersPartido = resultadoGuardado.corners[periodo][equipo] ?? null;
+              }
+            }
+            const numeroApostado = parseInt(tipo.match(/\d+/)?.[0] || 0, 10);
+
+            if (cornersPartido !== null) {
+              if (tipo.toLowerCase().includes("más de")) {
+                resultadoBet = cornersPartido > numeroApostado ? "ganada" : "perdida";
+              } else if (tipo.toLowerCase().includes("menos de")) {
+                resultadoBet = cornersPartido < numeroApostado ? "ganada" : "perdida";
+              } else if (tipo.toLowerCase().includes("exactamente")) {
+                resultadoBet = cornersPartido === numeroApostado ? "ganada" : "perdida";
               }
             }
           }
@@ -415,4 +500,5 @@ if (document.readyState === "loading") {
 } else {
   cargarPartidos();
 }
+
 
