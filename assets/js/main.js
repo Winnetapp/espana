@@ -57,22 +57,37 @@ function limpiaParentesisTarjetas(tipo) {
 }
 
 /* ============ PUBLIC API PARA OTRAS PÁGINAS ============ */
-// Ahora recibe 'mercado'
 window.addBetToSlip = function({ partido, tipo, cuota, partidoId, mercado }) {
-  // No permitir dos apuestas del mismo partido (independiente del mercado o tipo)
-  if (bets.some(b => b.partidoId === partidoId)) {
-    alert('Ya tienes una apuesta para este partido.');
-    return;
+  // Restricción 1: Solo una apuesta "resultado" por partido
+  if (
+    window.location.pathname.endsWith('partido.html') &&
+    mercado === "resultado"
+  ) {
+    const yaExiste = bets.some(b =>
+      b.partidoId === partidoId &&
+      b.mercado === "resultado"
+    );
+    if (yaExiste) {
+      alert(`Ya tienes una apuesta para el mercado "Resultado" de este partido en tu carrito.`);
+      return;
+    }
+  } else {
+    // Restricción 2: No permitir duplicados exactos en otros mercados
+    const yaExisteExacta = bets.some(b =>
+      b.partidoId === partidoId &&
+      b.mercado === mercado &&
+      b.tipo === tipo &&
+      b.cuota === cuota
+    );
+    if (yaExisteExacta) {
+      alert("Ya tienes esta selección exacta añadida en tu carrito.");
+      return;
+    }
   }
-  // También sigue comprobando por tipo/mercado (para compatibilidad previa)
-  if (bets.some(b => b.partido === partido && b.tipo === tipo && b.mercado === mercado)) {
-    alert('Ya tienes una apuesta de este tipo para este partido.');
-    return;
-  }
+  // Añadir apuesta si pasa las restricciones
   bets.push({ partido, tipo, cuota, partidoId, mercado });
   guardarCarrito();
   refreshSlip();
-  // if (window.innerWidth <= 768) openSidebar();
 };
 
 // Función para capitalizar la primera letra de una palabra
@@ -677,7 +692,7 @@ if (document.getElementById('partidos-container')) {
         const partidoNombre = cuotaBtn.dataset.partido;
         const tipo = cuotaBtn.dataset.tipo;
         const cuota = cuotaBtn.textContent.trim();
-        const mercado = cuotaBtn.dataset.mercado || undefined;
+        const mercado = cuotaBtn.dataset.mercado || "resultado";
         const partidoObj = listaPartidos.find(p => 
           `${p.equipo1} vs ${p.equipo2}` === partidoNombre
         );
@@ -686,15 +701,22 @@ if (document.getElementById('partidos-container')) {
           return;
         }
         const partidoId = partidoObj.partidoId;
-        if (bets.some(b => b.partido === partidoNombre && b.tipo === tipo && b.mercado === mercado)) {
-          alert('Ya tienes una apuesta de este tipo para este partido.');
-          return;
+
+        // --- SOLO limitar mercado resultado en index.html ---
+        if (mercado === "resultado") {
+          const yaExiste = bets.some(b =>
+            b.partidoId === partidoId &&
+            b.mercado === "resultado"
+          );
+          if (yaExiste) {
+            alert('Ya tienes una apuesta para el mercado "Resultado" de este partido en tu carrito.');
+            return;
+          }
         }
-        bets.push({ partido: partidoNombre, partidoId, tipo, cuota, mercado });
+
+        window.addBetToSlip({ partido: partidoNombre, tipo, cuota, partidoId, mercado });
         guardarCarrito();
         refreshSlip();
-        // Si quieres que se abra automáticamente en móvil al añadir apuesta, descomenta:
-        // if (window.innerWidth <= 768) openSidebar();
         return;
       }
       // Añadir desde opción de goleador
@@ -704,11 +726,6 @@ if (document.getElementById('partidos-container')) {
         const tipo = goleadorDiv.dataset.jugador;
         const cuota = goleadorDiv.dataset.cuota;
         const partidoId = goleadorDiv.dataset.partidoid;
-        if (bets.some(b => b.partido === partido && b.tipo === tipo)) {
-          alert('Ya tienes una apuesta de este goleador para este partido.');
-          return;
-        }
-        bets.push({ partido, partidoId, tipo, cuota });
         guardarCarrito();
         refreshSlip();
         // Si quieres que se abra automáticamente en móvil al añadir apuesta, descomenta:
