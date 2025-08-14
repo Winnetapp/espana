@@ -34,6 +34,7 @@ main {
 }
 
 .card {
+  margin-top: 100px;
   background: #222;
   padding: 2rem 2.5rem;
   border-radius: 8px;
@@ -308,4 +309,61 @@ button:hover {
   color: #ffe555;
   padding: 0.25em 0.5em;
   font-weight: bold;
+}
+
+/* --- Corners resultado bloque --- */
+.corners-resultado-bloque {
+  margin: 0.5em 0 0.5em 0;
+}
+.corners-resultado-segmento {
+  margin-bottom: 0.6em;
+  border-radius: 6px;
+  padding: 0.6em 1em;
+}
+.corners-segmento-label {
+  color: #ffe555;
+  font-weight: bold;
+  display: block;
+  margin-bottom: 0.2em;
+}
+.corners-resultado-equipos {
+  display: flex;
+  gap: 1.2em;
+  margin-top: 0.3em;
+}
+.corners-resultado-equipos label {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  color: white;
+  font-size: 0.98em;
+}
+.input-corners {
+  width: 60px;
+  margin-top: 0.15em;
+  border-radius: 5px;
+  border: 1px solid #55eaff;
+  background: #2b2b2b;
+  color: #55eaff;
+  padding: 0.25em 0.5em;
+  font-weight: bold;
+}
+
+/* Responsive for corners too */
+@media (max-width: 600px) {
+  .corners-resultado-equipos {
+    gap: 0.5em;
+  }
+  .corners-resultado-segmento {
+    padding: 0.45em 0.6em;
+    font-size: 0.98em;
+  }
+  .input-corners {
+    width: 44px;
+    font-size: 0.98em;
+    padding: 0.17em 0.3em;
+  }
+  .tarjetas-resultado-equipos {
+    gap: 0.5em;
+  }
 }
