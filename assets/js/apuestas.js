@@ -13,17 +13,108 @@ if (typeof firebaseConfig === "undefined") {
     measurementId: "G-12LH5QRVD0"
   };
 }
-
-// INICIALIZA LA APP SOLO UNA VEZ
 if (!firebase.apps.length) {
   firebase.initializeApp(firebaseConfig);
 }
-
 const db = firebase.firestore();
 const auth = firebase.auth();
 
 const container = document.getElementById('apuestas-container');
 const tabButtons = document.querySelectorAll('.tab-btn');
+const filtrosDiv = document.getElementById('filtros-apuestas-todas');
+const filtroPrincipal = document.getElementById('filtro-principal');
+const filtroExtra = document.getElementById('filtro-extra');
+const btnFiltrar = document.getElementById('aplicar-filtros');
+const btnLimpiar = document.getElementById('limpiar-filtros');
+
+flatpickr("#filtro-rango-fecha", {
+  mode: "range",
+  dateFormat: "Y-m-d",
+  locale: "es" // ahora sí funciona
+});
+
+let filtrosApuestas = {};
+
+filtroPrincipal.addEventListener('change', () => {
+  filtroExtra.innerHTML = '';
+  if (filtroPrincipal.value === 'fecha') {
+    filtroExtra.innerHTML = '<input type="text" id="filtro-rango-fecha" placeholder="Selecciona rango de fechas">';
+    setTimeout(() => {
+      flatpickr("#filtro-rango-fecha", {
+        mode: "range",
+        dateFormat: "Y-m-d",
+        locale: "es"
+      });
+    }, 20);
+  } else {
+    switch(filtroPrincipal.value) {
+      case 'estado':
+        filtroExtra.innerHTML = `
+          <select id="filtro-estado">
+            <option value="ganada">Ganadas</option>
+            <option value="perdida">Perdidas</option>
+            <option value="pendiente">Pendientes</option>
+          </select>
+        `;
+        break;
+      case 'ganancia':
+        filtroExtra.innerHTML = `<input type="number" id="filtro-min-ganancia" placeholder="Mín. Ganancia €" min="0" />`;
+        break;
+      case 'perdida':
+        filtroExtra.innerHTML = `<input type="number" id="filtro-min-perdida" placeholder="Mín. Perdida €" min="0" />`;
+        break;
+      case 'ordenar':
+        filtroExtra.innerHTML = `
+          <select id="ordenar-por">
+            <option value="fecha-desc">Fecha ↓</option>
+            <option value="fecha-asc">Fecha ↑</option>
+            <option value="ganancia-desc">Ganancia ↓</option>
+            <option value="ganancia-asc">Ganancia ↑</option>
+            <option value="perdida-desc">Perdida ↓</option>
+            <option value="perdida-asc">Perdida ↑</option>
+          </select>
+        `;
+        break;
+    }
+  }
+});
+
+// Botón filtrar
+btnFiltrar.addEventListener('click', () => {
+  const tipo = filtroPrincipal.value;
+  filtrosApuestas = {};
+  if (tipo === 'estado') {
+    filtrosApuestas.estado = document.getElementById('filtro-estado').value;
+  } else if (tipo === 'fecha') {
+    const rango = (document.getElementById('filtro-rango-fecha').value || '').split(' a ');
+    filtrosApuestas.fechaInicio = rango[0] || '';
+    filtrosApuestas.fechaFin = rango[1] || '';
+  } else if (tipo === 'ganancia') {
+    filtrosApuestas.minGanancia = document.getElementById('filtro-min-ganancia').value;
+  } else if (tipo === 'perdida') {
+    filtrosApuestas.minPerdida = document.getElementById('filtro-min-perdida').value;
+  } else if (tipo === 'ordenar') {
+    filtrosApuestas.ordenar = document.getElementById('ordenar-por').value;
+  }
+  render();
+});
+
+btnLimpiar.addEventListener('click', () => {
+  filtroPrincipal.value = '';
+  filtroExtra.innerHTML = '';
+  filtrosApuestas = {};
+  render();
+});
+
+tabButtons.forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (btn.getAttribute('data-tab') === 'todas') {
+      filtrosDiv.style.display = '';
+    } else {
+      filtrosDiv.style.display = 'none';
+    }
+  });
+});
 
 let apuestas = [];
 let currentUser = null;
@@ -101,7 +192,6 @@ async function loadApuestas() {
   }
 }
 
-// Formatea "2025-07-05" + "20:20" => "Sáb 20:20"
 function formateaFechaHora(fechaStr, horaStr) {
   if (!fechaStr || !horaStr) return '';
   try {
@@ -133,22 +223,15 @@ function formateaFechaApuesta(fecha) {
   return `${diaSemana} ${dia} de ${mes} del ${año} a las ${horas}:${minutos}`;
 }
 
-// ----------- UTILIDAD MEJORADA PARA FORMATEAR APUESTAS DE TARJETAS Y GOLEADORES -----------
 function formateaTarjetaApuesta(tipo, partido) {
-  // 1. Elimina 'Marca' al principio y TODO entre paréntesis, con espacios alrededor (todas las ocurrencias)
-  // LIMPIEZA COMPLETA DE TIPO
   tipo = tipo
-    .replace(/^Marca\s*/i, "")               // Quita "Marca" al inicio
-    .replace(/\(.*?-\s*\d+\)/g, "")          // Quita patrones como (Más de - 4), (Menos de - 3), etc.
-    .replace(/\(.*?\)/g, "")                 // Quita cualquier otro texto entre paréntesis
-    .replace(/\s{2,}/g, " ")                 // Reemplaza múltiples espacios
+    .replace(/^Marca\s*/i, "")
+    .replace(/\(.*?-\s*\d+\)/g, "")
+    .replace(/\(.*?\)/g, "")
+    .replace(/\s{2,}/g, " ")
     .trim();
 
-
-  // 2. Divide en partes tras limpiar
   const partes = tipo.split(' - ').map(s => s.trim()).filter(Boolean);
-
-  // 3. Extrae condición y cantidad
   let condicion = "", cantidad = "";
   let mainPart = partes[0] || "";
   let match = mainPart.match(/(Más de|Menos de|Exactamente)\s*(\d+)/i);
@@ -161,11 +244,9 @@ function formateaTarjetaApuesta(tipo, partido) {
   }
   let main = condicion && cantidad ? `${condicion} ${cantidad} tarjetas` : condicion ? `${condicion} tarjetas` : "";
 
-  // 4. Equipo y periodo: SIEMPRE los dos últimos elementos si existen
   let equipo = partes.length >= 2 ? partes[partes.length - 1] : "";
   let periodo = partes.length >= 3 ? partes[partes.length - 2] : "";
 
-  // 5. Traduce periodo y equipo
   let periodoFinal = (periodo || "")
     .replace(/1ª Mitad/i, "1ª Mitad")
     .replace(/2ª Mitad/i, "2ª Mitad")
@@ -186,7 +267,6 @@ function formateaTarjetaApuesta(tipo, partido) {
       return (p[1] || "Equipo 2").trim();
     });
 
-  // 6. Monta el texto final limpio
   return `Tarjetas: ${main} - ${periodoFinal} - ${equipoFinal}`.replace(/\s{2,}/g, ' ').replace(/ - +$/, '').trim();
 }
 
@@ -204,9 +284,6 @@ function formateaTipoApuesta(b, partido) {
     return b.tipo;
   }
 }
-
-
-// -------------------------------------------------------------------------
 
 function render() {
   let filtered = [];
@@ -228,10 +305,43 @@ function render() {
       break;
     case 'todas':
       filtered = [...apuestas];
-      filtered.sort((a, b) => {
-        if (!a.fecha || !b.fecha) return 0;
-        return b.fecha.seconds - a.fecha.seconds;
-      });
+      if (filtrosApuestas.estado) {
+        filtered = filtered.filter(a => a.estado === filtrosApuestas.estado);
+      }
+      if (filtrosApuestas.fechaInicio) {
+        const tsInicio = new Date(filtrosApuestas.fechaInicio + "T00:00:00Z").getTime() / 1000;
+        filtered = filtered.filter(a => a.fecha?.seconds >= tsInicio);
+      }
+      if (filtrosApuestas.fechaFin) {
+        const tsFin = new Date(filtrosApuestas.fechaFin + "T23:59:59Z").getTime() / 1000;
+        filtered = filtered.filter(a => a.fecha?.seconds <= tsFin);
+      }
+      if (filtrosApuestas.minGanancia) {
+        filtered = filtered.filter(a => a.potentialWin >= Number(filtrosApuestas.minGanancia));
+      }
+      if (filtrosApuestas.minPerdida) {
+        filtered = filtered.filter(a => a.stake >= Number(filtrosApuestas.minPerdida));
+      }
+      switch (filtrosApuestas.ordenar) {
+        case 'fecha-desc':
+          filtered.sort((a, b) => b.fecha.seconds - a.fecha.seconds);
+          break;
+        case 'fecha-asc':
+          filtered.sort((a, b) => a.fecha.seconds - b.fecha.seconds);
+          break;
+        case 'ganancia-desc':
+          filtered.sort((a, b) => (b.potentialWin || 0) - (a.potentialWin || 0));
+          break;
+        case 'ganancia-asc':
+          filtered.sort((a, b) => (a.potentialWin || 0) - (b.potentialWin || 0));
+          break;
+        case 'perdida-desc':
+          filtered.sort((a, b) => (b.stake || 0) - (a.stake || 0));
+          break;
+        case 'perdida-asc':
+          filtered.sort((a, b) => (a.stake || 0) - (b.stake || 0));
+          break;
+      }
       break;
   }
   renderApuestas(filtered, currentTab);
@@ -242,12 +352,10 @@ function renderApuestas(lista, currentTab) {
     container.innerHTML = "<p>No hay apuestas en este apartado.</p>";
     return;
   }
-
   container.innerHTML = `
       <ul class="pending-bet-list">
       ${lista.map(apuesta => {
       const tipoApuesta = apuesta.bets.length > 1 ? "Combinada" : "Simple";
-      // Estado y resultado
       let estadoTexto = "";
       if (apuesta.estado === 'pendiente') {
         estadoTexto = '<span class="pbi-status pendiente">Pendiente</span>';
@@ -258,8 +366,6 @@ function renderApuestas(lista, currentTab) {
       } else {
         estadoTexto = `<span class="pbi-status ${apuesta.estado}">${apuesta.estado.charAt(0).toUpperCase() + apuesta.estado.slice(1)}</span>`;
       }
-
-      // Botones para el apartado "Listas"
       let acciones = "";
       if (currentTab === "listas") {
         if (apuesta.estado === "ganada") {
@@ -282,7 +388,6 @@ function renderApuestas(lista, currentTab) {
           `;
         }
       }
-
       let mostrarFooter = (currentTab === 'pendientes' || currentTab === 'todas' || currentTab === 'terminadas');
       let mostrarResultadoPlano = !(
         (currentTab === 'todas' || currentTab === 'listas' || currentTab === 'terminadas') &&
@@ -315,12 +420,10 @@ function renderApuestas(lista, currentTab) {
           footer = `<div class="pbi-footer"><span class="pbi-resultado">${apuesta.resultado}</span></div>`;
         }
       }
-
       let fechaApuesta = '';
       if ((currentTab === "todas" || currentTab === "listas" || currentTab === "terminadas") && apuesta.fecha) {
         fechaApuesta = `<div class="pbi-fecha-apuesta">${formateaFechaApuesta(apuesta.fecha)}</div>`;
       }
-
       let resultadoApuesta = '';
       if (
         (currentTab === 'todas' || currentTab === 'listas' || currentTab === 'terminadas') &&
@@ -335,7 +438,6 @@ function renderApuestas(lista, currentTab) {
           </div>
         `;
       }
-
       return `
       <li class="pending-bet-item">
           ${fechaApuesta}
@@ -350,9 +452,9 @@ function renderApuestas(lista, currentTab) {
             <ul class="pbi-bets-list">
               ${apuesta.bets.map((b, idx) => {
                 let tipoMostrado = formateaTipoApuesta(b, b.partido)
-                  .replace(/\(.*?-\s*\d+\)/g, "")  // Quita cosas como (Más de - 4)
-                  .replace(/\(.*?\)/g, "")         // Quita cualquier paréntesis restante
-                  .replace(/\s{2,}/g, " ")         // Quita espacios dobles
+                  .replace(/\(.*?-\s*\d+\)/g, "")
+                  .replace(/\(.*?\)/g, "")
+                  .replace(/\s{2,}/g, " ")
                   .trim();
                 let dotClass = "";
                 if (b.resultado === "ganada") dotClass = "ganada";
@@ -390,16 +492,9 @@ window.aceptarApuesta = async function(id, ganada) {
     const apuestaRef = db.collection('apuestas').doc(id);
     const apuestaDoc = await apuestaRef.get();
     const apuesta = apuestaDoc.data();
-
-    // Actualizar apuesta: marcar aceptada por usuario
-    await apuestaRef.update({
-      aceptadaPorUsuario: true
-    });
-
-    // Si ha ganado, sumar ganancias al saldo
+    await apuestaRef.update({ aceptadaPorUsuario: true });
     if (ganada && apuesta && apuesta.potentialWin) {
       const userRef = db.collection('usuarios').doc(currentUser.uid);
-      // Actualizar el saldo sumando potentialWin
       await db.runTransaction(async (transaction) => {
         const userDoc = await transaction.get(userRef);
         if (!userDoc.exists) throw "Usuario no existe";
@@ -408,19 +503,14 @@ window.aceptarApuesta = async function(id, ganada) {
         transaction.update(userRef, { saldo: nuevoSaldo });
       });
     }
-
     await loadApuestas();
-
-    // NUEVO: recargar el saldo en el header tras confirmar ganancia/pérdida
     await actualizarHeaderSaldo();
-
   } catch (e) {
     alert("Error al aceptar la apuesta. Intenta de nuevo.");
     console.error(e);
   }
 };
 
-// NUEVO: función para refrescar el saldo del header sin recargar la página
 async function actualizarHeaderSaldo() {
   const headerLeft = document.getElementById('header-left');
   if (!currentUser) return;
@@ -444,10 +534,8 @@ function getEstadoText(estado) {
 }
 
 // HEADER //
-// Mostrar datos de usuario y controlar login/logout
 const headerLeft = document.getElementById('header-left');
 const headerRight = document.getElementById('header-right');
-
 let saldoUsuario = 0;
 
 auth.onAuthStateChanged(async (user) => {
@@ -457,8 +545,6 @@ auth.onAuthStateChanged(async (user) => {
       const userData = userDoc.data();
       saldoUsuario = parseFloat(userData?.saldo) || 0;
       headerLeft.innerHTML = userData ? `${saldoUsuario.toFixed(2)} €` : '';
-
-      // Construir contenido del headerRight (usuario + menú)
       headerRight.innerHTML = `
         <div class="user-menu" style="position: relative; display: inline-block;">
           <span class="username" style="cursor:pointer;">${userData?.username || user.email}</span>
@@ -475,21 +561,16 @@ auth.onAuthStateChanged(async (user) => {
               z-index: 1000;
               background-color: var(--rojo-oscuro);
               font-size: 16px;
-              min-width: 140px;
-            ">
+              min-width: 140px;">
             ${userData?.rol === "admin" ? `<a href="adminhub.html" id="admin-link" style="display:block; padding: 8px; color: white; text-decoration: none;">Panel Admin</a>` : ''}
             <a href="apuestas.html" id="apuestas-link" style="display:block; padding: 8px; color: white; text-decoration: none;">Mis apuestas</a>
             <a href="#" id="logout-link" style="display:block; padding: 8px; color: white; text-decoration: none;">Cerrar sesión</a>
           </div>
         </div>
       `;
-
       const username = document.querySelector('.username');
       const dropdownMenu = document.getElementById('dropdown-menu');
-
       let menuOpen = false;
-
-      // Función para abrir menú
       function openMenu() {
         dropdownMenu.style.display = 'block';
         requestAnimationFrame(() => {
@@ -497,8 +578,6 @@ auth.onAuthStateChanged(async (user) => {
         });
         menuOpen = true;
       }
-
-      // Función para cerrar menú
       function closeMenu() {
         dropdownMenu.style.opacity = '0';
         setTimeout(() => {
@@ -506,28 +585,21 @@ auth.onAuthStateChanged(async (user) => {
         }, 300);
         menuOpen = false;
       }
-
-      // Al hacer hover *una vez*, abrir menú y fijar abierto
       username.addEventListener('mouseenter', () => {
         if (!menuOpen) openMenu();
       });
-
-      // Detectar clic fuera del menú y del username para cerrar menú
       document.addEventListener('click', (event) => {
         const isClickInsideMenu = dropdownMenu.contains(event.target);
         const isClickOnUsername = username.contains(event.target);
-
         if (!isClickInsideMenu && !isClickOnUsername && menuOpen) {
           closeMenu();
         }
       });
-
       document.getElementById('logout-link').addEventListener('click', async (e) => {
         e.preventDefault();
         await auth.signOut();
         window.location.href = 'login.html';
       });
-
     } catch (error) {
       saldoUsuario = 0;
       headerLeft.innerHTML = "";
