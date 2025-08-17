@@ -532,7 +532,14 @@ if (document.getElementById('partidos-container')) {
     for (const { claveFecha } of fechaClaves) {
       const grupo = partidosPorFecha[claveFecha];
       // Filtra partidos NO comenzados
-      const partidosVisibles = grupo.filter(partido => !partidoHaComenzado(partido));
+      const partidosVisibles = grupo
+        .filter(partido => !partidoHaComenzado(partido))
+        .sort((a, b) => {
+          const [horaA, minutoA] = a.hora.split(':').map(Number);
+          const [horaB, minutoB] = b.hora.split(':').map(Number);
+          return horaA !== horaB ? horaA - horaB : minutoA - minutoB;
+        });
+
       if (partidosVisibles.length === 0) continue; // No hay partidos ese día, omite todo el grupo
 
       const grupoDiv = document.createElement('div');
