@@ -125,6 +125,7 @@ const jugadoresPorEquipo = {
   // ... añade todos los equipos y jugadores que quieras
 };
 
+
 /* 4️⃣  Autocompletado ------------------------------------------------------------ */
 const ligaDatalist    = $("ligas-list");
 const equiposDatalist = $("equipos-list");
@@ -225,6 +226,9 @@ campos.deporte.addEventListener("change", () => {
       renderCornersTabs();
     }
   }
+
+  // --- Doble Oportunidad ---
+  renderDobleOportunidadSection();
 });
 
 /* 4.2  Al cambiar LIGA → llenar lista de equipos/jugadores */
@@ -299,6 +303,87 @@ if (btnAgregarGoleador) {
     renderGoleadores();
     msg.textContent = "";
   };
+}
+
+// ---------- DOBLE OPORTUNIDAD -------------
+const DOBLE_OPORTUNIDAD_OPCIONES = [
+  { id: "1X", label: "1X (Gana equipo 1 o Empate)" },
+  { id: "12", label: "12 (Gana equipo 1 o equipo 2)" },
+  { id: "X2", label: "X2 (Empate o gana equipo 2)" }
+];
+
+window.dobleOportunidadCuotas = { "1X": "", "12": "", "X2": "" };
+
+// Renderizar bloque HTML para Doble Oportunidad
+function renderDobleOportunidadSection() {
+  let section = document.getElementById("doble-oportunidad-section");
+  if (!section) {
+    section = document.createElement("div");
+    section.id = "doble-oportunidad-section";
+    section.style.marginTop = "20px";
+    section.innerHTML = `
+      <h3>Cuotas Doble Oportunidad</h3>
+      <table class="doble-oportunidad-table">
+        <thead>
+          <tr>
+            <th>Opción</th>
+            <th>Cuota</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${DOBLE_OPORTUNIDAD_OPCIONES.map(opt => `
+            <tr>
+              <td>${opt.label}</td>
+              <td>
+                <input type="number" min="1.01" step="0.01"
+                  id="cuota-doble-${opt.id}"
+                  data-opcion="${opt.id}"
+                  value="${window.dobleOportunidadCuotas[opt.id] || ''}"
+                  placeholder="-"
+                />
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+    // Inserta justo debajo de las cuotas principales
+    const cuotasPrincipal = document.getElementById("cuotaX")?.parentNode;
+    if (cuotasPrincipal) cuotasPrincipal.parentNode.insertBefore(section, cuotasPrincipal.nextSibling);
+    else document.body.appendChild(section);
+  }
+
+  // Actualizar el valor global al cambiar input
+  DOBLE_OPORTUNIDAD_OPCIONES.forEach(opt => {
+    const input = document.getElementById(`cuota-doble-${opt.id}`);
+    if (input) {
+      input.oninput = () => {
+        window.dobleOportunidadCuotas[opt.id] = input.value;
+      };
+    }
+  });
+
+  // Mostrar/ocultar según el deporte
+  const dep = campos.deporte.value;
+  section.style.display = (dep === "futbol") ? "block" : "none";
+}
+
+// Llama a renderDobleOportunidadSection cuando cambie el deporte
+campos.deporte.addEventListener("change", renderDobleOportunidadSection);
+
+// También al cargar la página
+document.addEventListener("DOMContentLoaded", renderDobleOportunidadSection);
+
+function validarDobleOportunidad() {
+  if (campos.deporte.value === "futbol") {
+    for (const opt of DOBLE_OPORTUNIDAD_OPCIONES) {
+      const v = (window.dobleOportunidadCuotas[opt.id] || "").trim();
+      if (v !== "" && (isNaN(parseFloat(v)) || parseFloat(v) <= 1)) {
+        return `Cuota de Doble Oportunidad inválida para "${opt.label}": debe ser > 1.`;
+      }
+    }
+  }
+  return null;
 }
 
 // ---------- TARJETAS -------------
@@ -542,6 +627,27 @@ function construirPartido() {
     };
   }
 
+  // ----> Añadir mercado de Doble Oportunidad si alguna cuota está rellena
+  let algunaCuotaDoble = false;
+  const opcionesDoble = [];
+  DOBLE_OPORTUNIDAD_OPCIONES.forEach(opt => {
+    const v = (window.dobleOportunidadCuotas[opt.id] || "").trim();
+    if (v !== "") {
+      algunaCuotaDoble = true;
+      opcionesDoble.push({
+        nombre: opt.label,
+        valor: opt.id,
+        cuota: parseFloat(v)
+      });
+    }
+  });
+  if (algunaCuotaDoble) {
+    mercados.dobleOportunidad = {
+      nombre: "Doble Oportunidad",
+      opciones: opcionesDoble
+    };
+  }
+
   // ----> Añadir mercado de tarjetas avanzado solo si alguna cuota está rellena
   let tarjetasObj = {};
   let algunaTarjeta = false;
@@ -670,6 +776,13 @@ async function guardarPartido() {
     if (typeof renderTarjetasTabs === "function") renderTarjetasTabs();
     if (typeof renderCornersTabs === "function") renderCornersTabs();
 
+    // Reset Doble Oportunidad
+    window.dobleOportunidadCuotas = { "1X": "", "12": "", "X2": "" };
+    DOBLE_OPORTUNIDAD_OPCIONES.forEach(opt => {
+      const input = document.getElementById(`cuota-doble-${opt.id}`);
+      if (input) input.value = "";
+    });
+
   } catch (error) {
     mostrarSpinner(false);
     msg.style.color = "red";
@@ -740,6 +853,10 @@ function validarDatos() {
       errores.push(`Cuota de goleador inválida para "${g.nombre || "[sin nombre]"}"`);
     }
   }
+
+  // Validar Doble Oportunidad
+  const errDoble = validarDobleOportunidad();
+  if (errDoble) errores.push(errDoble);
 
   // Validar tarjetas avanzadas (tablas)
   if (dep === "futbol" && window.tarjetasCuotas) {
