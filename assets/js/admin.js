@@ -131,6 +131,7 @@ const ligaDatalist    = $("ligas-list");
 const equiposDatalist = $("equipos-list");
 const cuotaXInput     = campos.cuotaX;
 
+/* --- Datalist para goleadores dinámico según equipos --- */
 const datalistGoleadores = document.getElementById("goleadores-datalist");
 function actualizarDatalistGoleadores() {
   const equipo1 = campos.equipo1.value.trim();
@@ -192,9 +193,45 @@ campos.deporte.addEventListener("change", () => {
     }
   }
 
-  // --- Mercados personalizados ---
+  // --- Tarjetas ---
+  renderTarjetasTabs();
+  const tarjetasSection = document.getElementById('tarjetas-section');
+  if (tarjetasSection) {
+    tarjetasSection.style.display = (dep === "futbol" ? "block" : "none");
+    if (dep !== "futbol") {
+      window.tarjetasCuotas = {};
+      const tabs = document.getElementById("tarjetas-tabs");
+      const subtabs = document.getElementById("tarjetas-subtabs");
+      const tables = document.getElementById("tarjetas-tables");
+      if (tabs) tabs.innerHTML = "";
+      if (subtabs) subtabs.innerHTML = "";
+      if (tables) tables.innerHTML = "";
+    }
+  }
+
+  // --- Corners ---
+  renderCornersTabs();
+  const cornersSection = document.getElementById('corners-section');
+  if (cornersSection) {
+    cornersSection.style.display = (dep === "futbol" ? "block" : "none");
+    if (dep !== "futbol") {
+      window.cornersCuotas = {};
+      const tabs = document.getElementById("corners-tabs");
+      const subtabs = document.getElementById("corners-subtabs");
+      const tables = document.getElementById("corners-tables");
+      if (tabs) tabs.innerHTML = "";
+      if (subtabs) subtabs.innerHTML = "";
+      if (tables) tables.innerHTML = "";
+    }
+  }
+
+  // --- Doble Oportunidad ---
   renderDobleOportunidadSection();
+
+  // --- Ambos Marcan ---
   renderAmbosMarcanSection();
+
+  // --- Goles Impar/Par ---
   renderGolesImparParSection();
 });
 
@@ -270,6 +307,188 @@ if (btnAgregarGoleador) {
     renderGoleadores();
     msg.textContent = "";
   };
+}
+
+// ---------- TARJETAS AVANZADO -------------
+const TARJETAS_SEGMENTOS = [
+  { id: 'primera', label: '1ª Mitad' },
+  { id: 'segunda', label: '2ª Mitad' },
+  { id: 'encuentro', label: 'Encuentro' }
+];
+const TARJETAS_EQUIPOS = [
+  { id: 'equipo1', label: 'Equipo 1' },
+  { id: 'equipo2', label: 'Equipo 2' },
+  { id: 'ambos', label: 'Ambos Equipos' }
+];
+const TARJETAS_COLUMNAS = [
+  { id: 'mas', label: 'Más de' },
+  { id: 'exactamente', label: 'Exactamente' },
+  { id: 'menos', label: 'Menos de' }
+];
+const TARJETAS_FILAS = [0,1,2,3,4,5,6,7,8,9,10];
+
+window.tarjetasCuotas = {};
+
+function renderTarjetasTabs() {
+  const $tabs = document.getElementById("tarjetas-tabs");
+  const $subtabs = document.getElementById("tarjetas-subtabs");
+  const $tables = document.getElementById("tarjetas-tables");
+  if (!$tabs || !$subtabs || !$tables) return;
+
+  if (!window.tarjetasTabSel) window.tarjetasTabSel = 'primera';
+  if (!window.tarjetasSubtabSel) window.tarjetasSubtabSel = 'equipo1';
+
+  $tabs.innerHTML = TARJETAS_SEGMENTOS.map(seg =>
+    `<button type="button" class="${window.tarjetasTabSel === seg.id ? "active" : ""}" data-tab="${seg.id}">${seg.label}</button>`
+  ).join('');
+  $subtabs.innerHTML = TARJETAS_EQUIPOS.map(eq =>
+    `<button type="button" class="${window.tarjetasSubtabSel === eq.id ? "active" : ""}" data-subtab="${eq.id}">${eq.label}</button>`
+  ).join('');
+
+  if (!window.tarjetasCuotas[window.tarjetasTabSel]) window.tarjetasCuotas[window.tarjetasTabSel] = {};
+  if (!window.tarjetasCuotas[window.tarjetasTabSel][window.tarjetasSubtabSel]) {
+    window.tarjetasCuotas[window.tarjetasTabSel][window.tarjetasSubtabSel] = {};
+    TARJETAS_FILAS.forEach(n => {
+      window.tarjetasCuotas[window.tarjetasTabSel][window.tarjetasSubtabSel][n] = { mas:'', exactamente:'', menos:'' };
+    });
+  }
+  const datos = window.tarjetasCuotas[window.tarjetasTabSel][window.tarjetasSubtabSel];
+
+  let html = `<table class="tarjetas-table"><thead><tr><th></th>`;
+  TARJETAS_COLUMNAS.forEach(col => html += `<th>${col.label}</th>`);
+  html += `</tr></thead><tbody>`;
+  TARJETAS_FILAS.forEach(n => {
+    html += `<tr><td>${n === 0 ? '0 tarjetas' : `${n} tarjeta${n>1?'s':''}`}</td>`;
+    TARJETAS_COLUMNAS.forEach(col => {
+      const valor = datos[n][col.id] ?? '';
+      // Bloquear el input si es fila 0 y columna "menos"
+      const disabled = (n === 0 && col.id === "menos") ? "disabled style='background:#eee;pointer-events:none;opacity:.6;'" : "";
+      html += `<td>
+        <input type="number" min="1.01" step="0.01" 
+          data-n="${n}" data-col="${col.id}"
+          value="${valor !== undefined ? valor : ''}" 
+          placeholder="-" ${disabled} />
+      </td>`;
+    });
+    html += `</tr>`;
+  });
+  html += `</tbody></table>`;
+
+  $tables.innerHTML = html;
+
+  $tabs.querySelectorAll("button").forEach(btn => {
+    btn.onclick = () => {
+      window.tarjetasTabSel = btn.dataset.tab;
+      renderTarjetasTabs();
+    };
+  });
+  $subtabs.querySelectorAll("button").forEach(btn => {
+    btn.onclick = () => {
+      window.tarjetasSubtabSel = btn.dataset.subtab;
+      renderTarjetasTabs();
+    };
+  });
+
+  $tables.querySelectorAll("input[type=number]").forEach(input => {
+    input.addEventListener("input", () => {
+      const n = input.getAttribute("data-n");
+      const col = input.getAttribute("data-col");
+      let v = input.value;
+      if (!window.tarjetasCuotas[window.tarjetasTabSel][window.tarjetasSubtabSel][n])
+        window.tarjetasCuotas[window.tarjetasTabSel][window.tarjetasSubtabSel][n] = { mas:'', exactamente:'', menos:'' };
+      window.tarjetasCuotas[window.tarjetasTabSel][window.tarjetasSubtabSel][n][col] = v;
+    });
+  });
+}
+
+// ---------- CORNERS AVANZADO -------------
+const CORNERS_SEGMENTOS = [
+  { id: 'primera', label: '1ª Mitad' },
+  { id: 'segunda', label: '2ª Mitad' },
+  { id: 'encuentro', label: 'Encuentro' }
+];
+const CORNERS_EQUIPOS = [
+  { id: 'equipo1', label: 'Equipo 1' },
+  { id: 'equipo2', label: 'Equipo 2' },
+  { id: 'ambos', label: 'Ambos Equipos' }
+];
+const CORNERS_COLUMNAS = [
+  { id: 'mas', label: 'Más de' },
+  { id: 'exactamente', label: 'Exactamente' },
+  { id: 'menos', label: 'Menos de' }
+];
+const CORNERS_FILAS = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17];
+
+window.cornersCuotas = {};
+
+function renderCornersTabs() {
+  const $tabs = document.getElementById("corners-tabs");
+  const $subtabs = document.getElementById("corners-subtabs");
+  const $tables = document.getElementById("corners-tables");
+  if (!$tabs || !$subtabs || !$tables) return;
+
+  if (!window.cornersTabSel) window.cornersTabSel = 'primera';
+  if (!window.cornersSubtabSel) window.cornersSubtabSel = 'equipo1';
+
+  $tabs.innerHTML = CORNERS_SEGMENTOS.map(seg =>
+    `<button type="button" class="${window.cornersTabSel === seg.id ? "active" : ""}" data-tab="${seg.id}">${seg.label}</button>`
+  ).join('');
+  $subtabs.innerHTML = CORNERS_EQUIPOS.map(eq =>
+    `<button type="button" class="${window.cornersSubtabSel === eq.id ? "active" : ""}" data-subtab="${eq.id}">${eq.label}</button>`
+  ).join('');
+
+  if (!window.cornersCuotas[window.cornersTabSel]) window.cornersCuotas[window.cornersTabSel] = {};
+  if (!window.cornersCuotas[window.cornersTabSel][window.cornersSubtabSel]) {
+    window.cornersCuotas[window.cornersTabSel][window.cornersSubtabSel] = {};
+    CORNERS_FILAS.forEach(n => {
+      window.cornersCuotas[window.cornersTabSel][window.cornersSubtabSel][n] = { mas:'', exactamente:'', menos:'' };
+    });
+  }
+  const datos = window.cornersCuotas[window.cornersTabSel][window.cornersSubtabSel];
+
+  let html = `<table class="tarjetas-table"><thead><tr><th></th>`;
+  CORNERS_COLUMNAS.forEach(col => html += `<th>${col.label}</th>`);
+  html += `</tr></thead><tbody>`;
+  CORNERS_FILAS.forEach(n => {
+    html += `<tr><td>${n === 1 ? '1 córner' : `${n} córner${n>1?'s':''}`}</td>`;
+    CORNERS_COLUMNAS.forEach(col => {
+      const valor = datos[n][col.id] ?? '';
+      html += `<td>
+        <input type="number" min="1.01" step="0.01" 
+          data-n="${n}" data-col="${col.id}"
+          value="${valor !== undefined ? valor : ''}" 
+          placeholder="-" />
+      </td>`;
+    });
+    html += `</tr>`;
+  });
+  html += `</tbody></table>`;
+
+  $tables.innerHTML = html;
+
+  $tabs.querySelectorAll("button").forEach(btn => {
+    btn.onclick = () => {
+      window.cornersTabSel = btn.dataset.tab;
+      renderCornersTabs();
+    };
+  });
+  $subtabs.querySelectorAll("button").forEach(btn => {
+    btn.onclick = () => {
+      window.cornersSubtabSel = btn.dataset.subtab;
+      renderCornersTabs();
+    };
+  });
+
+  $tables.querySelectorAll("input[type=number]").forEach(input => {
+    input.addEventListener("input", () => {
+      const n = input.getAttribute("data-n");
+      const col = input.getAttribute("data-col");
+      let v = input.value;
+      if (!window.cornersCuotas[window.cornersTabSel][window.cornersSubtabSel][n])
+        window.cornersCuotas[window.cornersTabSel][window.cornersSubtabSel][n] = { mas:'', exactamente:'', menos:'' };
+      window.cornersCuotas[window.cornersTabSel][window.cornersSubtabSel][n][col] = v;
+    });
+  });
 }
 
 // ---------- DOBLE OPORTUNIDAD -------------
@@ -399,7 +618,6 @@ function renderAmbosMarcanSection() {
       </table>
     `;
     section.innerHTML = html;
-    // Inserta justo debajo de Doble Oportunidad
     const dobleSection = document.getElementById("doble-oportunidad-section");
     if (dobleSection && dobleSection.parentNode) dobleSection.parentNode.insertBefore(section, dobleSection.nextSibling);
     else document.body.appendChild(section);
@@ -488,7 +706,6 @@ function renderGolesImparParSection() {
       </table>
     `;
     section.innerHTML = html;
-    // Inserta justo debajo de Ambos Marcan
     const ambosMarcanSection = document.getElementById("ambos-marcan-section");
     if (ambosMarcanSection && ambosMarcanSection.parentNode) ambosMarcanSection.parentNode.insertBefore(section, ambosMarcanSection.nextSibling);
     else document.body.appendChild(section);
@@ -523,408 +740,4 @@ function validarGolesImparPar() {
     }
   }
   return null;
-}
-
-// ---------- TARJETAS -------------
-// ... igual que antes ...
-
-// ---------- CORNERS AVANZADO -------------
-// ... igual que antes ...
-
-document.addEventListener("DOMContentLoaded", function() {
-  const tarjetasSection = document.getElementById('tarjetas-section');
-  if (tarjetasSection && !document.getElementById('corners-section')) {
-    const cornersSection = document.createElement('div');
-    cornersSection.id = 'corners-section';
-    cornersSection.style.marginTop = "20px";
-    cornersSection.innerHTML = `
-      <h3>Cuotas Corners</h3>
-      <div id="corners-tabs" class="tarjetas-tabs"></div>
-      <div id="corners-subtabs" class="tarjetas-subtabs"></div>
-      <div id="corners-tables"></div>
-    `;
-    tarjetasSection.parentNode.insertBefore(cornersSection, tarjetasSection.nextSibling);
-    cornersSection.style.display = "none";
-  }
-});
-
-/* 6️⃣  Construir objeto partido ------------------------------------------- */
-function construirPartido() {
-  const dep   = campos.deporte.value.trim();
-  const liga  = campos.liga.value.trim();
-  const eq1   = campos.equipo1.value.trim();
-  const eq2   = campos.equipo2.value.trim();
-  const fecha = campos.fecha.value;
-  const hora  = campos.hora.value;
-
-  const nacionalidad1 = $("nacionalidad1") ? $("nacionalidad1").value.trim() : null;
-  const nacionalidad2 = $("nacionalidad2") ? $("nacionalidad2").value.trim() : null;
-
-  const cuota1 = parseFloat(campos.cuota1.value);
-  const cuota2 = parseFloat(campos.cuota2.value);
-  const cuotaX = parseFloat(campos.cuotaX.value);
-
-  const opciones = [
-    {nombre:`Gana ${eq1}`, valor:"1", cuota:cuota1},
-    {nombre:`Gana ${eq2}`, valor:"2", cuota:cuota2}
-  ];
-  if (dep!=="tenis"&&dep!=="baloncesto")
-    opciones.splice(1,0,{nombre:"Empate", valor:"X", cuota:cuotaX});
-
-  // ----> Añadir el mercado de goleadores si hay alguno
-  const mercados = {
-    resultado:{ nombre:"Resultado final", opciones }
-  };
-  if (dep === "futbol" && goleadores.length > 0) {
-    mercados.goleadores = {
-      nombre: "Goleadores",
-      opciones: goleadores.map(g => ({
-        nombre: g.nombre,
-        cuota: g.cuota,
-        valor: g.valor
-      }))
-    };
-  }
-
-  // ----> Doble Oportunidad
-  let algunaCuotaDoble = false;
-  const opcionesDoble = [];
-  DOBLE_OPORTUNIDAD_OPCIONES.forEach(opt => {
-    const v = (window.dobleOportunidadCuotas[opt.id] || "").trim();
-    if (v !== "") {
-      algunaCuotaDoble = true;
-      opcionesDoble.push({
-        nombre: opt.label,
-        valor: opt.id,
-        cuota: parseFloat(v)
-      });
-    }
-  });
-  if (algunaCuotaDoble) {
-    mercados.dobleOportunidad = {
-      nombre: "Doble Oportunidad",
-      opciones: opcionesDoble
-    };
-  }
-
-  // ----> Ambos Marcan
-  let algunaCuotaAmbos = false;
-  const opcionesAmbos = [];
-  AMBOS_MARCAN_FILAS.forEach(fila => {
-    AMBOS_MARCAN_COLUMNAS.forEach(col => {
-      const v = (window.ambosMarcanCuotas[fila.id][col.id] || "").trim();
-      if (v !== "") {
-        algunaCuotaAmbos = true;
-        opcionesAmbos.push({
-          segmento: fila.label,
-          tipo: col.label,
-          valor: col.id,
-          cuota: parseFloat(v)
-        });
-      }
-    });
-  });
-  if (algunaCuotaAmbos) {
-    mercados.ambosMarcan = {
-      nombre: "Ambos Marcan",
-      opciones: opcionesAmbos
-    };
-  }
-
-  // ----> Goles Impar/Par
-  let algunaCuotaImparPar = false;
-  const opcionesImparPar = [];
-  GOLES_IMPARPAR_FILAS.forEach(fila => {
-    GOLES_IMPARPAR_COLUMNAS.forEach(col => {
-      const v = (window.golesImparParCuotas[fila.id][col.id] || "").trim();
-      if (v !== "") {
-        algunaCuotaImparPar = true;
-        opcionesImparPar.push({
-          segmento: fila.label,
-          tipo: col.label,
-          valor: col.id,
-          cuota: parseFloat(v)
-        });
-      }
-    });
-  });
-  if (algunaCuotaImparPar) {
-    mercados.golesImparPar = {
-      nombre: "Goles Impar/Par",
-      opciones: opcionesImparPar
-    };
-  }
-
-  // ----> Tarjetas/Corners igual que antes
-
-  let tarjetasObj = {};
-  let algunaTarjeta = false;
-  if (dep === "futbol" && window.tarjetasCuotas) {
-    for (const segmento of TARJETAS_SEGMENTOS) {
-      tarjetasObj[segmento.id] = {};
-      for (const equipo of TARJETAS_EQUIPOS) {
-        tarjetasObj[segmento.id][equipo.id] = {};
-        for (const n of TARJETAS_FILAS) {
-          tarjetasObj[segmento.id][equipo.id][n] = {};
-          for (const col of TARJETAS_COLUMNAS) {
-            const v = (((window.tarjetasCuotas?.[segmento.id]?.[equipo.id]?.[n]?.[col.id]) || '') + '').trim();
-            if (v !== "") algunaTarjeta = true;
-            tarjetasObj[segmento.id][equipo.id][n][col.id] = v === "" ? null : parseFloat(v);
-          }
-        }
-      }
-    }
-    if (algunaTarjeta) {
-      mercados.tarjetas = {
-        nombre: "Tarjetas",
-        opciones: tarjetasObj
-      };
-    }
-  }
-
-  let cornersObj = {};
-  let algunCorner = false;
-  if (dep === "futbol" && window.cornersCuotas) {
-    for (const segmento of CORNERS_SEGMENTOS) {
-      cornersObj[segmento.id] = {};
-      for (const equipo of CORNERS_EQUIPOS) {
-        cornersObj[segmento.id][equipo.id] = {};
-        for (const n of CORNERS_FILAS) {
-          cornersObj[segmento.id][equipo.id][n] = {};
-          for (const col of CORNERS_COLUMNAS) {
-            const v = (((window.cornersCuotas?.[segmento.id]?.[equipo.id]?.[n]?.[col.id]) || '') + '').trim();
-            if (v !== "") algunCorner = true;
-            cornersObj[segmento.id][equipo.id][n][col.id] = v === "" ? null : parseFloat(v);
-          }
-        }
-      }
-    }
-    if (algunCorner) {
-      mercados.corners = {
-        nombre: "Corners",
-        opciones: cornersObj
-      };
-    }
-  }
-
-  return {
-    deporte: dep,
-    liga,
-    equipo1: eq1,
-    nacionalidad1,
-    equipo2: eq2,
-    nacionalidad2,
-    fecha,
-    hora,
-    mercados
-    // NO añadas partidoId aquí, lo añadimos después con el ID del documento
-  };
-}
-
-/* 7️⃣  Mostrar modal y esperar confirmación ----------------------------- */
-function mostrarModal(mensaje) {
-  modalText.textContent = mensaje;
-  modal.style.display = "block";
-
-  return new Promise((resolve) => {
-    btnConfirm.onclick = () => {
-      modal.style.display = "none";
-      resolve(true);
-    };
-    btnCancel.onclick = () => {
-      modal.style.display = "none";
-      resolve(false);
-    };
-  });
-}
-
-/* 8️⃣  Mostrar/Ocultar spinner ------------------------------------------ */
-function mostrarSpinner(mostrar) {
-  spinner.style.display = mostrar ? "block" : "none";
-}
-
-/* 9️⃣  Guardar partido en Firestore -------------------------------------- */
-async function guardarPartido() {
-  if (!auth.currentUser) {
-    msg.style.color = "red";
-    msg.textContent = "Debes iniciar sesión para crear un partido.";
-    return;
-  }
-
-  if (!validarDatos()) return;
-
-  const partido = construirPartido();
-  const confirm = await mostrarModal("¿Quieres crear este partido?");
-  if (!confirm) return;
-
-  mostrarSpinner(true);
-
-  try {
-    const docRef = await addDoc(collection(db, "partidos"), partido);
-    await setDoc(doc(db, "partidos", docRef.id), { partidoId: docRef.id }, { merge: true });
-
-    mostrarSpinner(false);
-    msg.style.color = "green";
-    msg.textContent = "¡Partido creado con éxito!";
-
-    // Reset formulario
-    Object.values(campos).forEach(input => input.value = "");
-    const sel1 = $("nacionalidad1");
-    const sel2 = $("nacionalidad2");
-    if (sel1) sel1.value = "";
-    if (sel2) sel2.value = "";
-    if (campos.cuotaX) campos.cuotaX.style.display = "inline-block";
-    goleadores.length = 0;
-    renderGoleadores();
-    actualizarDatalistGoleadores();
-    if (window.tarjetasCuotas) window.tarjetasCuotas = {};
-    if (window.cornersCuotas) window.cornersCuotas = {};
-    if (typeof renderTarjetasTabs === "function") renderTarjetasTabs();
-    if (typeof renderCornersTabs === "function") renderCornersTabs();
-
-    window.dobleOportunidadCuotas = { "1X": "", "12": "", "X2": "" };
-    DOBLE_OPORTUNIDAD_OPCIONES.forEach(opt => {
-      const input = document.getElementById(`cuota-doble-${opt.id}`);
-      if (input) input.value = "";
-    });
-
-    window.ambosMarcanCuotas = {
-      encuentro: { si: "", no: "" },
-      primera: { si: "", no: "" },
-      segunda: { si: "", no: "" }
-    };
-    AMBOS_MARCAN_FILAS.forEach(fila => {
-      AMBOS_MARCAN_COLUMNAS.forEach(col => {
-        const input = document.getElementById(`cuota-ambos-${fila.id}-${col.id}`);
-        if (input) input.value = "";
-      });
-    });
-
-    window.golesImparParCuotas = {
-      encuentro: { impar: "", par: "" },
-      primera: { impar: "", par: "" },
-      segunda: { impar: "", par: "" }
-    };
-    GOLES_IMPARPAR_FILAS.forEach(fila => {
-      GOLES_IMPARPAR_COLUMNAS.forEach(col => {
-        const input = document.getElementById(`cuota-imparpar-${fila.id}-${col.id}`);
-        if (input) input.value = "";
-      });
-    });
-
-  } catch (error) {
-    mostrarSpinner(false);
-    msg.style.color = "red";
-    msg.textContent = "Error guardando partido: " + error.message;
-  }
-}
-
-/*  🔟  Evento submit ----------------------------------------------------- */
-const form = $("formCrearPartido");
-
-onAuthStateChanged(auth, async (user) => {
-  if (!user) {
-    window.location.href = "login.html";
-    return;
-  }
-  if (form) {
-    form.addEventListener("submit", e => {
-      e.preventDefault();
-      guardarPartido();
-    });
-  }
-});
-
-function validarDatos() {
-  const dep   = campos.deporte.value.trim();
-  const liga  = campos.liga.value.trim();
-  const eq1   = campos.equipo1.value.trim();
-  const eq2   = campos.equipo2.value.trim();
-  const fecha = campos.fecha.value;
-  const hora  = campos.hora.value;
-
-  const cuota1 = parseFloat(campos.cuota1.value);
-  const cuota2 = parseFloat(campos.cuota2.value);
-  const cuotaX = parseFloat(campos.cuotaX.value);
-
-  const errores = [];
-
-  const oblig = ["deporte","liga","equipo1","equipo2","fecha","hora","cuota1","cuota2"];
-  if (dep !== "tenis" && dep !== "baloncesto") oblig.push("cuotaX");
-
-  oblig.forEach(id=>{
-    if(!campos[id].value.trim()) errores.push(`El campo «${id}» es obligatorio.`);
-  });
-
-  if (eq1 && eq2 && eq1.toLowerCase() === eq2.toLowerCase())
-    errores.push("Equipo/Jugador 1 y 2 no pueden ser iguales.");
-
-  if (fecha && hora) {
-    const f = new Date(`${fecha}T${hora}`);
-    if (isNaN(f.getTime()))     errores.push("Fecha u hora con formato inválido.");
-    else if (f < new Date())    errores.push("La fecha/hora debe ser futura.");
-  }
-
-  if (isNaN(cuota1) || cuota1 <= 1) errores.push("La cuota 1 debe ser > 1.");
-  if (isNaN(cuota2) || cuota2 <= 1) errores.push("La cuota 2 debe ser > 1.");
-  if (dep!=="tenis"&&dep!=="baloncesto" && (isNaN(cuotaX)||cuotaX<=1))
-    errores.push("La cuota X debe ser > 1.");
-
-  const nac1 = $("nacionalidad1")?.value;
-  const nac2 = $("nacionalidad2")?.value;
-  if (wrapperNac1 && wrapperNac1.style.display !== "none" && !nac1) errores.push("La nacionalidad del equipo/jugador 1 es obligatoria.");
-  if (wrapperNac2 && wrapperNac2.style.display !== "none" && !nac2) errores.push("La nacionalidad del equipo/jugador 2 es obligatoria.");
-
-  for (const g of goleadores) {
-    if (!g.nombre || isNaN(g.cuota) || g.cuota <= 1) {
-      errores.push(`Cuota de goleador inválida para "${g.nombre || "[sin nombre]"}"`);
-    }
-  }
-
-  const errDoble = validarDobleOportunidad();
-  if (errDoble) errores.push(errDoble);
-
-  const errAmbos = validarAmbosMarcan();
-  if (errAmbos) errores.push(errAmbos);
-
-  const errImparPar = validarGolesImparPar();
-  if (errImparPar) errores.push(errImparPar);
-
-  if (dep === "futbol" && window.tarjetasCuotas) {
-    for (const segmento of TARJETAS_SEGMENTOS) {
-      for (const equipo of TARJETAS_EQUIPOS) {
-        for (const n of TARJETAS_FILAS) {
-          for (const col of TARJETAS_COLUMNAS) {
-            const v = (((window.tarjetasCuotas?.[segmento.id]?.[equipo.id]?.[n]?.[col.id]) || '') + '').trim();
-            if (v !== "" && (isNaN(parseFloat(v)) || parseFloat(v) <= 1)) {
-              errores.push(`Cuota de tarjetas inválida en ${segmento.label} - ${equipo.label} - ${n} tarjeta(s) - ${col.label}: debe ser > 1`);
-            }
-          }
-        }
-      }
-    }
-  }
-
-  if (dep === "futbol" && window.cornersCuotas) {
-    for (const segmento of CORNERS_SEGMENTOS) {
-      for (const equipo of CORNERS_EQUIPOS) {
-        for (const n of CORNERS_FILAS) {
-          for (const col of CORNERS_COLUMNAS) {
-            const v = (((window.cornersCuotas?.[segmento.id]?.[equipo.id]?.[n]?.[col.id]) || '') + '').trim();
-            if (v !== "" && (isNaN(parseFloat(v)) || parseFloat(v) <= 1)) {
-              errores.push(`Cuota de corners inválida en ${segmento.label} - ${equipo.label} - ${n} córner(s) - ${col.label}: debe ser > 1`);
-            }
-          }
-        }
-      }
-    }
-  }
-
-  if (errores.length) {
-    msg.textContent = errores.join(" ");
-    msg.style.color = "red";
-    return false;
-  }
-  msg.textContent = "";
-  return true;
 }
