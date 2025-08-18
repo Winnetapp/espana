@@ -144,7 +144,7 @@ function actualizarDatalistGoleadores() {
 campos.equipo1.addEventListener("input", actualizarDatalistGoleadores);
 campos.equipo2.addEventListener("input", actualizarDatalistGoleadores);
 
-// --- Mostrar/ocultar nacionalidades, cuotas y goleadores según deporte ---
+// --- Mostrar/ocultar mercados personalizados según deporte ---
 campos.deporte.addEventListener("change", () => {
   const dep = campos.deporte.value;
 
@@ -192,45 +192,10 @@ campos.deporte.addEventListener("change", () => {
     }
   }
 
-  // --- Tarjetas ---
-  const tarjetasSection = document.getElementById('tarjetas-section');
-  if (tarjetasSection) {
-    tarjetasSection.style.display = (dep === "futbol" ? "block" : "none");
-    if (dep !== "futbol") {
-      window.tarjetasCuotas = {};
-      const tabs = document.getElementById("tarjetas-tabs");
-      const subtabs = document.getElementById("tarjetas-subtabs");
-      const tables = document.getElementById("tarjetas-tables");
-      if (tabs) tabs.innerHTML = "";
-      if (subtabs) subtabs.innerHTML = "";
-      if (tables) tables.innerHTML = "";
-    } else {
-      if (typeof renderTarjetasTabs === "function") renderTarjetasTabs();
-    }
-  }
-
-  // --- Corners ---
-  const cornersSection = document.getElementById('corners-section');
-  if (cornersSection) {
-    cornersSection.style.display = (dep === "futbol" ? "block" : "none");
-    if (dep !== "futbol") {
-      window.cornersCuotas = {};
-      const tabs = document.getElementById("corners-tabs");
-      const subtabs = document.getElementById("corners-subtabs");
-      const tables = document.getElementById("corners-tables");
-      if (tabs) tabs.innerHTML = "";
-      if (subtabs) subtabs.innerHTML = "";
-      if (tables) tables.innerHTML = "";
-    } else {
-      renderCornersTabs();
-    }
-  }
-
-  // --- Doble Oportunidad ---
+  // --- Mercados personalizados ---
   renderDobleOportunidadSection();
-
-  // --- Ambos Marcan ---
   renderAmbosMarcanSection();
+  renderGolesImparParSection();
 });
 
 /* 4.2  Al cambiar LIGA → llenar lista de equipos/jugadores */
@@ -316,7 +281,6 @@ const DOBLE_OPORTUNIDAD_OPCIONES = [
 
 window.dobleOportunidadCuotas = { "1X": "", "12": "", "X2": "" };
 
-// Renderizar bloque HTML para Doble Oportunidad
 function renderDobleOportunidadSection() {
   let section = document.getElementById("doble-oportunidad-section");
   if (!section) {
@@ -355,7 +319,6 @@ function renderDobleOportunidadSection() {
     else document.body.appendChild(section);
   }
 
-  // Actualizar el valor global al cambiar input
   DOBLE_OPORTUNIDAD_OPCIONES.forEach(opt => {
     const input = document.getElementById(`cuota-doble-${opt.id}`);
     if (input) {
@@ -365,7 +328,6 @@ function renderDobleOportunidadSection() {
     }
   });
 
-  // Mostrar/ocultar según el deporte
   const dep = campos.deporte.value;
   section.style.display = (dep === "futbol") ? "block" : "none";
 }
@@ -453,7 +415,6 @@ function renderAmbosMarcanSection() {
     });
   });
 
-  // Mostrar/ocultar según el deporte
   const dep = campos.deporte.value;
   section.style.display = (dep === "futbol") ? "block" : "none";
 }
@@ -468,6 +429,95 @@ function validarAmbosMarcan() {
         const v = (window.ambosMarcanCuotas[fila.id][col.id] || "").trim();
         if (v !== "" && (isNaN(parseFloat(v)) || parseFloat(v) <= 1)) {
           return `Cuota de Ambos Marcan inválida en ${fila.label} - ${col.label}: debe ser > 1.`;
+        }
+      }
+    }
+  }
+  return null;
+}
+
+// ---------- GOLES IMPAR/PAR -------------
+const GOLES_IMPARPAR_FILAS = [
+  { id: "encuentro", label: "Encuentro" },
+  { id: "primera", label: "1ª Mitad" },
+  { id: "segunda", label: "2ª Mitad" }
+];
+const GOLES_IMPARPAR_COLUMNAS = [
+  { id: "impar", label: "Impar" },
+  { id: "par", label: "Par" }
+];
+
+window.golesImparParCuotas = {
+  encuentro: { impar: "", par: "" },
+  primera: { impar: "", par: "" },
+  segunda: { impar: "", par: "" }
+};
+
+function renderGolesImparParSection() {
+  let section = document.getElementById("goles-imparpar-section");
+  if (!section) {
+    section = document.createElement("div");
+    section.id = "goles-imparpar-section";
+    section.style.marginTop = "20px";
+    let html = `
+      <h3>Cuotas Goles Impar/Par</h3>
+      <table class="goles-imparpar-table">
+        <thead>
+          <tr>
+            <th></th>
+            ${GOLES_IMPARPAR_COLUMNAS.map(col=>`<th>${col.label}</th>`).join('')}
+          </tr>
+        </thead>
+        <tbody>
+          ${GOLES_IMPARPAR_FILAS.map(fila => `
+            <tr>
+              <td>${fila.label}</td>
+              ${GOLES_IMPARPAR_COLUMNAS.map(col => `
+                <td>
+                  <input type="number" min="1.01" step="0.01"
+                    id="cuota-imparpar-${fila.id}-${col.id}"
+                    data-fila="${fila.id}" data-col="${col.id}"
+                    value="${window.golesImparParCuotas[fila.id][col.id] || ''}"
+                    placeholder="-"
+                  />
+                </td>
+              `).join('')}
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+    section.innerHTML = html;
+    // Inserta justo debajo de Ambos Marcan
+    const ambosMarcanSection = document.getElementById("ambos-marcan-section");
+    if (ambosMarcanSection && ambosMarcanSection.parentNode) ambosMarcanSection.parentNode.insertBefore(section, ambosMarcanSection.nextSibling);
+    else document.body.appendChild(section);
+  }
+  GOLES_IMPARPAR_FILAS.forEach(fila => {
+    GOLES_IMPARPAR_COLUMNAS.forEach(col => {
+      const input = document.getElementById(`cuota-imparpar-${fila.id}-${col.id}`);
+      if (input) {
+        input.oninput = () => {
+          window.golesImparParCuotas[fila.id][col.id] = input.value;
+        };
+      }
+    });
+  });
+
+  const dep = campos.deporte.value;
+  section.style.display = (dep === "futbol") ? "block" : "none";
+}
+
+campos.deporte.addEventListener("change", renderGolesImparParSection);
+document.addEventListener("DOMContentLoaded", renderGolesImparParSection);
+
+function validarGolesImparPar() {
+  if (campos.deporte.value === "futbol") {
+    for (const fila of GOLES_IMPARPAR_FILAS) {
+      for (const col of GOLES_IMPARPAR_COLUMNAS) {
+        const v = (window.golesImparParCuotas[fila.id][col.id] || "").trim();
+        if (v !== "" && (isNaN(parseFloat(v)) || parseFloat(v) <= 1)) {
+          return `Cuota de Goles Impar/Par inválida en ${fila.label} - ${col.label}: debe ser > 1.`;
         }
       }
     }
@@ -581,8 +631,31 @@ function construirPartido() {
     };
   }
 
+  // ----> Goles Impar/Par
+  let algunaCuotaImparPar = false;
+  const opcionesImparPar = [];
+  GOLES_IMPARPAR_FILAS.forEach(fila => {
+    GOLES_IMPARPAR_COLUMNAS.forEach(col => {
+      const v = (window.golesImparParCuotas[fila.id][col.id] || "").trim();
+      if (v !== "") {
+        algunaCuotaImparPar = true;
+        opcionesImparPar.push({
+          segmento: fila.label,
+          tipo: col.label,
+          valor: col.id,
+          cuota: parseFloat(v)
+        });
+      }
+    });
+  });
+  if (algunaCuotaImparPar) {
+    mercados.golesImparPar = {
+      nombre: "Goles Impar/Par",
+      opciones: opcionesImparPar
+    };
+  }
+
   // ----> Tarjetas/Corners igual que antes
-  // (puedes copiar el bloque de tu código original)
 
   let tarjetasObj = {};
   let algunaTarjeta = false;
@@ -704,20 +777,17 @@ async function guardarPartido() {
     goleadores.length = 0;
     renderGoleadores();
     actualizarDatalistGoleadores();
-    // Reset tarjetas/corners avanzadas
     if (window.tarjetasCuotas) window.tarjetasCuotas = {};
     if (window.cornersCuotas) window.cornersCuotas = {};
     if (typeof renderTarjetasTabs === "function") renderTarjetasTabs();
     if (typeof renderCornersTabs === "function") renderCornersTabs();
 
-    // Reset Doble Oportunidad
     window.dobleOportunidadCuotas = { "1X": "", "12": "", "X2": "" };
     DOBLE_OPORTUNIDAD_OPCIONES.forEach(opt => {
       const input = document.getElementById(`cuota-doble-${opt.id}`);
       if (input) input.value = "";
     });
 
-    // Reset Ambos Marcan
     window.ambosMarcanCuotas = {
       encuentro: { si: "", no: "" },
       primera: { si: "", no: "" },
@@ -726,6 +796,18 @@ async function guardarPartido() {
     AMBOS_MARCAN_FILAS.forEach(fila => {
       AMBOS_MARCAN_COLUMNAS.forEach(col => {
         const input = document.getElementById(`cuota-ambos-${fila.id}-${col.id}`);
+        if (input) input.value = "";
+      });
+    });
+
+    window.golesImparParCuotas = {
+      encuentro: { impar: "", par: "" },
+      primera: { impar: "", par: "" },
+      segunda: { impar: "", par: "" }
+    };
+    GOLES_IMPARPAR_FILAS.forEach(fila => {
+      GOLES_IMPARPAR_COLUMNAS.forEach(col => {
+        const input = document.getElementById(`cuota-imparpar-${fila.id}-${col.id}`);
         if (input) input.value = "";
       });
     });
@@ -788,28 +870,26 @@ function validarDatos() {
   if (dep!=="tenis"&&dep!=="baloncesto" && (isNaN(cuotaX)||cuotaX<=1))
     errores.push("La cuota X debe ser > 1.");
 
-  // Validar nacionalidades solo si están visibles
   const nac1 = $("nacionalidad1")?.value;
   const nac2 = $("nacionalidad2")?.value;
   if (wrapperNac1 && wrapperNac1.style.display !== "none" && !nac1) errores.push("La nacionalidad del equipo/jugador 1 es obligatoria.");
   if (wrapperNac2 && wrapperNac2.style.display !== "none" && !nac2) errores.push("La nacionalidad del equipo/jugador 2 es obligatoria.");
 
-  // Validar goleadores: cuotas válidas si hay alguno
   for (const g of goleadores) {
     if (!g.nombre || isNaN(g.cuota) || g.cuota <= 1) {
       errores.push(`Cuota de goleador inválida para "${g.nombre || "[sin nombre]"}"`);
     }
   }
 
-  // Validar Doble Oportunidad
   const errDoble = validarDobleOportunidad();
   if (errDoble) errores.push(errDoble);
 
-  // Validar Ambos Marcan
   const errAmbos = validarAmbosMarcan();
   if (errAmbos) errores.push(errAmbos);
 
-  // Validar tarjetas avanzadas (tablas)
+  const errImparPar = validarGolesImparPar();
+  if (errImparPar) errores.push(errImparPar);
+
   if (dep === "futbol" && window.tarjetasCuotas) {
     for (const segmento of TARJETAS_SEGMENTOS) {
       for (const equipo of TARJETAS_EQUIPOS) {
@@ -825,7 +905,6 @@ function validarDatos() {
     }
   }
 
-  // Validar corners avanzadas (tablas)
   if (dep === "futbol" && window.cornersCuotas) {
     for (const segmento of CORNERS_SEGMENTOS) {
       for (const equipo of CORNERS_EQUIPOS) {
