@@ -127,9 +127,22 @@ const jugadoresPorEquipo = {
 
 
 /* 4️⃣  Autocompletado ------------------------------------------------------------ */
-const ligaDatalist    = $("ligas-list");
-const equiposDatalist = $("equipos-list");
-const cuotaXInput     = campos.cuotaX;
+const ligaDatalist    = document.getElementById("ligas-list");
+const equiposDatalist = document.getElementById("equipos-list");
+const cuotaXInput     = document.getElementById("cuotaX");
+const campos = ["deporte","liga","equipo1","equipo2","fecha","hora","cuota1","cuotaX","cuota2"]
+  .reduce((o,k)=>{o[k]=document.getElementById(k);return o;}, {});
+
+const msg = document.getElementById("msg");
+const spinner = document.getElementById("spinner");
+const modal = document.getElementById("modalConfirm");
+const modalText = document.getElementById("modalText");
+const btnConfirm = document.getElementById("btnConfirm");
+const btnCancel = document.getElementById("btnCancel");
+const previewContainer = document.getElementById("previewContainer");
+const wrapperNac1 = document.querySelector(".nacionalidad-1");
+const wrapperNac2 = document.querySelector(".nacionalidad-2");
+const goleadoresSection = document.getElementById("goleadores-section");
 
 /* --- Datalist para goleadores dinámico según equipos --- */
 const datalistGoleadores = document.getElementById("goleadores-datalist");
@@ -137,15 +150,14 @@ function actualizarDatalistGoleadores() {
   const equipo1 = campos.equipo1.value.trim();
   const equipo2 = campos.equipo2.value.trim();
   let jugadores = [];
-  if (jugadoresPorEquipo[equipo1]) jugadores = jugadores.concat(jugadoresPorEquipo[equipo1]);
-  if (jugadoresPorEquipo[equipo2]) jugadores = jugadores.concat(jugadoresPorEquipo[equipo2]);
+  if (window.jugadoresPorEquipo?.[equipo1]) jugadores = jugadores.concat(window.jugadoresPorEquipo[equipo1]);
+  if (window.jugadoresPorEquipo?.[equipo2]) jugadores = jugadores.concat(window.jugadoresPorEquipo[equipo2]);
   jugadores = [...new Set(jugadores)];
   datalistGoleadores.innerHTML = jugadores.map(j => `<option value="${j}">`).join("");
 }
 campos.equipo1.addEventListener("input", actualizarDatalistGoleadores);
 campos.equipo2.addEventListener("input", actualizarDatalistGoleadores);
 
-// --- Mostrar/ocultar mercados personalizados según deporte ---
 campos.deporte.addEventListener("change", () => {
   const dep = campos.deporte.value;
 
@@ -155,7 +167,7 @@ campos.deporte.addEventListener("change", () => {
 
   if (ligaDatalist) {
     ligaDatalist.innerHTML = "";
-    (ligasPorDeporte[dep] || []).forEach(l => {
+    (window.ligasPorDeporte?.[dep] || []).forEach(l => {
       const opt = document.createElement("option");
       opt.value = l;
       ligaDatalist.appendChild(opt);
@@ -173,14 +185,15 @@ campos.deporte.addEventListener("change", () => {
     if (campos.cuotaX) campos.cuotaX.style.display = "inline-block";
   }
 
+  // Nacionalidades
   if (dep === "tenis") {
     if (wrapperNac1) wrapperNac1.style.display = "block";
     if (wrapperNac2) wrapperNac2.style.display = "block";
   } else {
     if (wrapperNac1) wrapperNac1.style.display = "none";
     if (wrapperNac2) wrapperNac2.style.display = "none";
-    const sel1 = $("nacionalidad1");
-    const sel2 = $("nacionalidad2");
+    const sel1 = document.getElementById("nacionalidad1");
+    const sel2 = document.getElementById("nacionalidad2");
     if (sel1) sel1.value = "";
     if (sel2) sel2.value = "";
   }
@@ -193,7 +206,7 @@ campos.deporte.addEventListener("change", () => {
     }
   }
 
-  // --- Tarjetas ---
+  // Tarjetas
   renderTarjetasTabs();
   const tarjetasSection = document.getElementById('tarjetas-section');
   if (tarjetasSection) {
@@ -209,7 +222,7 @@ campos.deporte.addEventListener("change", () => {
     }
   }
 
-  // --- Corners ---
+  // Corners
   renderCornersTabs();
   const cornersSection = document.getElementById('corners-section');
   if (cornersSection) {
@@ -225,23 +238,16 @@ campos.deporte.addEventListener("change", () => {
     }
   }
 
-  // --- Doble Oportunidad ---
   renderDobleOportunidadSection();
-
-  // --- Ambos Marcan ---
   renderAmbosMarcanSection();
-
-  // --- Goles Impar/Par ---
   renderGolesImparParSection();
 });
 
-/* 4.2  Al cambiar LIGA → llenar lista de equipos/jugadores */
 if (campos.liga && equiposDatalist) {
   campos.liga.addEventListener("input", () => {
     const liga = campos.liga.value.trim();
     equiposDatalist.innerHTML = "";
-
-    (equiposPorLiga[liga] || []).forEach(eq => {
+    (window.equiposPorLiga?.[liga] || []).forEach(eq => {
       const opt = document.createElement("option");
       opt.value = eq;
       equiposDatalist.appendChild(opt);
@@ -250,7 +256,7 @@ if (campos.liga && equiposDatalist) {
 }
 
 /* 5️⃣  Invertir Equipos (botón ⮃) ------------------------------------------------ */
-const btnInvertir = $("invertirEquipos");
+const btnInvertir = document.getElementById("invertirEquipos");
 if (btnInvertir && campos.equipo1 && campos.equipo2 && campos.cuota1 && campos.cuota2) {
   btnInvertir.addEventListener("click", (e) => {
     e.preventDefault();
@@ -361,7 +367,6 @@ function renderTarjetasTabs() {
     html += `<tr><td>${n === 0 ? '0 tarjetas' : `${n} tarjeta${n>1?'s':''}`}</td>`;
     TARJETAS_COLUMNAS.forEach(col => {
       const valor = datos[n][col.id] ?? '';
-      // Bloquear el input si es fila 0 y columna "menos"
       const disabled = (n === 0 && col.id === "menos") ? "disabled style='background:#eee;pointer-events:none;opacity:.6;'" : "";
       html += `<td>
         <input type="number" min="1.01" step="0.01" 
