@@ -158,6 +158,68 @@ function actualizarDatalistGoleadores() {
 campos.equipo1.addEventListener("input", actualizarDatalistGoleadores);
 campos.equipo2.addEventListener("input", actualizarDatalistGoleadores);
 
+/* ---------- BLOQUES DINÁMICOS PARA MERCADOS AVANZADOS (CREACIÓN AUTOMÁTICA SI NO EXISTEN) ---------- */
+function ensureSection(id, html) {
+  let section = document.getElementById(id);
+  if (!section) {
+    section = document.createElement("div");
+    section.id = id;
+    section.style.marginTop = "20px";
+    section.style.display = "none";
+    section.innerHTML = html || "";
+    // Encuentra el último mercado para insertar después
+    const btnCrear = document.getElementById("btnCrear");
+    if (btnCrear && btnCrear.parentNode) {
+      btnCrear.parentNode.insertBefore(section, btnCrear);
+    } else {
+      document.body.appendChild(section);
+    }
+  }
+  return section;
+}
+
+/* ------ TARJETAS AVANZADO ------ */
+ensureSection("tarjetas-section", `
+  <h3>Cuotas Tarjetas</h3>
+  <div id="tarjetas-tabs" class="tarjetas-tabs"></div>
+  <div id="tarjetas-subtabs" class="tarjetas-subtabs"></div>
+  <div id="tarjetas-tables"></div>
+`);
+
+/* ------ CORNERS AVANZADO ------ */
+ensureSection("corners-section", `
+  <h3>Cuotas Corners</h3>
+  <div id="corners-tabs" class="tarjetas-tabs"></div>
+  <div id="corners-subtabs" class="tarjetas-subtabs"></div>
+  <div id="corners-tables"></div>
+`);
+
+/* ------ DOBLE OPORTUNIDAD ------ */
+ensureSection("doble-oportunidad-section");
+
+/* ------ AMBOS MARCAN ------ */
+ensureSection("ambos-marcan-section");
+
+/* ------ GOLES IMPAR/PAR ------ */
+ensureSection("goles-imparpar-section");
+
+/* ------ MANEJO DE MOSTRAR/OCULTAR LOS MERCADOS ------ */
+function mostrarMercadosFutbol() {
+  document.getElementById("tarjetas-section").style.display = "block";
+  document.getElementById("corners-section").style.display = "block";
+  document.getElementById("doble-oportunidad-section").style.display = "block";
+  document.getElementById("ambos-marcan-section").style.display = "block";
+  document.getElementById("goles-imparpar-section").style.display = "block";
+}
+function ocultarMercadosFutbol() {
+  document.getElementById("tarjetas-section").style.display = "none";
+  document.getElementById("corners-section").style.display = "none";
+  document.getElementById("doble-oportunidad-section").style.display = "none";
+  document.getElementById("ambos-marcan-section").style.display = "none";
+  document.getElementById("goles-imparpar-section").style.display = "none";
+}
+
+/* --- CAMBIO DE DEPORTE: MOSTRAR/OCULTAR MERCADOS --- */
 campos.deporte.addEventListener("change", () => {
   const dep = campos.deporte.value;
 
@@ -206,43 +268,22 @@ campos.deporte.addEventListener("change", () => {
     }
   }
 
-  // Tarjetas
-  renderTarjetasTabs();
-  const tarjetasSection = document.getElementById('tarjetas-section');
-  if (tarjetasSection) {
-    tarjetasSection.style.display = (dep === "futbol" ? "block" : "none");
-    if (dep !== "futbol") {
-      window.tarjetasCuotas = {};
-      const tabs = document.getElementById("tarjetas-tabs");
-      const subtabs = document.getElementById("tarjetas-subtabs");
-      const tables = document.getElementById("tarjetas-tables");
-      if (tabs) tabs.innerHTML = "";
-      if (subtabs) subtabs.innerHTML = "";
-      if (tables) tables.innerHTML = "";
-    }
+  // Mostrar/ocultar mercados avanzados
+  if (dep === "futbol") {
+    mostrarMercadosFutbol();
+    renderTarjetasTabs();
+    renderCornersTabs();
+    renderDobleOportunidadSection();
+    renderAmbosMarcanSection();
+    renderGolesImparParSection();
+  } else {
+    ocultarMercadosFutbol();
+    window.tarjetasCuotas = {};
+    window.cornersCuotas = {};
   }
-
-  // Corners
-  renderCornersTabs();
-  const cornersSection = document.getElementById('corners-section');
-  if (cornersSection) {
-    cornersSection.style.display = (dep === "futbol" ? "block" : "none");
-    if (dep !== "futbol") {
-      window.cornersCuotas = {};
-      const tabs = document.getElementById("corners-tabs");
-      const subtabs = document.getElementById("corners-subtabs");
-      const tables = document.getElementById("corners-tables");
-      if (tabs) tabs.innerHTML = "";
-      if (subtabs) subtabs.innerHTML = "";
-      if (tables) tables.innerHTML = "";
-    }
-  }
-
-  renderDobleOportunidadSection();
-  renderAmbosMarcanSection();
-  renderGolesImparParSection();
 });
 
+/* 4.2  Al cambiar LIGA → llenar lista de equipos/jugadores */
 if (campos.liga && equiposDatalist) {
   campos.liga.addEventListener("input", () => {
     const liga = campos.liga.value.trim();
@@ -315,7 +356,7 @@ if (btnAgregarGoleador) {
   };
 }
 
-// ---------- TARJETAS AVANZADO -------------
+/* ---------- TARJETAS AVANZADO ------------- */
 const TARJETAS_SEGMENTOS = [
   { id: 'primera', label: '1ª Mitad' },
   { id: 'segunda', label: '2ª Mitad' },
@@ -406,7 +447,7 @@ function renderTarjetasTabs() {
   });
 }
 
-// ---------- CORNERS AVANZADO -------------
+/* ---------- CORNERS AVANZADO ------------- */
 const CORNERS_SEGMENTOS = [
   { id: 'primera', label: '1ª Mitad' },
   { id: 'segunda', label: '2ª Mitad' },
@@ -496,7 +537,7 @@ function renderCornersTabs() {
   });
 }
 
-// ---------- DOBLE OPORTUNIDAD -------------
+/* ---------- DOBLE OPORTUNIDAD ------------- */
 const DOBLE_OPORTUNIDAD_OPCIONES = [
   { id: "1X", label: "1X (Gana equipo 1 o Empate)" },
   { id: "12", label: "12 (Gana equipo 1 o equipo 2)" },
@@ -507,41 +548,33 @@ window.dobleOportunidadCuotas = { "1X": "", "12": "", "X2": "" };
 
 function renderDobleOportunidadSection() {
   let section = document.getElementById("doble-oportunidad-section");
-  if (!section) {
-    section = document.createElement("div");
-    section.id = "doble-oportunidad-section";
-    section.style.marginTop = "20px";
-    section.innerHTML = `
-      <h3>Cuotas Doble Oportunidad</h3>
-      <table class="doble-oportunidad-table">
-        <thead>
+  if (!section) return; // Ya se creó arriba
+  section.innerHTML = `
+    <h3>Cuotas Doble Oportunidad</h3>
+    <table class="doble-oportunidad-table">
+      <thead>
+        <tr>
+          <th>Opción</th>
+          <th>Cuota</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${DOBLE_OPORTUNIDAD_OPCIONES.map(opt => `
           <tr>
-            <th>Opción</th>
-            <th>Cuota</th>
+            <td>${opt.label}</td>
+            <td>
+              <input type="number" min="1.01" step="0.01"
+                id="cuota-doble-${opt.id}"
+                data-opcion="${opt.id}"
+                value="${window.dobleOportunidadCuotas[opt.id] || ''}"
+                placeholder="-"
+              />
+            </td>
           </tr>
-        </thead>
-        <tbody>
-          ${DOBLE_OPORTUNIDAD_OPCIONES.map(opt => `
-            <tr>
-              <td>${opt.label}</td>
-              <td>
-                <input type="number" min="1.01" step="0.01"
-                  id="cuota-doble-${opt.id}"
-                  data-opcion="${opt.id}"
-                  value="${window.dobleOportunidadCuotas[opt.id] || ''}"
-                  placeholder="-"
-                />
-              </td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-    `;
-    // Inserta justo debajo de las cuotas principales
-    const cuotasPrincipal = document.getElementById("cuotaX")?.parentNode;
-    if (cuotasPrincipal) cuotasPrincipal.parentNode.insertBefore(section, cuotasPrincipal.nextSibling);
-    else document.body.appendChild(section);
-  }
+        `).join('')}
+      </tbody>
+    </table>
+  `;
 
   DOBLE_OPORTUNIDAD_OPCIONES.forEach(opt => {
     const input = document.getElementById(`cuota-doble-${opt.id}`);
@@ -551,27 +584,9 @@ function renderDobleOportunidadSection() {
       };
     }
   });
-
-  const dep = campos.deporte.value;
-  section.style.display = (dep === "futbol") ? "block" : "none";
 }
 
-campos.deporte.addEventListener("change", renderDobleOportunidadSection);
-document.addEventListener("DOMContentLoaded", renderDobleOportunidadSection);
-
-function validarDobleOportunidad() {
-  if (campos.deporte.value === "futbol") {
-    for (const opt of DOBLE_OPORTUNIDAD_OPCIONES) {
-      const v = (window.dobleOportunidadCuotas[opt.id] || "").trim();
-      if (v !== "" && (isNaN(parseFloat(v)) || parseFloat(v) <= 1)) {
-        return `Cuota de Doble Oportunidad inválida para "${opt.label}": debe ser > 1.`;
-      }
-    }
-  }
-  return null;
-}
-
-// ---------- AMBOS MARCAN -------------
+/* ---------- AMBOS MARCAN ------------- */
 const AMBOS_MARCAN_FILAS = [
   { id: "encuentro", label: "Encuentro" },
   { id: "primera", label: "1ª Mitad" },
@@ -590,43 +605,36 @@ window.ambosMarcanCuotas = {
 
 function renderAmbosMarcanSection() {
   let section = document.getElementById("ambos-marcan-section");
-  if (!section) {
-    section = document.createElement("div");
-    section.id = "ambos-marcan-section";
-    section.style.marginTop = "20px";
-    let html = `
-      <h3>Cuotas Ambos Marcan</h3>
-      <table class="ambos-marcan-table">
-        <thead>
+  if (!section) return;
+  let html = `
+    <h3>Cuotas Ambos Marcan</h3>
+    <table class="ambos-marcan-table">
+      <thead>
+        <tr>
+          <th></th>
+          ${AMBOS_MARCAN_COLUMNAS.map(col=>`<th>${col.label}</th>`).join('')}
+        </tr>
+      </thead>
+      <tbody>
+        ${AMBOS_MARCAN_FILAS.map(fila => `
           <tr>
-            <th></th>
-            ${AMBOS_MARCAN_COLUMNAS.map(col=>`<th>${col.label}</th>`).join('')}
+            <td>${fila.label}</td>
+            ${AMBOS_MARCAN_COLUMNAS.map(col => `
+              <td>
+                <input type="number" min="1.01" step="0.01"
+                  id="cuota-ambos-${fila.id}-${col.id}"
+                  data-fila="${fila.id}" data-col="${col.id}"
+                  value="${window.ambosMarcanCuotas[fila.id][col.id] || ''}"
+                  placeholder="-"
+                />
+              </td>
+            `).join('')}
           </tr>
-        </thead>
-        <tbody>
-          ${AMBOS_MARCAN_FILAS.map(fila => `
-            <tr>
-              <td>${fila.label}</td>
-              ${AMBOS_MARCAN_COLUMNAS.map(col => `
-                <td>
-                  <input type="number" min="1.01" step="0.01"
-                    id="cuota-ambos-${fila.id}-${col.id}"
-                    data-fila="${fila.id}" data-col="${col.id}"
-                    value="${window.ambosMarcanCuotas[fila.id][col.id] || ''}"
-                    placeholder="-"
-                  />
-                </td>
-              `).join('')}
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-    `;
-    section.innerHTML = html;
-    const dobleSection = document.getElementById("doble-oportunidad-section");
-    if (dobleSection && dobleSection.parentNode) dobleSection.parentNode.insertBefore(section, dobleSection.nextSibling);
-    else document.body.appendChild(section);
-  }
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+  section.innerHTML = html;
   AMBOS_MARCAN_FILAS.forEach(fila => {
     AMBOS_MARCAN_COLUMNAS.forEach(col => {
       const input = document.getElementById(`cuota-ambos-${fila.id}-${col.id}`);
@@ -637,29 +645,9 @@ function renderAmbosMarcanSection() {
       }
     });
   });
-
-  const dep = campos.deporte.value;
-  section.style.display = (dep === "futbol") ? "block" : "none";
 }
 
-campos.deporte.addEventListener("change", renderAmbosMarcanSection);
-document.addEventListener("DOMContentLoaded", renderAmbosMarcanSection);
-
-function validarAmbosMarcan() {
-  if (campos.deporte.value === "futbol") {
-    for (const fila of AMBOS_MARCAN_FILAS) {
-      for (const col of AMBOS_MARCAN_COLUMNAS) {
-        const v = (window.ambosMarcanCuotas[fila.id][col.id] || "").trim();
-        if (v !== "" && (isNaN(parseFloat(v)) || parseFloat(v) <= 1)) {
-          return `Cuota de Ambos Marcan inválida en ${fila.label} - ${col.label}: debe ser > 1.`;
-        }
-      }
-    }
-  }
-  return null;
-}
-
-// ---------- GOLES IMPAR/PAR -------------
+/* ---------- GOLES IMPAR/PAR ------------- */
 const GOLES_IMPARPAR_FILAS = [
   { id: "encuentro", label: "Encuentro" },
   { id: "primera", label: "1ª Mitad" },
@@ -678,43 +666,36 @@ window.golesImparParCuotas = {
 
 function renderGolesImparParSection() {
   let section = document.getElementById("goles-imparpar-section");
-  if (!section) {
-    section = document.createElement("div");
-    section.id = "goles-imparpar-section";
-    section.style.marginTop = "20px";
-    let html = `
-      <h3>Cuotas Goles Impar/Par</h3>
-      <table class="goles-imparpar-table">
-        <thead>
+  if (!section) return;
+  let html = `
+    <h3>Cuotas Goles Impar/Par</h3>
+    <table class="goles-imparpar-table">
+      <thead>
+        <tr>
+          <th></th>
+          ${GOLES_IMPARPAR_COLUMNAS.map(col=>`<th>${col.label}</th>`).join('')}
+        </tr>
+      </thead>
+      <tbody>
+        ${GOLES_IMPARPAR_FILAS.map(fila => `
           <tr>
-            <th></th>
-            ${GOLES_IMPARPAR_COLUMNAS.map(col=>`<th>${col.label}</th>`).join('')}
+            <td>${fila.label}</td>
+            ${GOLES_IMPARPAR_COLUMNAS.map(col => `
+              <td>
+                <input type="number" min="1.01" step="0.01"
+                  id="cuota-imparpar-${fila.id}-${col.id}"
+                  data-fila="${fila.id}" data-col="${col.id}"
+                  value="${window.golesImparParCuotas[fila.id][col.id] || ''}"
+                  placeholder="-"
+                />
+              </td>
+            `).join('')}
           </tr>
-        </thead>
-        <tbody>
-          ${GOLES_IMPARPAR_FILAS.map(fila => `
-            <tr>
-              <td>${fila.label}</td>
-              ${GOLES_IMPARPAR_COLUMNAS.map(col => `
-                <td>
-                  <input type="number" min="1.01" step="0.01"
-                    id="cuota-imparpar-${fila.id}-${col.id}"
-                    data-fila="${fila.id}" data-col="${col.id}"
-                    value="${window.golesImparParCuotas[fila.id][col.id] || ''}"
-                    placeholder="-"
-                  />
-                </td>
-              `).join('')}
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-    `;
-    section.innerHTML = html;
-    const ambosMarcanSection = document.getElementById("ambos-marcan-section");
-    if (ambosMarcanSection && ambosMarcanSection.parentNode) ambosMarcanSection.parentNode.insertBefore(section, ambosMarcanSection.nextSibling);
-    else document.body.appendChild(section);
-  }
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+  section.innerHTML = html;
   GOLES_IMPARPAR_FILAS.forEach(fila => {
     GOLES_IMPARPAR_COLUMNAS.forEach(col => {
       const input = document.getElementById(`cuota-imparpar-${fila.id}-${col.id}`);
@@ -725,24 +706,4 @@ function renderGolesImparParSection() {
       }
     });
   });
-
-  const dep = campos.deporte.value;
-  section.style.display = (dep === "futbol") ? "block" : "none";
-}
-
-campos.deporte.addEventListener("change", renderGolesImparParSection);
-document.addEventListener("DOMContentLoaded", renderGolesImparParSection);
-
-function validarGolesImparPar() {
-  if (campos.deporte.value === "futbol") {
-    for (const fila of GOLES_IMPARPAR_FILAS) {
-      for (const col of GOLES_IMPARPAR_COLUMNAS) {
-        const v = (window.golesImparParCuotas[fila.id][col.id] || "").trim();
-        if (v !== "" && (isNaN(parseFloat(v)) || parseFloat(v) <= 1)) {
-          return `Cuota de Goles Impar/Par inválida en ${fila.label} - ${col.label}: debe ser > 1.`;
-        }
-      }
-    }
-  }
-  return null;
 }
