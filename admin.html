@@ -1,7 +1,3 @@
-<!--
-Solo se muestra el bloque de Tarjetas si el deporte es "futbol".
-Las tablas son dinámicas: puedes cambiar el número de filas (nTarjetas) en el JS.
--->
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -151,6 +147,21 @@ Las tablas son dinámicas: puedes cambiar el número de filas (nTarjetas) en el 
           <div id="tarjetas-subtabs" class="tarjetas-subtabs"></div>
           <div id="tarjetas-tables"></div>
         </div>
+        
+        <!-- CORNERS AVANZADO -->
+        <div id="corners-section" style="margin-top:20px; display:none;">
+          <h3>Cuotas Corners</h3>
+          <div id="corners-tabs" class="tarjetas-tabs"></div>
+          <div id="corners-subtabs" class="tarjetas-subtabs"></div>
+          <div id="corners-tables"></div>
+        </div>
+
+        <!-- Doble Oportunidad -->
+        <div id="doble-oportunidad-section" style="margin-top:20px; display:none;"></div>
+        <!-- Ambos Marcan -->
+        <div id="ambos-marcan-section" style="margin-top:20px; display:none;"></div>
+        <!-- Goles Impar/Par -->
+        <div id="goles-imparpar-section" style="margin-top:20px; display:none;"></div>
 
         <button id="btnCrear" type="submit">Guardar partido</button>
       </form>
@@ -201,5 +212,4 @@ Las tablas son dinámicas: puedes cambiar el número de filas (nTarjetas) en el 
   </footer>
   <script type="module" src="assets/js/admin.js"></script>
 </body>
-</html>
 </html>
