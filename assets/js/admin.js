@@ -506,37 +506,34 @@ function renderDobleOportunidadSection() {
     section = document.createElement("div");
     section.id = "doble-oportunidad-section";
     section.style.marginTop = "20px";
-    section.innerHTML = `
-      <h3>Cuotas Doble Oportunidad</h3>
-      <table class="doble-oportunidad-table">
-        <thead>
-          <tr>
-            <th>Opción</th>
-            <th>Cuota</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${DOBLE_OPORTUNIDAD_OPCIONES.map(opt => `
-            <tr>
-              <td>${opt.label}</td>
-              <td>
-                <input type="number" min="1.01" step="0.01"
-                  id="cuota-doble-${opt.id}"
-                  data-opcion="${opt.id}"
-                  value="${window.dobleOportunidadCuotas[opt.id] || ''}"
-                  placeholder="-"
-                />
-              </td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-    `;
-    // Inserta justo debajo de las cuotas principales
-    const cuotasPrincipal = document.getElementById("cuotaX")?.parentNode;
-    if (cuotasPrincipal) cuotasPrincipal.parentNode.insertBefore(section, cuotasPrincipal.nextSibling);
-    else document.body.appendChild(section);
+    document.querySelector("form")?.insertBefore(section, document.getElementById("btnCrear"));
   }
+  section.innerHTML = `
+    <h3>Cuotas Doble Oportunidad</h3>
+    <table class="doble-oportunidad-table">
+      <thead>
+        <tr>
+          <th>Opción</th>
+          <th>Cuota</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${DOBLE_OPORTUNIDAD_OPCIONES.map(opt => `
+          <tr>
+            <td>${opt.label}</td>
+            <td>
+              <input type="number" min="1.01" step="0.01"
+                id="cuota-doble-${opt.id}"
+                data-opcion="${opt.id}"
+                value="${window.dobleOportunidadCuotas[opt.id] || ''}"
+                placeholder="-"
+              />
+            </td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
 
   DOBLE_OPORTUNIDAD_OPCIONES.forEach(opt => {
     const input = document.getElementById(`cuota-doble-${opt.id}`);
@@ -553,18 +550,6 @@ function renderDobleOportunidadSection() {
 
 campos.deporte.addEventListener("change", renderDobleOportunidadSection);
 document.addEventListener("DOMContentLoaded", renderDobleOportunidadSection);
-
-function validarDobleOportunidad() {
-  if (campos.deporte.value === "futbol") {
-    for (const opt of DOBLE_OPORTUNIDAD_OPCIONES) {
-      const v = (window.dobleOportunidadCuotas[opt.id] || "").trim();
-      if (v !== "" && (isNaN(parseFloat(v)) || parseFloat(v) <= 1)) {
-        return `Cuota de Doble Oportunidad inválida para "${opt.label}": debe ser > 1.`;
-      }
-    }
-  }
-  return null;
-}
 
 // ---------- AMBOS MARCAN -------------
 const AMBOS_MARCAN_FILAS = [
@@ -589,39 +574,37 @@ function renderAmbosMarcanSection() {
     section = document.createElement("div");
     section.id = "ambos-marcan-section";
     section.style.marginTop = "20px";
-    let html = `
-      <h3>Cuotas Ambos Marcan</h3>
-      <table class="ambos-marcan-table">
-        <thead>
-          <tr>
-            <th></th>
-            ${AMBOS_MARCAN_COLUMNAS.map(col=>`<th>${col.label}</th>`).join('')}
-          </tr>
-        </thead>
-        <tbody>
-          ${AMBOS_MARCAN_FILAS.map(fila => `
-            <tr>
-              <td>${fila.label}</td>
-              ${AMBOS_MARCAN_COLUMNAS.map(col => `
-                <td>
-                  <input type="number" min="1.01" step="0.01"
-                    id="cuota-ambos-${fila.id}-${col.id}"
-                    data-fila="${fila.id}" data-col="${col.id}"
-                    value="${window.ambosMarcanCuotas[fila.id][col.id] || ''}"
-                    placeholder="-"
-                  />
-                </td>
-              `).join('')}
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-    `;
-    section.innerHTML = html;
-    const dobleSection = document.getElementById("doble-oportunidad-section");
-    if (dobleSection && dobleSection.parentNode) dobleSection.parentNode.insertBefore(section, dobleSection.nextSibling);
-    else document.body.appendChild(section);
+    document.querySelector("form")?.insertBefore(section, document.getElementById("btnCrear"));
   }
+  let html = `
+    <h3>Cuotas Ambos Marcan</h3>
+    <table class="ambos-marcan-table">
+      <thead>
+        <tr>
+          <th></th>
+          ${AMBOS_MARCAN_COLUMNAS.map(col=>`<th>${col.label}</th>`).join('')}
+        </tr>
+      </thead>
+      <tbody>
+        ${AMBOS_MARCAN_FILAS.map(fila => `
+          <tr>
+            <td>${fila.label}</td>
+            ${AMBOS_MARCAN_COLUMNAS.map(col => `
+              <td>
+                <input type="number" min="1.01" step="0.01"
+                  id="cuota-ambos-${fila.id}-${col.id}"
+                  data-fila="${fila.id}" data-col="${col.id}"
+                  value="${window.ambosMarcanCuotas[fila.id][col.id] || ''}"
+                  placeholder="-"
+                />
+              </td>
+            `).join('')}
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+  section.innerHTML = html;
   AMBOS_MARCAN_FILAS.forEach(fila => {
     AMBOS_MARCAN_COLUMNAS.forEach(col => {
       const input = document.getElementById(`cuota-ambos-${fila.id}-${col.id}`);
@@ -639,20 +622,6 @@ function renderAmbosMarcanSection() {
 
 campos.deporte.addEventListener("change", renderAmbosMarcanSection);
 document.addEventListener("DOMContentLoaded", renderAmbosMarcanSection);
-
-function validarAmbosMarcan() {
-  if (campos.deporte.value === "futbol") {
-    for (const fila of AMBOS_MARCAN_FILAS) {
-      for (const col of AMBOS_MARCAN_COLUMNAS) {
-        const v = (window.ambosMarcanCuotas[fila.id][col.id] || "").trim();
-        if (v !== "" && (isNaN(parseFloat(v)) || parseFloat(v) <= 1)) {
-          return `Cuota de Ambos Marcan inválida en ${fila.label} - ${col.label}: debe ser > 1.`;
-        }
-      }
-    }
-  }
-  return null;
-}
 
 // ---------- GOLES IMPAR/PAR -------------
 const GOLES_IMPARPAR_FILAS = [
@@ -677,39 +646,37 @@ function renderGolesImparParSection() {
     section = document.createElement("div");
     section.id = "goles-imparpar-section";
     section.style.marginTop = "20px";
-    let html = `
-      <h3>Cuotas Goles Impar/Par</h3>
-      <table class="goles-imparpar-table">
-        <thead>
-          <tr>
-            <th></th>
-            ${GOLES_IMPARPAR_COLUMNAS.map(col=>`<th>${col.label}</th>`).join('')}
-          </tr>
-        </thead>
-        <tbody>
-          ${GOLES_IMPARPAR_FILAS.map(fila => `
-            <tr>
-              <td>${fila.label}</td>
-              ${GOLES_IMPARPAR_COLUMNAS.map(col => `
-                <td>
-                  <input type="number" min="1.01" step="0.01"
-                    id="cuota-imparpar-${fila.id}-${col.id}"
-                    data-fila="${fila.id}" data-col="${col.id}"
-                    value="${window.golesImparParCuotas[fila.id][col.id] || ''}"
-                    placeholder="-"
-                  />
-                </td>
-              `).join('')}
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-    `;
-    section.innerHTML = html;
-    const ambosMarcanSection = document.getElementById("ambos-marcan-section");
-    if (ambosMarcanSection && ambosMarcanSection.parentNode) ambosMarcanSection.parentNode.insertBefore(section, ambosMarcanSection.nextSibling);
-    else document.body.appendChild(section);
+    document.querySelector("form")?.insertBefore(section, document.getElementById("btnCrear"));
   }
+  let html = `
+    <h3>Cuotas Goles Impar/Par</h3>
+    <table class="goles-imparpar-table">
+      <thead>
+        <tr>
+          <th></th>
+          ${GOLES_IMPARPAR_COLUMNAS.map(col=>`<th>${col.label}</th>`).join('')}
+        </tr>
+      </thead>
+      <tbody>
+        ${GOLES_IMPARPAR_FILAS.map(fila => `
+          <tr>
+            <td>${fila.label}</td>
+            ${GOLES_IMPARPAR_COLUMNAS.map(col => `
+              <td>
+                <input type="number" min="1.01" step="0.01"
+                  id="cuota-imparpar-${fila.id}-${col.id}"
+                  data-fila="${fila.id}" data-col="${col.id}"
+                  value="${window.golesImparParCuotas[fila.id][col.id] || ''}"
+                  placeholder="-"
+                />
+              </td>
+            `).join('')}
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+  section.innerHTML = html;
   GOLES_IMPARPAR_FILAS.forEach(fila => {
     GOLES_IMPARPAR_COLUMNAS.forEach(col => {
       const input = document.getElementById(`cuota-imparpar-${fila.id}-${col.id}`);
@@ -727,17 +694,3 @@ function renderGolesImparParSection() {
 
 campos.deporte.addEventListener("change", renderGolesImparParSection);
 document.addEventListener("DOMContentLoaded", renderGolesImparParSection);
-
-function validarGolesImparPar() {
-  if (campos.deporte.value === "futbol") {
-    for (const fila of GOLES_IMPARPAR_FILAS) {
-      for (const col of GOLES_IMPARPAR_COLUMNAS) {
-        const v = (window.golesImparParCuotas[fila.id][col.id] || "").trim();
-        if (v !== "" && (isNaN(parseFloat(v)) || parseFloat(v) <= 1)) {
-          return `Cuota de Goles Impar/Par inválida en ${fila.label} - ${col.label}: debe ser > 1.`;
-        }
-      }
-    }
-  }
-  return null;
-}
