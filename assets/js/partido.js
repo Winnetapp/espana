@@ -214,6 +214,7 @@ function renderizarMercados(mercados, partido) {
     html += `</div></div></div>`;
     mercadosDiv.innerHTML += html;
   }
+  
 
   // --- Ambos Marcan ---
   if (mercados.ambosMarcan && Array.isArray(mercados.ambosMarcan.opciones) && mercados.ambosMarcan.opciones.length) {
