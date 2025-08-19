@@ -188,13 +188,19 @@ function renderizarMercados(mercados, partido) {
       </div>
       <div class="mercado-content">
         <div class="cuotas doble-oportunidad-lista">`;
+  
     mercados.dobleOportunidad.opciones.forEach(opt => {
+      let label = opt.nombre;
+      if (label === "1X") label = `${partido.equipo1} o Empate`;
+      else if (label === "X2") label = `Empate o ${partido.equipo2}`;
+      else if (label === "12") label = `${partido.equipo1} o ${partido.equipo2}`;
+  
       html += `
         <div class="cuota">
-          <div class="nombre-equipo-cuota">${opt.nombre}</div>
+          <div class="nombre-equipo-cuota">${label}</div>
           <div class="valor-cuota cuota-btn"
             data-partido="${partido.equipo1} vs ${partido.equipo2}"
-            data-tipo="${opt.nombre}"
+            data-tipo="${label}"
             data-cuota="${opt.cuota}"
             data-partidoid="${partido.partidoId}"
             data-mercado="doble-oportunidad"
@@ -204,6 +210,7 @@ function renderizarMercados(mercados, partido) {
         </div>
       `;
     });
+  
     html += `</div></div></div>`;
     mercadosDiv.innerHTML += html;
   }
