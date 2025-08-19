@@ -63,7 +63,7 @@ function renderizarMercados(mercados, partido) {
   const mercadosDiv = document.getElementById('mercados-partido');
   mercadosDiv.innerHTML = '';
 
-  // Mercado 1X2 (Fútbol)
+  // Mercado 1X2 (Fútbol/Baloncesto/Tenis)
   if (mercados.resultado && Array.isArray(mercados.resultado.opciones)) {
     let deporte = (partido.deporte || "").toLowerCase();
     let cuotasHTML = '';
@@ -154,7 +154,7 @@ function renderizarMercados(mercados, partido) {
     }
   }
 
-  // Mercado Goleadores (igual que antes)
+  // Mercado Goleadores
   if (mercados.goleadores && Array.isArray(mercados.goleadores.opciones) && mercados.goleadores.opciones.length) {
     let html = `<div class="mercado-block">
       <div class="mercado-header">
@@ -179,6 +179,109 @@ function renderizarMercados(mercados, partido) {
     mercadosDiv.innerHTML += html;
   }
 
+  // --- Doble Oportunidad ---
+  if (mercados.dobleOportunidad && Array.isArray(mercados.dobleOportunidad.opciones) && mercados.dobleOportunidad.opciones.length) {
+    let html = `<div class="mercado-block">
+      <div class="mercado-header">
+        <span>Doble Oportunidad</span>
+        <span class="flecha">&#x25BC;</span>
+      </div>
+      <div class="mercado-content">
+        <div class="cuotas doble-oportunidad-lista">`;
+    mercados.dobleOportunidad.opciones.forEach(opt => {
+      html += `
+        <div class="cuota">
+          <div class="nombre-equipo-cuota">${opt.nombre}</div>
+          <div class="valor-cuota cuota-btn"
+            data-partido="${partido.equipo1} vs ${partido.equipo2}"
+            data-tipo="${opt.nombre}"
+            data-cuota="${opt.cuota}"
+            data-partidoid="${partido.partidoId}"
+            data-mercado="doble-oportunidad"
+          >
+            ${typeof opt.cuota === "number" ? opt.cuota.toFixed(2) : opt.cuota}
+          </div>
+        </div>
+      `;
+    });
+    html += `</div></div></div>`;
+    mercadosDiv.innerHTML += html;
+  }
+
+  // --- Ambos Marcan ---
+  if (mercados.ambosMarcan && Array.isArray(mercados.ambosMarcan.opciones) && mercados.ambosMarcan.opciones.length) {
+    let segmentos = [...new Set(mercados.ambosMarcan.opciones.map(opt => opt.segmento))];
+    let html = `<div class="mercado-block">
+      <div class="mercado-header">
+        <span>Ambos Marcan</span>
+        <span class="flecha">&#x25BC;</span>
+      </div>
+      <div class="mercado-content">
+        ${segmentos.map(seg =>
+          `<div class="ambos-marcan-segmento">
+            <div class="ambos-marcan-titulo">${seg}</div>
+            <div class="cuotas ambos-marcan-lista">
+              ${
+                mercados.ambosMarcan.opciones
+                  .filter(opt => opt.segmento === seg)
+                  .map(opt => `
+                    <div class="cuota">
+                      <div class="nombre-equipo-cuota">${opt.tipo}</div>
+                      <div class="valor-cuota cuota-btn"
+                        data-partido="${partido.equipo1} vs ${partido.equipo2}"
+                        data-tipo="${opt.segmento} - ${opt.tipo}"
+                        data-cuota="${opt.cuota}"
+                        data-partidoid="${partido.partidoId}"
+                        data-mercado="ambos-marcan"
+                      >${typeof opt.cuota === "number" ? opt.cuota.toFixed(2) : opt.cuota}</div>
+                    </div>
+                  `).join('')
+              }
+            </div>
+          </div>`
+        ).join('')}
+      </div>
+    </div>`;
+    mercadosDiv.innerHTML += html;
+  }
+
+  // --- Goles Impar/Par ---
+  if (mercados.golesImparPar && Array.isArray(mercados.golesImparPar.opciones) && mercados.golesImparPar.opciones.length) {
+    let segmentos = [...new Set(mercados.golesImparPar.opciones.map(opt => opt.segmento))];
+    let html = `<div class="mercado-block">
+      <div class="mercado-header">
+        <span>Goles Impar/Par</span>
+        <span class="flecha">&#x25BC;</span>
+      </div>
+      <div class="mercado-content">
+        ${segmentos.map(seg =>
+          `<div class="goles-imparpar-segmento">
+            <div class="goles-imparpar-titulo">${seg}</div>
+            <div class="cuotas goles-imparpar-lista">
+              ${
+                mercados.golesImparPar.opciones
+                  .filter(opt => opt.segmento === seg)
+                  .map(opt => `
+                    <div class="cuota">
+                      <div class="nombre-equipo-cuota">${opt.tipo}</div>
+                      <div class="valor-cuota cuota-btn"
+                        data-partido="${partido.equipo1} vs ${partido.equipo2}"
+                        data-tipo="${opt.segmento} - ${opt.tipo}"
+                        data-cuota="${opt.cuota}"
+                        data-partidoid="${partido.partidoId}"
+                        data-mercado="goles-imparpar"
+                      >${typeof opt.cuota === "number" ? opt.cuota.toFixed(2) : opt.cuota}</div>
+                    </div>
+                  `).join('')
+              }
+            </div>
+          </div>`
+        ).join('')}
+      </div>
+    </div>`;
+    mercadosDiv.innerHTML += html;
+  }
+
   // MERCADO TARJETAS AVANZADO
   if (
     mercados.tarjetas &&
@@ -197,7 +300,7 @@ function renderizarMercados(mercados, partido) {
     mercadosDiv.innerHTML += renderDesplegableCorners(mercados.corners.opciones, partido);
   }
 
-  // Mercado Corners (misma estructura)
+  // Mercado Corners (simple - array)
   if (mercados.corners && Array.isArray(mercados.corners.opciones) && mercados.corners.opciones.length) {
     let html = `<div class="mercado-block">
       <div class="mercado-header">
