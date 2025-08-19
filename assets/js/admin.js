@@ -995,3 +995,109 @@ onAuthStateChanged(auth, async (user) => {
 });
 
 /* ... tu función validarDatos sigue igual ... */
+function validarDatos() {
+  const dep   = campos.deporte.value.trim();
+  const liga  = campos.liga.value.trim();
+  const eq1   = campos.equipo1.value.trim();
+  const eq2   = campos.equipo2.value.trim();
+  const fecha = campos.fecha.value;
+  const hora  = campos.hora.value;
+
+  const cuota1 = parseFloat(campos.cuota1.value);
+  const cuota2 = parseFloat(campos.cuota2.value);
+  const cuotaX = parseFloat(campos.cuotaX.value);
+
+  const errores = [];
+
+  const oblig = ["deporte","liga","equipo1","equipo2","fecha","hora","cuota1","cuota2"];
+  if (dep !== "tenis" && dep !== "baloncesto") oblig.push("cuotaX");
+
+  oblig.forEach(id=>{
+    if(!campos[id].value.trim()) errores.push(`El campo «${id}» es obligatorio.`);
+  });
+
+  if (eq1 && eq2 && eq1.toLowerCase() === eq2.toLowerCase())
+    errores.push("Equipo/Jugador 1 y 2 no pueden ser iguales.");
+
+  if (fecha && hora) {
+    const f = new Date(`${fecha}T${hora}`);
+    if (isNaN(f.getTime()))     errores.push("Fecha u hora con formato inválido.");
+    else if (f < new Date())    errores.push("La fecha/hora debe ser futura.");
+  }
+
+  if (isNaN(cuota1) || cuota1 <= 1) errores.push("La cuota 1 debe ser > 1.");
+  if (isNaN(cuota2) || cuota2 <= 1) errores.push("La cuota 2 debe ser > 1.");
+  if (dep!=="tenis"&&dep!=="baloncesto" && (isNaN(cuotaX)||cuotaX<=1))
+    errores.push("La cuota X debe ser > 1.");
+
+  // Validar nacionalidades solo si están visibles
+  const nac1 = $("nacionalidad1")?.value;
+  const nac2 = $("nacionalidad2")?.value;
+  if (wrapperNac1 && wrapperNac1.style.display !== "none" && !nac1) errores.push("La nacionalidad del equipo/jugador 1 es obligatoria.");
+  if (wrapperNac2 && wrapperNac2.style.display !== "none" && !nac2) errores.push("La nacionalidad del equipo/jugador 2 es obligatoria.");
+
+  // Validar goleadores: cuotas válidas si hay alguno
+  for (const g of goleadores) {
+    if (!g.nombre || isNaN(g.cuota) || g.cuota <= 1) {
+      errores.push(`Cuota de goleador inválida para "${g.nombre || "[sin nombre]"}"`);
+    }
+  }
+
+  // Validar Doble Oportunidad
+  if (typeof validarDobleOportunidad === "function") {
+    const errDoble = validarDobleOportunidad();
+    if (errDoble) errores.push(errDoble);
+  }
+
+  // Validar Ambos Marcan
+  if (typeof validarAmbosMarcan === "function") {
+    const errAmbos = validarAmbosMarcan();
+    if (errAmbos) errores.push(errAmbos);
+  }
+
+  // Validar Goles Impar/Par
+  if (typeof validarGolesImparPar === "function") {
+    const errImparPar = validarGolesImparPar();
+    if (errImparPar) errores.push(errImparPar);
+  }
+
+  // Validar tarjetas avanzadas (tablas)
+  if (dep === "futbol" && window.tarjetasCuotas) {
+    for (const segmento of TARJETAS_SEGMENTOS) {
+      for (const equipo of TARJETAS_EQUIPOS) {
+        for (const n of TARJETAS_FILAS) {
+          for (const col of TARJETAS_COLUMNAS) {
+            const v = (((window.tarjetasCuotas?.[segmento.id]?.[equipo.id]?.[n]?.[col.id]) || '') + '').trim();
+            if (v !== "" && (isNaN(parseFloat(v)) || parseFloat(v) <= 1)) {
+              errores.push(`Cuota de tarjetas inválida en ${segmento.label} - ${equipo.label} - ${n} tarjeta(s) - ${col.label}: debe ser > 1`);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Validar corners avanzadas (tablas)
+  if (dep === "futbol" && window.cornersCuotas) {
+    for (const segmento of CORNERS_SEGMENTOS) {
+      for (const equipo of CORNERS_EQUIPOS) {
+        for (const n of CORNERS_FILAS) {
+          for (const col of CORNERS_COLUMNAS) {
+            const v = (((window.cornersCuotas?.[segmento.id]?.[equipo.id]?.[n]?.[col.id]) || '') + '').trim();
+            if (v !== "" && (isNaN(parseFloat(v)) || parseFloat(v) <= 1)) {
+              errores.push(`Cuota de corners inválida en ${segmento.label} - ${equipo.label} - ${n} córner(s) - ${col.label}: debe ser > 1`);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  if (errores.length) {
+    msg.textContent = errores.join(" ");
+    msg.style.color = "red";
+    return false;
+  }
+  msg.textContent = "";
+  return true;
+}
