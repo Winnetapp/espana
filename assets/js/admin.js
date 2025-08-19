@@ -696,10 +696,7 @@ campos.deporte.addEventListener("change", renderGolesImparParSection);
 document.addEventListener("DOMContentLoaded", renderGolesImparParSection);
 
 
-/* 4️⃣  Autocompletado ------------------------------------------------------------ */
-// ... (todo el código anterior de autocompletado, mercados y renderizado, igual que el último JS que te funciona)
-
-/* ---------- BLOQUE PARA GUARDAR EL PARTIDO EN FIRESTORE ---------- */
+/* 6️⃣  Construir objeto partido ------------------------------------------- */
 function construirPartido() {
   const dep   = campos.deporte.value.trim();
   const liga  = campos.liga.value.trim();
@@ -740,73 +737,79 @@ function construirPartido() {
   // ----> Doble Oportunidad
   let algunaCuotaDoble = false;
   const opcionesDoble = [];
-  DOBLE_OPORTUNIDAD_OPCIONES.forEach(opt => {
-    const v = (window.dobleOportunidadCuotas[opt.id] || "").trim();
-    if (v !== "") {
-      algunaCuotaDoble = true;
-      opcionesDoble.push({
-        nombre: opt.label,
-        valor: opt.id,
-        cuota: parseFloat(v)
-      });
+  if (typeof DOBLE_OPORTUNIDAD_OPCIONES !== "undefined") {
+    DOBLE_OPORTUNIDAD_OPCIONES.forEach(opt => {
+      const v = (window.dobleOportunidadCuotas?.[opt.id] || "").trim();
+      if (v !== "") {
+        algunaCuotaDoble = true;
+        opcionesDoble.push({
+          nombre: opt.label,
+          valor: opt.id,
+          cuota: parseFloat(v)
+        });
+      }
+    });
+    if (algunaCuotaDoble) {
+      mercados.dobleOportunidad = {
+        nombre: "Doble Oportunidad",
+        opciones: opcionesDoble
+      };
     }
-  });
-  if (algunaCuotaDoble) {
-    mercados.dobleOportunidad = {
-      nombre: "Doble Oportunidad",
-      opciones: opcionesDoble
-    };
   }
 
   // ----> Ambos Marcan
   let algunaCuotaAmbos = false;
   const opcionesAmbos = [];
-  AMBOS_MARCAN_FILAS.forEach(fila => {
-    AMBOS_MARCAN_COLUMNAS.forEach(col => {
-      const v = (window.ambosMarcanCuotas[fila.id][col.id] || "").trim();
-      if (v !== "") {
-        algunaCuotaAmbos = true;
-        opcionesAmbos.push({
-          segmento: fila.label,
-          tipo: col.label,
-          valor: col.id,
-          cuota: parseFloat(v)
-        });
-      }
+  if (typeof AMBOS_MARCAN_FILAS !== "undefined") {
+    AMBOS_MARCAN_FILAS.forEach(fila => {
+      AMBOS_MARCAN_COLUMNAS.forEach(col => {
+        const v = (window.ambosMarcanCuotas?.[fila.id]?.[col.id] || "").trim();
+        if (v !== "") {
+          algunaCuotaAmbos = true;
+          opcionesAmbos.push({
+            segmento: fila.label,
+            tipo: col.label,
+            valor: col.id,
+            cuota: parseFloat(v)
+          });
+        }
+      });
     });
-  });
-  if (algunaCuotaAmbos) {
-    mercados.ambosMarcan = {
-      nombre: "Ambos Marcan",
-      opciones: opcionesAmbos
-    };
+    if (algunaCuotaAmbos) {
+      mercados.ambosMarcan = {
+        nombre: "Ambos Marcan",
+        opciones: opcionesAmbos
+      };
+    }
   }
 
   // ----> Goles Impar/Par
   let algunaCuotaImparPar = false;
   const opcionesImparPar = [];
-  GOLES_IMPARPAR_FILAS.forEach(fila => {
-    GOLES_IMPARPAR_COLUMNAS.forEach(col => {
-      const v = (window.golesImparParCuotas[fila.id][col.id] || "").trim();
-      if (v !== "") {
-        algunaCuotaImparPar = true;
-        opcionesImparPar.push({
-          segmento: fila.label,
-          tipo: col.label,
-          valor: col.id,
-          cuota: parseFloat(v)
-        });
-      }
+  if (typeof GOLES_IMPARPAR_FILAS !== "undefined") {
+    GOLES_IMPARPAR_FILAS.forEach(fila => {
+      GOLES_IMPARPAR_COLUMNAS.forEach(col => {
+        const v = (window.golesImparParCuotas?.[fila.id]?.[col.id] || "").trim();
+        if (v !== "") {
+          algunaCuotaImparPar = true;
+          opcionesImparPar.push({
+            segmento: fila.label,
+            tipo: col.label,
+            valor: col.id,
+            cuota: parseFloat(v)
+          });
+        }
+      });
     });
-  });
-  if (algunaCuotaImparPar) {
-    mercados.golesImparPar = {
-      nombre: "Goles Impar/Par",
-      opciones: opcionesImparPar
-    };
+    if (algunaCuotaImparPar) {
+      mercados.golesImparPar = {
+        nombre: "Goles Impar/Par",
+        opciones: opcionesImparPar
+      };
+    }
   }
 
-  // ----> Tarjetas avanzado
+  // ----> Añadir mercado de tarjetas avanzado solo si alguna cuota está rellena
   let tarjetasObj = {};
   let algunaTarjeta = false;
   if (dep === "futbol" && window.tarjetasCuotas) {
@@ -832,7 +835,7 @@ function construirPartido() {
     }
   }
 
-  // ----> Corners avanzado
+  // ----> Añadir mercado de corners avanzado solo si alguna cuota está rellena
   let cornersObj = {};
   let algunCorner = false;
   if (dep === "futbol" && window.cornersCuotas) {
@@ -870,224 +873,4 @@ function construirPartido() {
     mercados
     // NO añadas partidoId aquí, lo añadimos después con el ID del documento
   };
-}
-
-/* ---------- VALIDACIÓN DE DATOS ---------- */
-function validarDatos() {
-  const dep   = campos.deporte.value.trim();
-  const liga  = campos.liga.value.trim();
-  const eq1   = campos.equipo1.value.trim();
-  const eq2   = campos.equipo2.value.trim();
-  const fecha = campos.fecha.value;
-  const hora  = campos.hora.value;
-
-  const cuota1 = parseFloat(campos.cuota1.value);
-  const cuota2 = parseFloat(campos.cuota2.value);
-  const cuotaX = parseFloat(campos.cuotaX.value);
-
-  const errores = [];
-
-  const oblig = ["deporte","liga","equipo1","equipo2","fecha","hora","cuota1","cuota2"];
-  if (dep !== "tenis" && dep !== "baloncesto") oblig.push("cuotaX");
-
-  oblig.forEach(id=>{
-    if(!campos[id].value.trim()) errores.push(`El campo «${id}» es obligatorio.`);
-  });
-
-  if (eq1 && eq2 && eq1.toLowerCase() === eq2.toLowerCase())
-    errores.push("Equipo/Jugador 1 y 2 no pueden ser iguales.");
-
-  if (fecha && hora) {
-    const f = new Date(`${fecha}T${hora}`);
-    if (isNaN(f.getTime()))     errores.push("Fecha u hora con formato inválido.");
-    else if (f < new Date())    errores.push("La fecha/hora debe ser futura.");
-  }
-
-  if (isNaN(cuota1) || cuota1 <= 1) errores.push("La cuota 1 debe ser > 1.");
-  if (isNaN(cuota2) || cuota2 <= 1) errores.push("La cuota 2 debe ser > 1.");
-  if (dep!=="tenis"&&dep!=="baloncesto" && (isNaN(cuotaX)||cuotaX<=1))
-    errores.push("La cuota X debe ser > 1.");
-
-  // Validar nacionalidades solo si están visibles
-  const nac1 = $("nacionalidad1")?.value;
-  const nac2 = $("nacionalidad2")?.value;
-  if (wrapperNac1 && wrapperNac1.style.display !== "none" && !nac1) errores.push("La nacionalidad del equipo/jugador 1 es obligatoria.");
-  if (wrapperNac2 && wrapperNac2.style.display !== "none" && !nac2) errores.push("La nacionalidad del equipo/jugador 2 es obligatoria.");
-
-  // Validar goleadores: cuotas válidas si hay alguno
-  for (const g of goleadores) {
-    if (!g.nombre || isNaN(g.cuota) || g.cuota <= 1) {
-      errores.push(`Cuota de goleador inválida para "${g.nombre || "[sin nombre]"}"`);
-    }
-  }
-
-  // Validar Doble Oportunidad
-  const errDoble = validarDobleOportunidad();
-  if (errDoble) errores.push(errDoble);
-
-  // Validar Ambos Marcan
-  const errAmbos = validarAmbosMarcan();
-  if (errAmbos) errores.push(errAmbos);
-
-  // Validar Goles Impar/Par
-  const errImparPar = validarGolesImparPar();
-  if (errImparPar) errores.push(errImparPar);
-
-  // Validar tarjetas avanzadas (tablas)
-  if (dep === "futbol" && window.tarjetasCuotas) {
-    for (const segmento of TARJETAS_SEGMENTOS) {
-      for (const equipo of TARJETAS_EQUIPOS) {
-        for (const n of TARJETAS_FILAS) {
-          for (const col of TARJETAS_COLUMNAS) {
-            const v = (((window.tarjetasCuotas?.[segmento.id]?.[equipo.id]?.[n]?.[col.id]) || '') + '').trim();
-            if (v !== "" && (isNaN(parseFloat(v)) || parseFloat(v) <= 1)) {
-              errores.push(`Cuota de tarjetas inválida en ${segmento.label} - ${equipo.label} - ${n} tarjeta(s) - ${col.label}: debe ser > 1`);
-            }
-          }
-        }
-      }
-    }
-  }
-
-  // Validar corners avanzadas (tablas)
-  if (dep === "futbol" && window.cornersCuotas) {
-    for (const segmento of CORNERS_SEGMENTOS) {
-      for (const equipo of CORNERS_EQUIPOS) {
-        for (const n of CORNERS_FILAS) {
-          for (const col of CORNERS_COLUMNAS) {
-            const v = (((window.cornersCuotas?.[segmento.id]?.[equipo.id]?.[n]?.[col.id]) || '') + '').trim();
-            if (v !== "" && (isNaN(parseFloat(v)) || parseFloat(v) <= 1)) {
-              errores.push(`Cuota de corners inválida en ${segmento.label} - ${equipo.label} - ${n} córner(s) - ${col.label}: debe ser > 1`);
-            }
-          }
-        }
-      }
-    }
-  }
-
-  if (errores.length) {
-    msg.textContent = errores.join(" ");
-    msg.style.color = "red";
-    return false;
-  }
-  msg.textContent = "";
-  return true;
-}
-
-/* ---------- GUARDAR PARTIDO EN FIRESTORE ---------- */
-async function guardarPartido() {
-  if (!auth.currentUser) {
-    msg.style.color = "red";
-    msg.textContent = "Debes iniciar sesión para crear un partido.";
-    return;
-  }
-
-  if (!validarDatos()) return;
-
-  const partido = construirPartido();
-  const confirm = await mostrarModal("¿Quieres crear este partido?");
-  if (!confirm) return;
-
-  mostrarSpinner(true);
-
-  try {
-    const docRef = await addDoc(collection(db, "partidos"), partido);
-    await setDoc(doc(db, "partidos", docRef.id), { partidoId: docRef.id }, { merge: true });
-
-    mostrarSpinner(false);
-    msg.style.color = "green";
-    msg.textContent = "¡Partido creado con éxito!";
-
-    // Reset formulario
-    Object.values(campos).forEach(input => input.value = "");
-    const sel1 = $("nacionalidad1");
-    const sel2 = $("nacionalidad2");
-    if (sel1) sel1.value = "";
-    if (sel2) sel2.value = "";
-    if (campos.cuotaX) campos.cuotaX.style.display = "inline-block";
-    goleadores.length = 0;
-    renderGoleadores();
-    actualizarDatalistGoleadores();
-    // Reset tarjetas/corners avanzadas
-    if (window.tarjetasCuotas) window.tarjetasCuotas = {};
-    if (window.cornersCuotas) window.cornersCuotas = {};
-    if (typeof renderTarjetasTabs === "function") renderTarjetasTabs();
-    if (typeof renderCornersTabs === "function") renderCornersTabs();
-
-    // Reset Doble Oportunidad
-    window.dobleOportunidadCuotas = { "1X": "", "12": "", "X2": "" };
-    DOBLE_OPORTUNIDAD_OPCIONES.forEach(opt => {
-      const input = document.getElementById(`cuota-doble-${opt.id}`);
-      if (input) input.value = "";
-    });
-
-    // Reset Ambos Marcan
-    window.ambosMarcanCuotas = {
-      encuentro: { si: "", no: "" },
-      primera: { si: "", no: "" },
-      segunda: { si: "", no: "" }
-    };
-    AMBOS_MARCAN_FILAS.forEach(fila => {
-      AMBOS_MARCAN_COLUMNAS.forEach(col => {
-        const input = document.getElementById(`cuota-ambos-${fila.id}-${col.id}`);
-        if (input) input.value = "";
-      });
-    });
-
-    // Reset Goles Impar/Par
-    window.golesImparParCuotas = {
-      encuentro: { impar: "", par: "" },
-      primera: { impar: "", par: "" },
-      segunda: { impar: "", par: "" }
-    };
-    GOLES_IMPARPAR_FILAS.forEach(fila => {
-      GOLES_IMPARPAR_COLUMNAS.forEach(col => {
-        const input = document.getElementById(`cuota-imparpar-${fila.id}-${col.id}`);
-        if (input) input.value = "";
-      });
-    });
-
-  } catch (error) {
-    mostrarSpinner(false);
-    msg.style.color = "red";
-    msg.textContent = "Error guardando partido: " + error.message;
-  }
-}
-
-/* ---------- EVENTO SUBMIT DEL FORMULARIO ---------- */
-const form = $("formCrearPartido");
-
-onAuthStateChanged(auth, async (user) => {
-  if (!user) {
-    window.location.href = "login.html";
-    return;
-  }
-  if (form) {
-    form.addEventListener("submit", e => {
-      e.preventDefault();
-      guardarPartido();
-    });
-  }
-});
-
-/* ---------- MODAL DE CONFIRMACIÓN ---------- */
-function mostrarModal(mensaje) {
-  modalText.textContent = mensaje;
-  modal.style.display = "block";
-
-  return new Promise((resolve) => {
-    btnConfirm.onclick = () => {
-      modal.style.display = "none";
-      resolve(true);
-    };
-    btnCancel.onclick = () => {
-      modal.style.display = "none";
-      resolve(false);
-    };
-  });
-}
-
-/* ---------- SPINNER ---------- */
-function mostrarSpinner(mostrar) {
-  spinner.style.display = mostrar ? "block" : "none";
 }
