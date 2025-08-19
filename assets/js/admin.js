@@ -696,6 +696,9 @@ campos.deporte.addEventListener("change", renderGolesImparParSection);
 document.addEventListener("DOMContentLoaded", renderGolesImparParSection);
 
 
+/* ... tus imports y datos ... */
+/* ... todo el JS previo que ya tienes ... */
+
 /* 6️⃣  Construir objeto partido ------------------------------------------- */
 function construirPartido() {
   const dep   = campos.deporte.value.trim();
@@ -871,6 +874,124 @@ function construirPartido() {
     fecha,
     hora,
     mercados
-    // NO añadas partidoId aquí, lo añadimos después con el ID del documento
   };
 }
+
+/* 7️⃣  Mostrar modal y esperar confirmación ----------------------------- */
+function mostrarModal(mensaje) {
+  modalText.textContent = mensaje;
+  modal.style.display = "block";
+
+  return new Promise((resolve) => {
+    btnConfirm.onclick = () => {
+      modal.style.display = "none";
+      resolve(true);
+    };
+    btnCancel.onclick = () => {
+      modal.style.display = "none";
+      resolve(false);
+    };
+  });
+}
+
+/* 8️⃣  Mostrar/Ocultar spinner ------------------------------------------ */
+function mostrarSpinner(mostrar) {
+  spinner.style.display = mostrar ? "block" : "none";
+}
+
+/* 9️⃣  Guardar partido en Firestore -------------------------------------- */
+async function guardarPartido() {
+  if (!auth.currentUser) {
+    msg.style.color = "red";
+    msg.textContent = "Debes iniciar sesión para crear un partido.";
+    return;
+  }
+
+  if (!validarDatos()) return;
+
+  const partido = construirPartido();
+  const confirm = await mostrarModal("¿Quieres crear este partido?");
+  if (!confirm) return;
+
+  mostrarSpinner(true);
+
+  try {
+    const docRef = await addDoc(collection(db, "partidos"), partido);
+    await setDoc(doc(db, "partidos", docRef.id), { partidoId: docRef.id }, { merge: true });
+
+    mostrarSpinner(false);
+    msg.style.color = "green";
+    msg.textContent = "¡Partido creado con éxito!";
+
+    // Reset formulario
+    Object.values(campos).forEach(input => input.value = "");
+    const sel1 = $("nacionalidad1");
+    const sel2 = $("nacionalidad2");
+    if (sel1) sel1.value = "";
+    if (sel2) sel2.value = "";
+    if (campos.cuotaX) campos.cuotaX.style.display = "inline-block";
+    goleadores.length = 0;
+    renderGoleadores();
+    actualizarDatalistGoleadores();
+
+    // Reset mercados avanzados
+    if (window.tarjetasCuotas) window.tarjetasCuotas = {};
+    if (window.cornersCuotas) window.cornersCuotas = {};
+    if (typeof renderTarjetasTabs === "function") renderTarjetasTabs();
+    if (typeof renderCornersTabs === "function") renderCornersTabs();
+
+    // Reset Doble Oportunidad
+    window.dobleOportunidadCuotas = { "1X": "", "12": "", "X2": "" };
+    DOBLE_OPORTUNIDAD_OPCIONES.forEach(opt => {
+      const input = document.getElementById(`cuota-doble-${opt.id}`);
+      if (input) input.value = "";
+    });
+    // Reset Ambos Marcan
+    window.ambosMarcanCuotas = {
+      encuentro: { si: "", no: "" },
+      primera: { si: "", no: "" },
+      segunda: { si: "", no: "" }
+    };
+    AMBOS_MARCAN_FILAS.forEach(fila => {
+      AMBOS_MARCAN_COLUMNAS.forEach(col => {
+        const input = document.getElementById(`cuota-ambos-${fila.id}-${col.id}`);
+        if (input) input.value = "";
+      });
+    });
+    // Reset Goles Impar/Par
+    window.golesImparParCuotas = {
+      encuentro: { impar: "", par: "" },
+      primera: { impar: "", par: "" },
+      segunda: { impar: "", par: "" }
+    };
+    GOLES_IMPARPAR_FILAS.forEach(fila => {
+      GOLES_IMPARPAR_COLUMNAS.forEach(col => {
+        const input = document.getElementById(`cuota-imparpar-${fila.id}-${col.id}`);
+        if (input) input.value = "";
+      });
+    });
+
+  } catch (error) {
+    mostrarSpinner(false);
+    msg.style.color = "red";
+    msg.textContent = "Error guardando partido: " + error.message;
+  }
+}
+
+/*  🔟  Evento submit ----------------------------------------------------- */
+const form = $("formCrearPartido");
+
+onAuthStateChanged(auth, async (user) => {
+  if (!user) {
+    window.location.href = "login.html";
+    return;
+  }
+  if (form) {
+    form.addEventListener("submit", function(e) {
+      e.preventDefault();
+      guardarPartido();
+    });
+  }
+});
+
+/* ... tu función validarDatos sigue igual ... */
