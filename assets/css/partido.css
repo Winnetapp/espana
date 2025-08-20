@@ -618,3 +618,26 @@ a.volver-btn:hover {
     padding: 10px 0 !important;
   }
 }
+
+.doble-ocu-eq1, .doble-ocu-eq2 {
+  color: #ffe555;
+  font-weight: bold;
+}
+.doble-ocu-empate {
+  color: #ffe16b;
+  font-weight: bold;
+}
+.doble-ocu-o {
+  color: #aaa;
+  font-weight: bold;
+  margin: 0 4px;
+}
+.cuota-doble-ocu {
+  background: #23232d;
+  border-radius: 8px;
+  padding: 8px 5px;
+  box-shadow: 0 2px 8px #0003;
+}
+.cuota-doble-ocu:hover {
+  background: #e7b60a22;
+}
