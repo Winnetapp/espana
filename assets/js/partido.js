@@ -179,7 +179,7 @@ function renderizarMercados(mercados, partido) {
     mercadosDiv.innerHTML += html;
   }
 
-  // --- Doble Oportunidad ---
+  // --- Doble Oportunidad Mejorado ---
   if (mercados.dobleOportunidad && Array.isArray(mercados.dobleOportunidad.opciones) && mercados.dobleOportunidad.opciones.length) {
     let html = `<div class="mercado-block">
       <div class="mercado-header">
@@ -187,20 +187,25 @@ function renderizarMercados(mercados, partido) {
         <span class="flecha">&#x25BC;</span>
       </div>
       <div class="mercado-content">
-        <div class="cuotas doble-oportunidad-lista">`;
+        <div class="cuotas doble-oportunidad-lista" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px;">`;
   
     mercados.dobleOportunidad.opciones.forEach(opt => {
       let label = opt.nombre;
-      if (label === "1X") label = `${partido.equipo1} o Empte`;
-      else if (label === "X2") label = `Empate o ${partido.equipo2}`;
-      else if (label === "12") label = `${partido.equipo1} o ${partido.equipo2}`;
+      let labelHtml = "";
+      if (label === "1X") {
+        labelHtml = `<span class="doble-ocu-eq1"><b>${partido.equipo1}</b></span> <span class="doble-ocu-o">o</span> <span class="doble-ocu-empate" style="color:#ffe16b; font-weight:600;">Empate</span>`;
+      } else if (label === "X2") {
+        labelHtml = `<span class="doble-ocu-empate" style="color:#ffe16b; font-weight:600;">Empate</span> <span class="doble-ocu-o">o</span> <span class="doble-ocu-eq2"><b>${partido.equipo2}</b></span>`;
+      } else if (label === "12") {
+        labelHtml = `<span class="doble-ocu-eq1"><b>${partido.equipo1}</b></span> <span class="doble-ocu-o">o</span> <span class="doble-ocu-eq2"><b>${partido.equipo2}</b></span>`;
+      }
   
       html += `
-        <div class="cuota">
-          <div class="nombre-equipo-cuota">${label}</div>
+        <div class="cuota cuota-doble-ocu">
+          <div class="nombre-equipo-cuota" style="font-size:1.07em; margin-bottom:2px;">${labelHtml}</div>
           <div class="valor-cuota cuota-btn"
             data-partido="${partido.equipo1} vs ${partido.equipo2}"
-            data-tipo="${label}"
+            data-tipo="${labelHtml.replace(/<[^>]+>/g, '')}" <!-- Limpia etiquetas para el slip -->
             data-cuota="${opt.cuota}"
             data-partidoid="${partido.partidoId}"
             data-mercado="doble-oportunidad"
