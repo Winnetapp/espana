@@ -179,7 +179,7 @@ function renderizarMercados(mercados, partido) {
     mercadosDiv.innerHTML += html;
   }
 
-  // --- Doble Oportunidad (texto en el botón, nombres equipos) ---
+  // --- Doble Oportunidad (usando nombres de equipo igual que en resultado) ---
   if (
     mercados.dobleOportunidad &&
     Array.isArray(mercados.dobleOportunidad.opciones) &&
@@ -193,17 +193,22 @@ function renderizarMercados(mercados, partido) {
       <div class="mercado-content">
         <div class="cuotas doble-oportunidad-lista" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px;">`;
   
+    // Usamos el mismo criterio que en el mercado resultado: 
+    // 1X => equipo1 o Empate
+    // X2 => Empate o equipo2
+    // 12 => equipo1 o equipo2
     mercados.dobleOportunidad.opciones.forEach(opt => {
       let label = "";
-      if (opt.nombre === "1X") {
+      // Si el valor existe en la opción, lo usamos igual que resultado
+      if (opt.valor === "1X" || opt.nombre === "1X") {
         label = `${partido.equipo1} o Empate`;
-      } else if (opt.nombre === "X2") {
+      } else if (opt.valor === "X2" || opt.nombre === "X2") {
         label = `Empate o ${partido.equipo2}`;
-      } else if (opt.nombre === "12") {
+      } else if (opt.valor === "12" || opt.nombre === "12") {
         label = `${partido.equipo1} o ${partido.equipo2}`;
       } else {
         // Si el nombre no es estándar, lo mostramos tal cual
-        label = opt.nombre;
+        label = opt.nombre || opt.valor || "";
       }
   
       html += `
