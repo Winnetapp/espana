@@ -202,10 +202,10 @@ function renderizarMercados(mercados, partido) {
   
       html += `
         <div class="cuota cuota-doble-ocu">
-          <div class="nombre-equipo-cuota" style="font-size:1.07em; margin-bottom:2px;">${labelHtml}</div>
+          <div class="nombre-equipo-cuota">${labelHtml}</div>
           <div class="valor-cuota cuota-btn"
             data-partido="${partido.equipo1} vs ${partido.equipo2}"
-            data-tipo="${labelHtml.replace(/<[^>]+>/g, '')}" <!-- Limpia etiquetas para el slip -->
+            data-tipo="${labelHtml.replace(/<[^>]+>/g, '')}"
             data-cuota="${opt.cuota}"
             data-partidoid="${partido.partidoId}"
             data-mercado="doble-oportunidad"
