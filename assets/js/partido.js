@@ -187,22 +187,27 @@ function renderizarMercados(mercados, partido) {
         <span class="flecha">&#x25BC;</span>
       </div>
       <div class="mercado-content">
+        <div class="doble-ocu-descripcion" style="margin-bottom:12px; color:#ffe555; font-size:1.05em;">
+          Elige dos opciones: gana tu equipo o empate, empate o rival, o cualquiera de los dos equipos ganan.
+        </div>
         <div class="cuotas doble-oportunidad-lista" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px;">`;
   
     mercados.dobleOportunidad.opciones.forEach(opt => {
       let label = opt.nombre;
       let labelHtml = "";
       if (label === "1X") {
-        labelHtml = `<span class="doble-ocu-eq1"><b>${partido.equipo1}</b></span> <span class="doble-ocu-o">o</span> <span class="doble-ocu-empate" style="color:#ffe16b; font-weight:600;">Empate</span>`;
+        labelHtml = `<span class="doble-ocu-eq1"><b>${partido.equipo1}</b></span> <span class="doble-ocu-o">o</span> <span class="doble-ocu-empate">Empate</span>`;
       } else if (label === "X2") {
-        labelHtml = `<span class="doble-ocu-empate" style="color:#ffe16b; font-weight:600;">Empate</span> <span class="doble-ocu-o">o</span> <span class="doble-ocu-eq2"><b>${partido.equipo2}</b></span>`;
+        labelHtml = `<span class="doble-ocu-empate">Empate</span> <span class="doble-ocu-o">o</span> <span class="doble-ocu-eq2"><b>${partido.equipo2}</b></span>`;
       } else if (label === "12") {
         labelHtml = `<span class="doble-ocu-eq1"><b>${partido.equipo1}</b></span> <span class="doble-ocu-o">o</span> <span class="doble-ocu-eq2"><b>${partido.equipo2}</b></span>`;
       }
   
       html += `
         <div class="cuota cuota-doble-ocu">
-          <div class="nombre-equipo-cuota">${labelHtml}</div>
+          <div class="nombre-doble-ocu" style="text-align:center; font-size:1.09em; margin-bottom:4px;">
+            ${labelHtml}
+          </div>
           <div class="valor-cuota cuota-btn"
             data-partido="${partido.equipo1} vs ${partido.equipo2}"
             data-tipo="${labelHtml.replace(/<[^>]+>/g, '')}"
