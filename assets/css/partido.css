@@ -619,6 +619,12 @@ a.volver-btn:hover {
   }
 }
 
+.nombre-doble-ocu {
+  font-size: 1.09em;
+  color: #ffe555;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
 .doble-ocu-eq1, .doble-ocu-eq2 {
   color: #ffe555;
   font-weight: bold;
@@ -637,7 +643,17 @@ a.volver-btn:hover {
   border-radius: 8px;
   padding: 8px 5px;
   box-shadow: 0 2px 8px #0003;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 .cuota-doble-ocu:hover {
   background: #e7b60a22;
+}
+.doble-ocu-descripcion {
+  font-size: 1.05em;
+  color: #ffe555;
+  margin-bottom: 12px;
+  text-align: left;
 }
