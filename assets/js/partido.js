@@ -179,7 +179,7 @@ function renderizarMercados(mercados, partido) {
     mercadosDiv.innerHTML += html;
   }
 
-  // --- Doble Oportunidad (texto en el botón) ---
+  // --- Doble Oportunidad (texto en el botón, nombres equipos) ---
   if (
     mercados.dobleOportunidad &&
     Array.isArray(mercados.dobleOportunidad.opciones) &&
@@ -194,10 +194,17 @@ function renderizarMercados(mercados, partido) {
         <div class="cuotas doble-oportunidad-lista" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px;">`;
   
     mercados.dobleOportunidad.opciones.forEach(opt => {
-      let label = opt.nombre;
-      if (label === "1X") label = `${partido.equipo1} o Empate`;
-      else if (label === "X2") label = `Empate o ${partido.equipo2}`;
-      else if (label === "12") label = `${partido.equipo1} o ${partido.equipo2}`;
+      let label = "";
+      if (opt.nombre === "1X") {
+        label = `${partido.equipo1} o Empate`;
+      } else if (opt.nombre === "X2") {
+        label = `Empate o ${partido.equipo2}`;
+      } else if (opt.nombre === "12") {
+        label = `${partido.equipo1} o ${partido.equipo2}`;
+      } else {
+        // Si el nombre no es estándar, lo mostramos tal cual
+        label = opt.nombre;
+      }
   
       html += `
         <div class="cuota cuota-doble-ocu">
@@ -207,10 +214,9 @@ function renderizarMercados(mercados, partido) {
             data-cuota="${opt.cuota}"
             data-partidoid="${partido.partidoId}"
             data-mercado="doble-oportunidad"
-            style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;background:var(--goleadores-bg);color:#ffe555;font-weight:700;border-radius:7px;cursor:pointer;box-shadow:0 2px 8px #00000018;padding:8px 0;border:none;font-size:1.07em;transition:background 0.18s,color 0.18s,box-shadow 0.18s;"
           >
-            <span style="font-size:1.1em;font-weight:600;margin-bottom:2px;">${label}</span>
-            <span style="font-size:1.11em;color:yellow;font-weight:bold;">${typeof opt.cuota === "number" ? opt.cuota.toFixed(2) : opt.cuota}</span>
+            <span style="font-size:1.08em;font-weight:600;margin-bottom:2px;">${label}</span>
+            <span style="font-size:1.13em;color:yellow;font-weight:bold;">${typeof opt.cuota === "number" ? opt.cuota.toFixed(2) : opt.cuota}</span>
           </button>
         </div>
       `;
