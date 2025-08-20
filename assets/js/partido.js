@@ -179,44 +179,39 @@ function renderizarMercados(mercados, partido) {
     mercadosDiv.innerHTML += html;
   }
 
-  // --- Doble Oportunidad Mejorado ---
-  if (mercados.dobleOportunidad && Array.isArray(mercados.dobleOportunidad.opciones) && mercados.dobleOportunidad.opciones.length) {
+  // --- Doble Oportunidad (texto en el botón) ---
+  if (
+    mercados.dobleOportunidad &&
+    Array.isArray(mercados.dobleOportunidad.opciones) &&
+    mercados.dobleOportunidad.opciones.length
+  ) {
     let html = `<div class="mercado-block">
       <div class="mercado-header">
         <span>Doble Oportunidad</span>
         <span class="flecha">&#x25BC;</span>
       </div>
       <div class="mercado-content">
-        <div class="doble-ocu-descripcion" style="margin-bottom:12px; color:#ffe555; font-size:1.05em;">
-          Elige dos opciones: gana tu equipo o empate, empate o rival, o cualquiera de los dos equipos ganan.
-        </div>
         <div class="cuotas doble-oportunidad-lista" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px;">`;
   
     mercados.dobleOportunidad.opciones.forEach(opt => {
       let label = opt.nombre;
-      let labelHtml = "";
-      if (label === "1X") {
-        labelHtml = `<span class="doble-ocu-eq1"><b>${partido.equipo1}</b></span> <span class="doble-ocu-o">o</span> <span class="doble-ocu-empate">Empate</span>`;
-      } else if (label === "X2") {
-        labelHtml = `<span class="doble-ocu-empate">Empate</span> <span class="doble-ocu-o">o</span> <span class="doble-ocu-eq2"><b>${partido.equipo2}</b></span>`;
-      } else if (label === "12") {
-        labelHtml = `<span class="doble-ocu-eq1"><b>${partido.equipo1}</b></span> <span class="doble-ocu-o">o</span> <span class="doble-ocu-eq2"><b>${partido.equipo2}</b></span>`;
-      }
+      if (label === "1X") label = `${partido.equipo1} o Empate`;
+      else if (label === "X2") label = `Empate o ${partido.equipo2}`;
+      else if (label === "12") label = `${partido.equipo1} o ${partido.equipo2}`;
   
       html += `
         <div class="cuota cuota-doble-ocu">
-          <div class="nombre-doble-ocu" style="text-align:center; font-size:1.09em; margin-bottom:4px;">
-            ${labelHtml}
-          </div>
-          <div class="valor-cuota cuota-btn"
+          <button class="valor-cuota cuota-btn"
             data-partido="${partido.equipo1} vs ${partido.equipo2}"
-            data-tipo="${labelHtml.replace(/<[^>]+>/g, '')}"
+            data-tipo="${label}"
             data-cuota="${opt.cuota}"
             data-partidoid="${partido.partidoId}"
             data-mercado="doble-oportunidad"
+            style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;background:var(--goleadores-bg);color:#ffe555;font-weight:700;border-radius:7px;cursor:pointer;box-shadow:0 2px 8px #00000018;padding:8px 0;border:none;font-size:1.07em;transition:background 0.18s,color 0.18s,box-shadow 0.18s;"
           >
-            ${typeof opt.cuota === "number" ? opt.cuota.toFixed(2) : opt.cuota}
-          </div>
+            <span style="font-size:1.1em;font-weight:600;margin-bottom:2px;">${label}</span>
+            <span style="font-size:1.11em;color:yellow;font-weight:bold;">${typeof opt.cuota === "number" ? opt.cuota.toFixed(2) : opt.cuota}</span>
+          </button>
         </div>
       `;
     });
