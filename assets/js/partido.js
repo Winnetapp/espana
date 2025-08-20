@@ -191,7 +191,7 @@ function renderizarMercados(mercados, partido) {
   
     mercados.dobleOportunidad.opciones.forEach(opt => {
       let label = opt.nombre;
-      if (label === "1X") label = `${partido.equipo1} o Empate`;
+      if (label === "1X") label = `${partido.equipo1} o Empte`;
       else if (label === "X2") label = `Empate o ${partido.equipo2}`;
       else if (label === "12") label = `${partido.equipo1} o ${partido.equipo2}`;
   
