@@ -1,4 +1,4 @@
-l// ========== UTILS SOLO PARA PARTIDO ==========
+// ========== UTILS SOLO PARA PARTIDO ==========
 function removeTildes(str) {
   return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 }
@@ -216,53 +216,38 @@ function renderizarMercados(mercados, partido) {
   }
   
 
-  // --- Ambos Marcan (tabla estilo) ---
+  // --- Ambos Marcan ---
   if (mercados.ambosMarcan && Array.isArray(mercados.ambosMarcan.opciones) && mercados.ambosMarcan.opciones.length) {
-    // Segments in desired order
-    const segmentos = ["Encuentro", "1ª Mitad", "2ª Mitad"];
-    const columnas = ["Sí", "No"];
-  
+    let segmentos = [...new Set(mercados.ambosMarcan.opciones.map(opt => opt.segmento))];
     let html = `<div class="mercado-block">
       <div class="mercado-header">
         <span>Ambos Marcan</span>
         <span class="flecha">&#x25BC;</span>
       </div>
       <div class="mercado-content">
-        <table class="ambos-marcan-table">
-          <thead>
-            <tr>
-              <th></th>
-              ${columnas.map(col => `<th>${col}</th>`).join('')}
-            </tr>
-          </thead>
-          <tbody>
-            ${segmentos.map(seg => {
-              // Para cada segmento, busca la cuota Si/No
-              const opcionesSegmento = mercados.ambosMarcan.opciones.filter(opt => opt.segmento === seg);
-              return `<tr>
-                <td>${seg}</td>
-                ${columnas.map(col => {
-                  const opt = opcionesSegmento.find(o => o.tipo === col);
-                  if (opt) {
-                    return `<td>
+        ${segmentos.map(seg =>
+          `<div class="ambos-marcan-segmento">
+            <div class="ambos-marcan-titulo">${seg}</div>
+            <div class="cuotas ambos-marcan-lista">
+              ${
+                mercados.ambosMarcan.opciones
+                  .filter(opt => opt.segmento === seg)
+                  .map(opt => `
+                    <div class="cuota">
+                      <div class="nombre-equipo-cuota">${opt.tipo}</div>
                       <div class="valor-cuota cuota-btn"
                         data-partido="${partido.equipo1} vs ${partido.equipo2}"
-                        data-tipo="${seg} - ${col}"
+                        data-tipo="${opt.segmento} - ${opt.tipo}"
                         data-cuota="${opt.cuota}"
                         data-partidoid="${partido.partidoId}"
                         data-mercado="ambos-marcan"
-                      >
-                        ${typeof opt.cuota === "number" ? opt.cuota.toFixed(2) : opt.cuota}
-                      </div>
-                    </td>`;
-                  } else {
-                    return `<td><div class="valor-cuota cuota-btn cuota-disabled" style="pointer-events:none;opacity:.5;">-</div></td>`;
-                  }
-                }).join('')}
-              </tr>`;
-            }).join('')}
-          </tbody>
-        </table>
+                      >${typeof opt.cuota === "number" ? opt.cuota.toFixed(2) : opt.cuota}</div>
+                    </div>
+                  `).join('')
+              }
+            </div>
+          </div>`
+        ).join('')}
       </div>
     </div>`;
     mercadosDiv.innerHTML += html;
