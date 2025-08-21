@@ -99,7 +99,7 @@ window.addBetToSlip = function({ partido, tipo, cuota, partidoId, mercado }) {
     }
   }
   // Añadir apuesta si pasa las restricciones
-  bets.push({ partido, tipo, cuota, partidoId, mercado });
+  bets.push({ partido, tipo, cuota, partidoId, mercado: normMercado });
   guardarCarrito();
   refreshSlip();
 };
