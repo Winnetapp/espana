@@ -134,8 +134,9 @@ if (clearBtn) {
   clearBtn.addEventListener('click', () => {
     console.log('Limpiando apuestas');
     bets = [];
-    guardarCarrito();
+    localStorage.removeItem('carritoApuestas');
     refreshSlip();
+    guardarCarrito();
     cambiarPestania('simple');
   });
 } else {
