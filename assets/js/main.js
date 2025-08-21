@@ -66,14 +66,20 @@ function normalizaPeriodoCorners(tipo) {
 
 /* ============ PUBLIC API PARA OTRAS PÁGINAS ============ */
 window.addBetToSlip = function({ partido, tipo, cuota, partidoId, mercado }) {
+  // Normaliza los campos para evitar errores de comparación
+  const normPartidoId = partidoId ? partidoId.toString().trim() : "";
+  const normMercado = mercado ? mercado.toLowerCase().replace(/\s/g, '') : "";
+  const normTipo = tipo ? tipo.toLowerCase().replace(/\s/g, '') : "";
+  const normCuota = cuota ? cuota.toString().trim() : "";
+
   // Restricción 1: Solo una apuesta "resultado" por partido
   if (
     window.location.pathname.endsWith('partido.html') &&
-    mercado === "resultado"
+    normMercado === "resultado"
   ) {
     const yaExiste = bets.some(b =>
-      b.partidoId === partidoId &&
-      b.mercado === "resultado"
+      (b.partidoId ? b.partidoId.toString().trim() : "") === normPartidoId &&
+      (b.mercado ? b.mercado.toLowerCase().replace(/\s/g, '') : "") === "resultado"
     );
     if (yaExiste) {
       alert(`Ya tienes una apuesta para el mercado "Resultado" de este partido en tu carrito.`);
@@ -82,10 +88,10 @@ window.addBetToSlip = function({ partido, tipo, cuota, partidoId, mercado }) {
   } else {
     // Restricción 2: No permitir duplicados exactos en otros mercados
     const yaExisteExacta = bets.some(b =>
-      b.partidoId === partidoId &&
-      b.mercado === mercado &&
-      b.tipo === tipo &&
-      b.cuota === cuota
+      (b.partidoId ? b.partidoId.toString().trim() : "") === normPartidoId &&
+      (b.mercado ? b.mercado.toLowerCase().replace(/\s/g, '') : "") === normMercado &&
+      (b.tipo ? b.tipo.toLowerCase().replace(/\s/g, '') : "") === normTipo &&
+      (b.cuota ? b.cuota.toString().trim() : "") === normCuota
     );
     if (yaExisteExacta) {
       alert("Ya tienes esta selección exacta añadida en tu carrito.");
