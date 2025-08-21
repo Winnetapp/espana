@@ -283,38 +283,49 @@ if (mercados.ambosMarcan && Array.isArray(mercados.ambosMarcan.opciones) && merc
   mercadosDiv.innerHTML += html;
 }
 
-  // --- Goles Impar/Par ---
+  // --- Goles Impar/Par (render en tabla tipo Ambos Marcan) ---
   if (mercados.golesImparPar && Array.isArray(mercados.golesImparPar.opciones) && mercados.golesImparPar.opciones.length) {
-    let segmentos = [...new Set(mercados.golesImparPar.opciones.map(opt => opt.segmento))];
+    // Segmentos únicos
+    const segmentos = [...new Set(mercados.golesImparPar.opciones.map(opt => opt.segmento))];
+    const columnas = ["Impar", "Par"];
     let html = `<div class="mercado-block">
       <div class="mercado-header">
         <span>Goles Impar/Par</span>
         <span class="flecha">&#x25BC;</span>
       </div>
       <div class="mercado-content">
-        ${segmentos.map(seg =>
-          `<div class="goles-imparpar-segmento">
-            <div class="goles-imparpar-titulo">${seg}</div>
-            <div class="cuotas goles-imparpar-lista">
-              ${
-                mercados.golesImparPar.opciones
-                  .filter(opt => opt.segmento === seg)
-                  .map(opt => `
-                    <div class="cuota">
-                      <div class="nombre-equipo-cuota">${opt.tipo}</div>
+        <table class="goles-imparpar-table">
+          <thead>
+            <tr>
+              <th>Segmento</th>
+              ${columnas.map(col => `<th>${col}</th>`).join('')}
+            </tr>
+          </thead>
+          <tbody>
+            ${segmentos.map(seg => {
+              const opcionesSegmento = mercados.golesImparPar.opciones.filter(opt => opt.segmento === seg);
+              return `<tr>
+                <td>${seg}</td>
+                ${columnas.map(col => {
+                  const opt = opcionesSegmento.find(o => o.tipo === col);
+                  if (opt) {
+                    return `<td>
                       <div class="valor-cuota cuota-btn"
                         data-partido="${partido.equipo1} vs ${partido.equipo2}"
-                        data-tipo="${opt.segmento} - ${opt.tipo}"
+                        data-tipo="${seg} - ${col}"
                         data-cuota="${opt.cuota}"
                         data-partidoid="${partido.partidoId}"
                         data-mercado="goles-imparpar"
                       >${typeof opt.cuota === "number" ? opt.cuota.toFixed(2) : opt.cuota}</div>
-                    </div>
-                  `).join('')
-              }
-            </div>
-          </div>`
-        ).join('')}
+                    </td>`;
+                  } else {
+                    return `<td><div class="valor-cuota cuota-btn cuota-disabled" style="pointer-events:none;opacity:.5;">-</div></td>`;
+                  }
+                }).join('')}
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
       </div>
     </div>`;
     mercadosDiv.innerHTML += html;
