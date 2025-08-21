@@ -619,6 +619,119 @@ a.volver-btn:hover {
   }
 }
 
+/* === ESTILO DOBLE OPORTUNIDAD IGUAL AL DE RESULTADO === */
+
+/* Tabla principal de doble oportunidad, igual que tarjetas y ambos marcan */
+.doble-oportunidad-table {
+  width: 100%;
+  table-layout: fixed;
+  font-size: 0.92em;
+  border-radius: 8px;
+  overflow: hidden;
+  margin: 0 0 8px 0;
+  background: #222;
+  box-shadow: 0 2px 12px #000a;
+}
+.doble-oportunidad-table th, .doble-oportunidad-table td {
+  font-size: 1.02em;
+  font-weight: 600;
+  color: var(--goleador-cta);
+  text-align: center;
+  padding: 3px 0;
+  background: #222;
+  border: none;
+  white-space: nowrap;
+}
+.doble-oportunidad-table th {
+  background: #18191b;
+  color: #ffe16b;
+  font-size: 1.04em;
+  font-weight: bold;
+  border-bottom: 1.5px solid #333;
+  padding: 20px 0;
+  border-radius: 10px 10px 0 0;
+}
+
+/* Botones/cuotas de doble oportunidad */
+.doble-oportunidad-table .cuota-doble-ocu,
+.cuota-doble-ocu {
+  background: var(--goleadores-bg);
+  color: #ffe555;
+  font-weight: 700;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s, box-shadow 0.18s;
+  box-shadow: 0 2px 8px #00000018;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  text-align: center;
+  box-sizing: border-box;
+  font-size: 1.06rem;
+  white-space: nowrap;
+  padding: 6px 0;
+}
+
+/* Hover igual que resultado */
+.doble-oportunidad-table .cuota-doble-ocu:hover,
+.cuota-doble-ocu:hover {
+  background: var(--color-hover-cuota);
+  color: var(--color-hover-texto);
+  box-shadow: 0 0 8px #e74b4b66;
+  transform: scale(1.025);
+}
+
+.doble-oportunidad-table .cuota-doble-ocu-disabled,
+.cuota-doble-ocu-disabled {
+  background: #23232d;
+  color: #a5a5a5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Responsive igual que tarjetas y ambos marcan */
+@media (max-width: 700px) {
+  .doble-oportunidad-table,
+  .doble-oportunidad-table th,
+  .doble-oportunidad-table td,
+  .doble-oportunidad-table .cuota-doble-ocu {
+    font-size: 0.81em !important;
+    padding: 3px 0 !important;
+    border-radius: 5px !important;
+  }
+  .doble-oportunidad-table th,
+  .doble-oportunidad-table td {
+    padding: 2px 0 !important;
+  }
+  .doble-oportunidad-table .cuota-doble-ocu {
+    min-width: 0;
+    max-width: 100%;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+  .doble-oportunidad-table {
+    min-width: unset !important;
+    width: 100% !important;
+  }
+}
+
+@media (max-width: 430px) {
+  .doble-oportunidad-table,
+  .doble-oportunidad-table th,
+  .doble-oportunidad-table td,
+  .doble-oportunidad-table .cuota-doble-ocu {
+    font-size: 1em !important;
+  }
+  .doble-oportunidad-table th {
+    font-size: 0.85em !important;
+    padding: 10px 0 !important;
+  }
+}
+
+/* Estructura de nombres y textos igual que resultado */
 .nombre-doble-ocu {
   font-size: 1.09em;
   color: #ffe555;
@@ -637,19 +750,6 @@ a.volver-btn:hover {
   color: #aaa;
   font-weight: bold;
   margin: 0 4px;
-}
-.cuota-doble-ocu {
-  background: #23232d;
-  border-radius: 8px;
-  padding: 8px 5px;
-  box-shadow: 0 2px 8px #0003;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-.cuota-doble-ocu:hover {
-  background: #e7b60a22;
 }
 .doble-ocu-descripcion {
   font-size: 1.05em;
