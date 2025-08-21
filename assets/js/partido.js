@@ -499,23 +499,15 @@ function renderTarjetasTabla(tarjetasObj, segId, eqId, columnas, filas, partido)
   tablaCont.innerHTML = html;
 
   // Vuelve a asignar eventos para cuotas-boton de tarjetas
-  document.querySelectorAll('.cuota-btn-main').forEach(btn => {
+  document.querySelectorAll('.cuota-btn.cuota-tarjeta').forEach(btn => {
     btn.addEventListener('click', function () {
       if (typeof window.addBetToSlip === "function") {
-        let mercado = '';
-        const mercadoBlock = btn.closest('.mercado-block');
-        if (mercadoBlock && mercadoBlock.querySelector('.mercado-header span')) {
-          mercado = mercadoBlock.querySelector('.mercado-header span').textContent
-            .trim()
-            .toLowerCase();
-        }
-  
         window.addBetToSlip({
           partido: btn.dataset.partido,
           tipo: btn.dataset.tipo,
           cuota: btn.dataset.cuota,
           partidoId: btn.dataset.partidoid,
-          mercado
+          mercado: "tarjetas" // <--- fuerza 'tarjetas' minúsculas
         });
       }
     });
