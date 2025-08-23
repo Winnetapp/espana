@@ -66,7 +66,7 @@ function normalizaPeriodoCorners(tipo) {
 
 /* ============ PUBLIC API PARA OTRAS PÁGINAS ============ */
 window.addBetToSlip = function({ partido, tipo, cuota, partidoId, mercado }) {
-  // Normaliza los campos para evitar errores de comparación
+  // Normaliza los campos
   const normPartidoId = partidoId ? partidoId.toString().trim() : "";
   const normMercado = mercado ? mercado.toLowerCase().replace(/\s/g, '') : "";
   const normTipo = tipo ? tipo.toLowerCase().replace(/\s/g, '') : "";
@@ -85,19 +85,52 @@ window.addBetToSlip = function({ partido, tipo, cuota, partidoId, mercado }) {
       alert(`Ya tienes una apuesta para el mercado "Resultado" de este partido en tu carrito.`);
       return;
     }
-  } else {
-    // Restricción 2: No permitir duplicados exactos en otros mercados
-    const yaExisteExacta = bets.some(b =>
+  }
+
+  // Restricción 2: Solo una apuesta "doble oportunidad" por partido
+  if (
+    normMercado === "doble-oportunidad"
+  ) {
+    const yaExiste = bets.some(b =>
       (b.partidoId ? b.partidoId.toString().trim() : "") === normPartidoId &&
-      (b.mercado ? b.mercado.toLowerCase().replace(/\s/g, '') : "") === normMercado &&
-      (b.tipo ? b.tipo.toLowerCase().replace(/\s/g, '') : "") === normTipo &&
-      (b.cuota ? b.cuota.toString().trim() : "") === normCuota
+      (b.mercado ? b.mercado.toLowerCase().replace(/\s/g, '') : "") === "doble-oportunidad"
     );
-    if (yaExisteExacta) {
-      alert("Ya tienes esta selección exacta añadida en tu carrito.");
+    if (yaExiste) {
+      alert(`Ya tienes una apuesta para el mercado "Doble Oportunidad" de este partido en tu carrito.`);
       return;
     }
   }
+
+  // Nueva Restricción: No se permite tener a la vez resultado y doble oportunidad del mismo partido
+  if (
+    normMercado === "resultado" ||
+    normMercado === "doble-oportunidad"
+  ) {
+    const yaExisteAlternativo = bets.some(b =>
+      (b.partidoId ? b.partidoId.toString().trim() : "") === normPartidoId &&
+      (
+        (normMercado === "resultado" && (b.mercado ? b.mercado.toLowerCase().replace(/\s/g, '') : "") === "doble-oportunidad") ||
+        (normMercado === "doble-oportunidad" && (b.mercado ? b.mercado.toLowerCase().replace(/\s/g, '') : "") === "resultado")
+      )
+    );
+    if (yaExisteAlternativo) {
+      alert("No puedes añadir una apuesta de Resultado y Doble Oportunidad del mismo partido a la vez. Elimina la anterior para añadir esta.");
+      return;
+    }
+  }
+
+  // Restricción 3: No permitir duplicados exactos en otros mercados
+  const yaExisteExacta = bets.some(b =>
+    (b.partidoId ? b.partidoId.toString().trim() : "") === normPartidoId &&
+    (b.mercado ? b.mercado.toLowerCase().replace(/\s/g, '') : "") === normMercado &&
+    (b.tipo ? b.tipo.toLowerCase().replace(/\s/g, '') : "") === normTipo &&
+    (b.cuota ? b.cuota.toString().trim() : "") === normCuota
+  );
+  if (yaExisteExacta) {
+    alert("Ya tienes esta selección exacta añadida en tu carrito.");
+    return;
+  }
+
   // Añadir apuesta si pasa las restricciones
   bets.push({ partido, tipo, cuota, partidoId, mercado: normMercado });
   guardarCarrito();
