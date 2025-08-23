@@ -73,15 +73,15 @@ window.addBetToSlip = function({ partido, tipo, cuota, partidoId, mercado }) {
   const normCuota = cuota ? cuota.toString().trim() : "";
 
   // RESTRICCIÓN: NO permitir a la vez "resultado" y "doble-oportunidad" del mismo partido
-  if (["resultado", "doble-oportunidad"].includes(normMercado)) {
-    const yaExisteAlternativo = bets.some(b =>
+  if (normMercado === "resultado" || normMercado === "doble-oportunidad") {
+    const yaExiste = bets.some(b =>
       (b.partidoId ? b.partidoId.toString().trim() : "") === normPartidoId &&
       (
-        ["resultado", "doble-oportunidad"].includes(b.mercado ? b.mercado.toLowerCase().replace(/\s/g, '') : "") &&
-        (b.mercado ? b.mercado.toLowerCase().replace(/\s/g, '') : "") !== normMercado
+        (normMercado === "resultado" && (b.mercado ? b.mercado.toLowerCase().replace(/\s/g, '') : "") === "doble-oportunidad") ||
+        (normMercado === "doble-oportunidad" && (b.mercado ? b.mercado.toLowerCase().replace(/\s/g, '') : "") === "resultado")
       )
     );
-    if (yaExisteAlternativo) {
+    if (yaExiste) {
       alert("No puedes añadir una apuesta de Resultado y Doble Oportunidad del mismo partido a la vez. Elimina la anterior para añadir esta.");
       return;
     }
