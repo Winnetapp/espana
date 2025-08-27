@@ -45,11 +45,34 @@ async function cargarPartidos() {
       return;
     }
 
+    // MODIFICACIÓN: recolectar partidos en array para ordenar
+    const partidosArr = [];
     querySnapshot.forEach((docu) => {
       const data = docu.data();
+      partidosArr.push({
+        id: docu.id,
+        ...data
+      });
+    });
+
+    // Parsear fecha y hora a Date y ordenar
+    partidosArr.sort((a, b) => {
+      // Asumimos formato fecha: "YYYY-MM-DD", hora: "HH:mm" (24h)
+      // Si el formato es diferente, ajusta el parsing
+      try {
+        const fechaA = new Date(`${a.fecha}T${a.hora || "00:00"}`);
+        const fechaB = new Date(`${b.fecha}T${b.hora || "00:00"}`);
+        return fechaA - fechaB;
+      } catch {
+        return 0; // Sin ordenar si hay error de formato
+      }
+    });
+
+    // Render partidos ordenados en el select
+    partidosArr.forEach((partido) => {
       const option = document.createElement("option");
-      option.value = docu.id;
-      option.textContent = `${data.equipo1} vs ${data.equipo2} - ${data.fecha} ${data.hora}`;
+      option.value = partido.id;
+      option.textContent = `${partido.equipo1} vs ${partido.equipo2} - ${partido.fecha} ${partido.hora}`;
       matchSelect.appendChild(option);
     });
   } catch (error) {
@@ -60,6 +83,7 @@ async function cargarPartidos() {
   }
 }
 
+// ... resto del código igual ...
 // Construye el formulario dinámico desde JS y mercados del partido
 function construirFormularioDesdeMercados(partidoSeleccionadoData) {
   preguntasWrap.innerHTML = "";
@@ -500,5 +524,3 @@ if (document.readyState === "loading") {
 } else {
   cargarPartidos();
 }
-
-
