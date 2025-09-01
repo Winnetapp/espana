@@ -37,7 +37,7 @@ const goleadoresSection = document.getElementById("goleadores-section");
 
 /* 3️⃣  Datos --------------------------------------------------------------------- */
 const ligasPorDeporte = {
-  futbol: ["La Liga","Premier League","Serie A","Bundesliga","Ligue 1","Champions League","Mundial de Clubes"],
+  futbol: ["La Liga","Premier League","Serie A","Bundesliga","Ligue 1","La Liga Hypermotion","Champions League","Mundial de Clubes"],
   baloncesto: ["NBA","Euroliga"],
   tenis: ["ATP Madrid","Roland Garros"]
 };
