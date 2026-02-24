@@ -956,9 +956,6 @@ if (headerLeft && headerRight) {
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker
-      .register("/service-worker.js")
-      .then(reg => console.log("Service Worker registrado"))
-      .catch(err => console.log("Error al registrar SW", err));
+    navigator.serviceWorker.register("/espana/service-worker.js");
   });
 }
