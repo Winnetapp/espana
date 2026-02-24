@@ -154,28 +154,60 @@ function renderizarMercados(mercados, partido) {
     }
   }
 
-  // Mercado Goleadores
+  // Mercado Goleadores (separados por equipo)
   if (mercados.goleadores && Array.isArray(mercados.goleadores.opciones) && mercados.goleadores.opciones.length) {
+    // Separar goleadores por equipo
+    const golEq1 = mercados.goleadores.opciones.filter(g => g.equipo === "equipo1");
+    const golEq2 = mercados.goleadores.opciones.filter(g => g.equipo === "equipo2");
+    
     let html = `<div class="mercado-block">
       <div class="mercado-header">
         <span>Goleadores</span>
         <span class="flecha">&#x25BC;</span>
       </div>
-      <div class="mercado-content">
+      <div class="mercado-content">`;
+    
+    // Goleadores equipo 1
+    if (golEq1.length > 0) {
+      html += `<div style="margin-bottom: 12px;">
+        <div style="font-weight: bold; color: #ffe16b; margin-bottom: 6px;">${partido.equipo1}</div>
         <div class="goleadores-lista">`;
-    mercados.goleadores.opciones.forEach(gol => {
-      html += `
-        <div class="goleador-opcion"
-          data-partido="${partido.equipo1} vs ${partido.equipo2}"
-          data-jugador="${gol.nombre}"
-          data-cuota="${gol.cuota}"
-          data-partidoid="${partido.partidoId}">
-          <span class="nombre-goleador">${gol.nombre}</span>
-          <span class="cuota-goleador">${gol.cuota}</span>
-        </div>
-      `;
-    });
-    html += `</div></div></div>`;
+      golEq1.forEach(gol => {
+        html += `
+          <div class="goleador-opcion"
+            data-partido="${partido.equipo1} vs ${partido.equipo2}"
+            data-jugador="${gol.nombre}"
+            data-cuota="${gol.cuota}"
+            data-partidoid="${partido.partidoId}">
+            <span class="nombre-goleador">${gol.nombre}</span>
+            <span class="cuota-goleador">${gol.cuota}</span>
+          </div>
+        `;
+      });
+      html += `</div></div>`;
+    }
+    
+    // Goleadores equipo 2
+    if (golEq2.length > 0) {
+      html += `<div style="margin-bottom: 12px;">
+        <div style="font-weight: bold; color: #ffe16b; margin-bottom: 6px;">${partido.equipo2}</div>
+        <div class="goleadores-lista">`;
+      golEq2.forEach(gol => {
+        html += `
+          <div class="goleador-opcion"
+            data-partido="${partido.equipo1} vs ${partido.equipo2}"
+            data-jugador="${gol.nombre}"
+            data-cuota="${gol.cuota}"
+            data-partidoid="${partido.partidoId}">
+            <span class="nombre-goleador">${gol.nombre}</span>
+            <span class="cuota-goleador">${gol.cuota}</span>
+          </div>
+        `;
+      });
+      html += `</div></div>`;
+    }
+    
+    html += `</div></div>`;
     mercadosDiv.innerHTML += html;
   }
 
