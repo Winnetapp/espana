@@ -266,6 +266,7 @@ if (btnInvertir && campos.equipo1 && campos.equipo2 && campos.cuota1 && campos.c
 const goleadores = [];
 const goleadoresList = document.getElementById("goleadores-list");
 const inputGoleadorNombre = document.getElementById("goleador-nombre");
+const inputGoleadorEquipo = document.getElementById("goleador-equipo");
 const inputGoleadorCuota = document.getElementById("goleador-cuota");
 const btnAgregarGoleador = document.getElementById("agregar-goleador");
 
@@ -274,21 +275,49 @@ function renderGoleadores() {
   goleadores.forEach((g, idx) => {
     const div = document.createElement("div");
     div.style.marginBottom = "4px";
-    div.textContent = `${g.nombre} (Cuota: ${g.cuota})`;
-    const btnDel = document.createElement("button");
-    btnDel.textContent = "X";
-    btnDel.style.marginLeft = "7px";
-    btnDel.style.background = "#ff4d4d";
-    btnDel.style.color = "white";
-    btnDel.style.border = "none";
-    btnDel.style.borderRadius = "4px";
-    btnDel.style.cursor = "pointer";
-    btnDel.onclick = () => {
-      goleadores.splice(idx,1);
-      renderGoleadores();
-    };
-    div.appendChild(btnDel);
+    div.style.padding = "8px";
+    div.style.background = "#2b2b2b";
+    div.style.borderRadius = "5px";
+    div.style.display = "flex";
+    div.style.justifyContent = "space-between";
+    div.style.alignItems = "center";
+    
+    const labelEquipo = g.equipo === "equipo1" ? campos.equipo1.value || "Equipo 1" : campos.equipo2.value || "Equipo 2";
+    
+    div.innerHTML = `
+      <span style="flex: 1; color: #ffe16b;">
+        <strong>${g.nombre}</strong> (${labelEquipo}) - Cuota: ${g.cuota}
+      </span>
+      <button type="button" data-idx="${idx}" class="btn-eliminar-goleador" style="background: #b71c1c; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">
+        Eliminar
+      </button>
+    `;
+    
     goleadoresList.appendChild(div);
+    
+    div.querySelector(".btn-eliminar-goleador").addEventListener("click", () => {
+      goleadores.splice(idx, 1);
+      renderGoleadores();
+    });
+  });
+}
+
+if (btnAgregarGoleador) {
+  btnAgregarGoleador.addEventListener("click", () => {
+    const nombre = inputGoleadorNombre.value.trim();
+    const equipo = inputGoleadorEquipo.value;
+    const cuota = parseFloat(inputGoleadorCuota.value);
+    
+    if (!nombre || !cuota || isNaN(cuota)) {
+      alert("Por favor completa todos los campos");
+      return;
+    }
+    
+    goleadores.push({ nombre, equipo, cuota });
+    inputGoleadorNombre.value = "";
+    inputGoleadorEquipo.value = "equipo1";
+    inputGoleadorCuota.value = "";
+    renderGoleadores();
   });
 }
 
@@ -732,7 +761,7 @@ function construirPartido() {
       opciones: goleadores.map(g => ({
         nombre: g.nombre,
         cuota: g.cuota,
-        valor: g.valor
+        equipo: g.equipo  // ✅ Cambio: de 'valor' a 'equipo'
       }))
     };
   }
