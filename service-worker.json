@@ -2,11 +2,36 @@
 const CACHE_NAME = "winnet-cache-v2"; // <-- cambia v2 → v3, v4, etc.
 
 const STATIC_ASSETS = [
+  // Páginas HTML
   "/espana/index.html",
-  "/espana/detalle.html",
-  "/espana/combinadas.html",
-  "/espana/style.css",
-  "/espana/main.js",
+  "/espana/admin.html",
+  "/espana/admin1.html",
+  "/espana/adminhub.html",
+  "/espana/apuestas.html",
+  "/espana/editar.html",
+  "/espana/login.html",
+  "/espana/partido.html",
+  "/espana/register.html",
+
+  // CSS
+  "/espana/assets/css/style.css",
+  "/espana/assets/css/admin.css",
+  "/espana/assets/css/admin1.css",
+  "/espana/assets/css/apuestas.css",
+  "/espana/assets/css/auth.css",
+  "/espana/assets/css/editar.css",
+  "/espana/assets/css/partido.css",
+
+  // JS
+  "/espana/assets/js/main.js",
+  "/espana/assets/js/admin.js",
+  "/espana/assets/js/admin1.js",
+  "/espana/assets/js/apuestas.js",
+  "/espana/assets/js/auth.js",
+  "/espana/assets/js/editar.js",
+  "/espana/assets/js/partido.js",
+
+  // Iconos de la app
   "/espana/icono-192.png",
   "/espana/icono-512.png"
 ];
