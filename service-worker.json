@@ -1,5 +1,4 @@
-// Nombre del cache: cada vez que cambies algo importante, cambia este nombre
-const CACHE_NAME = "winnet-cache-v2"; // <-- cambia v2 → v3, v4, etc.
+const CACHE_NAME = "winnet-cache-v4"; // cambia v4 → v5 → v6… cada actualización
 
 const STATIC_ASSETS = [
   // Páginas HTML
