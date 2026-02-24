@@ -1,0 +1,37 @@
+const CACHE_NAME = "selecto-v1";
+
+const urlsToCache = [
+  "/",
+  "/index.html",
+  "/assets/css/style.css",
+  "/assets/js/main.js"
+];
+
+// Instalar service worker
+self.addEventListener("install", event => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then(cache => {
+      return cache.addAll(urlsToCache);
+    })
+  );
+  self.skipWaiting();
+});
+
+// Activar y limpiar caché vieja
+self.addEventListener("activate", event => {
+  event.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(
+        keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
+      )
+    )
+  );
+  self.clients.claim();
+});
+
+// Interceptar peticiones
+self.addEventListener("fetch", event => {
+  event.respondWith(
+    fetch(event.request).catch(() => caches.match(event.request))
+  );
+});
