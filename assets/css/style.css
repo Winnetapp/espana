@@ -46,7 +46,7 @@ body {
 }
 
 @media screen and (min-width: 768px) {
-  .column{
+  .column {
     width: 30%;
   }
 }
@@ -79,7 +79,6 @@ h1 {
   box-sizing: border-box;
 }
 
-/* Grupo de fecha */
 .grupo-fecha {
   background: #17181a;
   border-radius: 12px;
@@ -88,7 +87,6 @@ h1 {
   transition: box-shadow 0.2s;
 }
 
-/* Fecha grande arriba */
 .fecha {
   background-color: var(--rojo-oscuro);
   color: yellow;
@@ -104,7 +102,6 @@ h1 {
   letter-spacing: 0.5px;
 }
 
-/* PARTIDO */
 .partido {
   width: 100%;
   max-width: 480px;
@@ -126,7 +123,6 @@ h1 {
   box-shadow: 0 4px 26px 0 rgb(255 0 0 / 12%);
 }
 
-/* Equipos */
 .info-equipos {
   display: flex;
   justify-content: space-between;
@@ -152,7 +148,6 @@ h1 {
   margin-top: 2px;
 }
 
-/* Escudo tamaño compacto */
 .escudo {
   width: 40px;
   height: 40px;
@@ -160,6 +155,7 @@ h1 {
   margin-bottom: 6px;
   display: block;
 }
+
 .escudo-wrapper {
   width: 50px;
   height: 50px;
@@ -172,7 +168,7 @@ h1 {
   box-shadow: 0 2px 12px #0003;
 }
 
-.bandera-wrapper{
+.bandera-wrapper {
   width: 50px;
   height: 50px;
   object-fit: contain;
@@ -182,6 +178,7 @@ h1 {
   align-items: center;
   justify-content: space-between;
 }
+
 .bandera {
   width: 50px;
   height: 50px;
@@ -189,7 +186,6 @@ h1 {
   display: block;
 }
 
-/* Hora */
 .hora {
   display: block;
   text-align: center;
@@ -242,7 +238,8 @@ h1 {
   color: #e7e7e7;
 }
 
-.valor-cuota, .cuota-btn {
+.valor-cuota,
+.cuota-btn {
   background: transparent;
   border: none;
   font-weight: bold;
@@ -256,22 +253,21 @@ h1 {
   transition: background 0.25s, color 0.25s;
 }
 
-/* Haz que las cuotas de tenis y baloncesto ocupen la mitad del contenedor cada una */
-.cuotas-tenis, .cuotas-baloncesto {
+.cuotas-tenis,
+.cuotas-baloncesto {
   display: flex;
-  gap: 20px; /* sin espacio entre cuotas */
+  gap: 20px;
   margin: 0;
-  width: 100%; /* ocupa todo el contenedor */
+  width: 100%;
 }
 
-/* Cada cuota ocupa la mitad exacta del ancho del contenedor */
 .cuotas-tenis .cuota,
 .cuotas-baloncesto .cuota {
   flex: 1 1 50%;
   max-width: 100%;
   min-width: 0;
-  margin: 0; /* elimina márgenes entre cuotas para que se junten */
-  border-radius: 7px !important; /* mantiene esquinas redondeadas */
+  margin: 0;
+  border-radius: 7px !important;
   justify-content: center;
   align-items: center;
   box-sizing: border-box;
@@ -280,12 +276,9 @@ h1 {
 
 .cuotas-tenis .cuota:not(:last-child),
 .cuotas-baloncesto .cuota:not(:last-child) {
-  /* Opcional: separador vertical fino si lo quieres visualmente */
   border-right: 1px solid #333;
 }
 
-
-/* Opcional: si quieres que el hover siga funcionando igual: */
 .cuotas-tenis .cuota:hover,
 .cuotas-baloncesto .cuota:hover {
   background-color: var(--color-hover-cuota);
@@ -357,8 +350,8 @@ h1 {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-6px);}
-  to { opacity: 1; transform: translateY(0);}
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .goleador-opcion {
@@ -412,10 +405,6 @@ h1 {
   transform: scale(1.085);
 }
 
-/* --- NUEVO: Para TENIS y BALONCESTO --- */
-/* Aquí asumimos que el contenedor .partido tendrá la clase .tenis o .baloncesto */
-/* Puedes agregar estas clases dinámicamente en tu JS para controlar estilos */
-
 .partido.tenis .info-equipos,
 .partido.baloncesto .info-equipos {
   display: flex;
@@ -423,39 +412,32 @@ h1 {
   gap: 20px;
 }
 
-/* cuota dentro de equipo1: queda normal (centrado) */
 .partido.tenis .equipo1 .cuota,
 .partido.baloncesto .equipo1 .cuota {
   margin: 6px 0 0 0;
   align-self: center;
 }
 
-/* cuota dentro de equipo2: la movemos a la derecha */
 .partido.tenis .equipo2 .cuota,
 .partido.baloncesto .equipo2 .cuota {
-  margin: 6px 0 0 auto; /* auto en margen izquierdo empuja cuota a la derecha */
+  margin: 6px 0 0 auto;
   align-self: flex-end;
 }
 
-
-
-/* Menú apuestas */
-/* Estilo general */
-/* ------------------- BET SLIP / USER SIDEBAR ------------------- */
+/* =================== BET SLIP / USER SIDEBAR =================== */
 .user-sidebar {
   background: var(--fondo);
   color: #fff;
   border-radius: 12px;
   display: flex;
   flex-direction: column;
-  height: auto;          /* debajo del header */
+  height: auto;
   box-shadow: 0 0 10px rgba(0,0,0,.6);
   font-size: 16px;
   width: 300px;
-  overflow-y: visible; /* permite scroll si es necesario */
+  overflow-y: visible;
 }
 
-/* cabecera */
 .bs-header {
   display: flex;
   align-items: center;
@@ -476,7 +458,6 @@ h1 {
   font-weight: 600;
 }
 
-/* pestañas */
 .bs-tabs {
   display: flex;
   background: #1c1c1c;
@@ -502,7 +483,6 @@ h1 {
   color: #fff;
 }
 
-/* cuerpo lista */
 .bs-body {
   flex: 1;
   overflow-y: auto;
@@ -515,7 +495,6 @@ h1 {
   margin: 0;
 }
 
-/* footer */
 .bs-footer {
   background: #151515;
   padding: 12px 14px;
@@ -524,9 +503,24 @@ h1 {
 
 .stake-row {
   display: flex;
+  justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
   margin-bottom: 12px;
-  gap: 8px;
+}
+
+.stake {
+  text-align: center;
+  margin-bottom: 10px;
+  font-style: italic;
+}
+
+.stake-group {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  width: 60%;
 }
 
 .stake-input {
@@ -534,29 +528,38 @@ h1 {
   align-items: center;
   background: #222;
   padding: 4px 8px;
-  border-radius: 6px;
+  border-radius: 50px;
+  overflow: hidden;
   flex: 1;
 }
 
 .stake-input input {
-  width: 60px;
-  background: transparent;
+  width: 100%;
+  padding: 8px;
   border: none;
+  outline: none;
+  background: transparent;
   color: #fff;
   text-align: right;
 }
 
 .stake-input span {
-  margin-left: 4px;
+  padding: 0 8px;
   color: #888;
 }
 
 .total-odds {
+  display: flex;
+  align-items: flex-end;
+  width: 45%;
+  margin-top: 10px;
   text-align: right;
+  gap: 20px;
 }
 
 .tot-label {
   color: #888;
+  font-size: 14px;
 }
 
 .tot-value {
@@ -602,6 +605,33 @@ h1 {
   background: #797979;
 }
 
+.potential-winnings {
+  width: 100%;
+  padding: 10px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pw-label {
+  white-space: nowrap;
+  font-style: italic;
+}
+
+.pw-divider {
+  flex: 1;
+  height: 1px;
+  background: #ccc;
+}
+
+.pw-value {
+  font-weight: bold;
+  color: yellow;
+  white-space: nowrap;
+}
+
+/* =================== BET SLIP ITEMS =================== */
 .bs-item {
   background: #1a1a1d;
   border-radius: 12px;
@@ -614,20 +644,21 @@ h1 {
 .bs-top {
   display: flex;
   align-items: center;
-  justify-content: space-between; /* separa extremos */
+  justify-content: space-between;
 }
 
 .bs-deporte {
-  margin-right: 8px; /* espacio a la derecha */
+  margin-right: 8px;
 }
 
 .bs-tipo {
-  flex-grow: 1;       /* ocupa todo el espacio disponible */
-  text-align: left;   /* asegura que el texto quede a la izquierda */
+  flex-grow: 1;
+  text-align: left;
+  font-size: 14px;
 }
 
 .bs-cuota {
-  margin-right: 20px;   /* espacio a la izquierda */
+  margin-right: 20px;
   background: #1e2a3c;
   padding: 4px 8px;
   border-radius: 6px;
@@ -648,7 +679,6 @@ h1 {
 
 .bs-remove {
   position: absolute;
-  top: 6px;
   right: 8px;
   background: none;
   border: none;
@@ -660,132 +690,230 @@ h1 {
   color: #f66;
 }
 
-.bs-footer {  
-  border-top: 1px solid grey;
+/* =================== GRUPO WINAMAX =================== */
+
+/* Cabecera del grupo: misma base que bs-item pero con acento de color */
+.bs-item-grupo-header {
+  background: #16161a;
+  border-radius: 12px 12px 4px 4px;
+  margin-bottom: 2px;
+  border-left: 3px solid #f5c518;
 }
 
-.stake-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 10px;
+.bs-item-grupo-header:not(:first-child) {
+  margin-top: 20px; /* el valor que tú quieras */
 }
 
-.stake {
-  margin-left: 10px;
+.bs-grupo-nombre {
+  font-weight: 700;
+  color: #fff;
 }
 
-.stake-group {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  width: 60%;
-}
-
-.stake-input {
-  display: flex;
-  align-items: center;
-  border-radius: 50px;
-  overflow: hidden;
-}
-
-.stake-input input {
-  width: 100%;
-  padding: 8px;
-  border: none;
-  outline: none;
-}
-
-.stake-input span {
-  padding: 0 8px;
-}
-
-.total-odds {
-  display: flex;
-  align-items: flex-end;
-  width: 40%;
-  margin-top: 10px;
-}
-
-.tot-label {
-  color: #666;
-  font-size: 14px;
-}
-
-.tot-value {
-  font-weight: bold;
-}
-
-.potential-winnings {
-  width: 100%;
-  padding: 10px;
+.bs-grupo-cuota {
+  margin-right: 20px;
+  background: #2a2200;
+  padding: 4px 8px;
   border-radius: 6px;
-  display: flex;              /* fila horizontal */
-  align-items: center;        /* centra verticalmente */
-  gap: 8px;                   /* espacio entre elementos */
-}
-
-.pw-label {
-  white-space: nowrap;        /* evita salto de línea */
-}
-
-.pw-divider {
-  flex: 1;                    /* ocupa todo el espacio restante */
-  height: 1px;
-  background: #ccc;
-}
-
-.pw-value {
   font-weight: bold;
-  color: yellow;
-  white-space: nowrap;
+  color: #f5c518;
 }
 
-.bet-controls {
-  padding: 10px;
-  border-top: 1px solid #ccc;
-  background-color: #f9f9f9;
+/* Ítems del grupo: igual que bs-item normal pero sin margen superior y esquinas planas arriba */
+.bs-item-sub {
+  border-radius: 4px;
+  margin-bottom: 2px;
 }
 
-.bet-top {
+.bs-item-sub:last-child {
+  border-radius: 4px 4px 12px 12px;
+  margin-bottom: 10px;
+}
+
+/* Texto de selección correlada: color dorado en lugar del blanco normal */
+.bs-tipo-correlada {
+  color: #ecd685 !important;
+}
+
+.bs-item-grupo {
+  border-radius: 12px;
+  margin-bottom: 10px;
+  overflow: hidden;
+  padding: 0 !important;
+}
+
+.bs-grupo-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 10px;
+  gap: 6px;
+  padding: 11px 14px;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  user-select: none;
+  transition: background 0.18s;
 }
 
-#bet-amount {
+.bs-grupo-header:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.bs-grupo-nombre {
   flex: 1;
-  padding: 8px;
-}
-
-#total-odds {
-  min-width: 60px;
-  text-align: right;
-  font-weight: bold;
-}
-
-.potential-win {
-  width: 100%;
-  background-color: #e9ffe9;
-  padding: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #fff;
+  overflow-wrap: break-word;
+  white-space: normal;
   text-align: center;
-  font-weight: bold;
-  border: 1px solid #b0e6b0;
-  border-radius: 5px;
-  margin-bottom: 10px;
 }
 
+.bs-grupo-cuota {
+  font-size: 15px;
+  font-weight: 800;
+  color: #f5c518;
+  min-width: 38px;
+  text-align: right;
+}
 
-/* ------------- Adaptación para escritorio / móvil ------------- */
-/* Escritorio: fijo a la derecha ya lo tienes en .column-right     */
-/* Móvil: deslizable (clase .open la pones con JS)                 */
-/* Botón flotante para móvil */
-/* ----------- Estilos generales ----------- */
+.bs-grupo-toggle {
+  font-size: 10px;
+  opacity: 0.5;
+  margin-left: 4px;
+  transition: transform 0.2s;
+}
+
+/* Selecciones dentro del grupo */
+.bs-grupo-selecciones {
+  display: none;
+  flex-direction: column;
+}
+
+.bs-grupo-selecciones.open {
+  display: flex;
+}
+
+.bs-sub-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px 8px 30px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  font-size: 12.5px;
+  transition: background 0.15s;
+}
+
+.bs-sub-item:last-child {
+  border-bottom: none;
+}
+
+.bs-sub-item:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.bs-sub-tipo {
+  flex: 1;
+  color: rgba(255, 255, 255, 0.82);
+  line-height: 1.3;
+}
+
+.bs-sub-cuota {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  min-width: 34px;
+  text-align: right;
+  font-weight: 600;
+}
+
+.bs-remove-sub {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.3);
+  cursor: pointer;
+  font-size: 11px;
+  padding: 2px 5px;
+  line-height: 1;
+  border-radius: 3px;
+  transition: color 0.15s, background 0.15s;
+  flex-shrink: 0;
+}
+
+.bs-remove-sub:hover {
+  color: #e53935;
+  background: rgba(229, 57, 53, 0.1);
+}
+
+.bs-item-grupo .bs-info {
+  padding: 6px 14px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.35);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  font-style: italic;
+}
+
+/* Badge correlación */
+.bs-corr-badge {
+  display: inline-block;
+  margin-left: 5px;
+  background: #f5c518;
+  color: #111;
+  font-size: 10px;
+  font-weight: bold;
+  border-radius: 3px;
+  padding: 1px 4px;
+  vertical-align: middle;
+  cursor: help;
+  line-height: 1.4;
+}
+
+/* Toast */
+#bet-toast {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: #1a1a1a;
+  color: #fff;
+  border-left: 4px solid #f5c518;
+  padding: 10px 18px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  z-index: 99999;
+  opacity: 0;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  pointer-events: none;
+  max-width: 320px;
+  text-align: center;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.45);
+}
+
+#bet-toast.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+#bet-toast.toast-error { border-left-color: #e53935; }
+#bet-toast.toast-ok    { border-left-color: #43a047; }
+
+/* Animación eliminar apuesta */
+@keyframes bs-barrido {
+  0%   { opacity: 1; transform: translateX(0);      max-height: 80px; }
+  60%  { opacity: 0; transform: translateX(60px);   max-height: 80px; }
+  100% { opacity: 0; transform: translateX(60px);   max-height: 0;    padding: 0; margin: 0; }
+}
+
+.bs-item-removing {
+  animation: bs-barrido 0.28s ease-in forwards;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* =================== BOTÓN MÓVIL =================== */
 .mobile-menu-btn {
-  display: none; /* por defecto oculto en escritorio */
+  display: none;
 }
 
 .mobile-menu-btn:hover {
@@ -817,13 +945,13 @@ h1 {
   display: none;
 }
 
-/* ----------- Estilos móviles ----------- */
+/* =================== RESPONSIVE MÓVIL =================== */
 @media (max-width: 768px) {
-  /* Botón móvil flotante: sin cambios */
   h1 {
     font-size: 1.8rem;
     margin-top: 40px;
   }
+
   .mobile-menu-btn {
     display: flex !important;
     position: fixed;
@@ -837,7 +965,7 @@ h1 {
     font-weight: 700;
     font-size: 16px;
     cursor: pointer;
-    z-index: 2001; /* MÁS ALTO que sidebar y overlay */
+    z-index: 2001;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
     user-select: none;
     align-items: center;
@@ -850,35 +978,15 @@ h1 {
     background: var(--rojo, #e74c3c);
   }
 
-  .mobile-menu-btn img#cartIcon {
-    width: 24px;
-    height: 24px;
-  }
-
-  #totalOddsText {
-    font-weight: bold;
-    font-size: 16px;
-    color: yellow;
-    display: none;
-  }
-
   .bet-badge {
-    position: absolute;
-    top: -6px;
-    right: -6px;
     background-color: yellow;
     color: var(--rojo-oscuro);
-    font-size: 12px;
-    font-weight: bold;
-    padding: 2px 6px;
-    border-radius: 50%;
-    display: none;
   }
 
   .bs-header {
     padding: 15px;
     border-bottom: 1px solid #ccc;
-    flex-shrink: 0; /* no se reduce */
+    flex-shrink: 0;
   }
 
   .bs-body {
@@ -887,7 +995,6 @@ h1 {
     padding: 15px;
   }
 
-  /* Sidebar y overlay siguen debajo del botón flotante */
   .column-right {
     display: block;
     position: fixed;
@@ -896,6 +1003,7 @@ h1 {
     z-index: 1000;
     pointer-events: none;
   }
+
   .column-right .user-sidebar {
     position: fixed;
     top: 0; right: 0; left: 0; bottom: 0;
@@ -910,6 +1018,7 @@ h1 {
     overflow-y: auto;
     pointer-events: auto;
   }
+
   .column-right .user-sidebar.open {
     transform: translateX(0);
   }
@@ -920,9 +1029,7 @@ h1 {
   }
 }
 
-
-/*Register*/
-/* Contenedor general solo para el registro */
+/* =================== REGISTER =================== */
 .register-page {
   font-family: 'Poppins', sans-serif;
   background: #121212;
@@ -1041,7 +1148,7 @@ h1 {
 .password-container input[type="password"],
 .password-container input[type="text"] {
   width: 100%;
-  padding-right: 40px; /* espacio para el botón */
+  padding-right: 40px;
   box-sizing: border-box;
 }
 
@@ -1054,7 +1161,7 @@ h1 {
   border: none;
   font-size: 18px;
   cursor: pointer;
-  color: #aaa; /* un gris más visible */
+  color: #aaa;
   padding: 0;
   height: 43px;
   outline: none;
@@ -1065,36 +1172,6 @@ h1 {
   outline: 2px solid var(--rojo);
   outline-offset: 2px;
 }
-
-@media (max-width: 480px) {
-  .register-page .register-container {
-    padding: 20px 15px;
-    max-width: 300px;
-  }
-
-  .register-page .register-title {
-    font-size: 22px;
-    margin-bottom: 30px;
-  }
-
-  .register-page .register-form input {
-    padding: 10px 12px;
-    font-size: 14px;
-    margin-bottom: 12px;
-  }
-
-  .register-page .register-form button {
-    padding: 10px;
-    font-size: 14px;
-  }
-
-  .toggle-password {
-    font-size: 16px;
-    right: 8px;
-  }
-}
-
-
 
 .back-home {
   margin-top: 1rem;
@@ -1112,9 +1189,31 @@ h1 {
   color: var(--rojo-oscuro);
 }
 
+@media (max-width: 480px) {
+  .register-page .register-container {
+    padding: 20px 15px;
+    max-width: 300px;
+  }
+  .register-page .register-title {
+    font-size: 22px;
+    margin-bottom: 30px;
+  }
+  .register-page .register-form input {
+    padding: 10px 12px;
+    font-size: 14px;
+    margin-bottom: 12px;
+  }
+  .register-page .register-form button {
+    padding: 10px;
+    font-size: 14px;
+  }
+  .toggle-password {
+    font-size: 16px;
+    right: 8px;
+  }
+}
 
-
-/*Login*/
+/* =================== LOGIN =================== */
 .login-page {
   font-family: 'Poppins', sans-serif;
   background: #121212;
@@ -1179,8 +1278,7 @@ h1 {
   transform: scale(1.1);
 }
 
-.login-page .login-form input:focus,
-.toggle-password:focus {
+.login-page .login-form input:focus {
   outline: 2px solid var(--rojo);
   outline-offset: 2px;
 }
@@ -1225,39 +1323,6 @@ h1 {
   color: var(--rojo-oscuro);
 }
 
-.password-container {
-  position: relative;
-  width: 100%;
-}
-
-.password-container input[type="password"],
-.password-container input[type="text"] {
-  width: 100%;
-  padding-right: 40px; /* espacio para el botón */
-  box-sizing: border-box;
-}
-
-.toggle-password {
-  position: absolute;
-  right: 10px;
-  top: 37%;
-  transform: translateY(-50%);
-  background: transparent;
-  border: none;
-  font-size: 18px;
-  cursor: pointer;
-  color: #aaa; /* un gris más visible */
-  padding: 0;
-  height: 43px;
-  outline: none;
-  box-shadow: none;
-}
-
-.toggle-password:focus {
-  outline: 2px solid var(--rojo);
-  outline-offset: 2px;
-}
-
 .register-link {
   text-align: center;
   margin-top: 20px;
@@ -1279,23 +1344,19 @@ h1 {
     padding: 20px 15px;
     max-width: 300px;
   }
-
   .login-page .login-title {
     font-size: 22px;
     margin-bottom: 30px;
   }
-
   .login-page .login-form input {
     padding: 10px 12px;
     font-size: 14px;
     margin-bottom: 12px;
   }
-
   .login-page .login-form button {
     padding: 10px;
     font-size: 14px;
   }
-
   .toggle-password {
     font-size: 16px;
     right: 8px;
