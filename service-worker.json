@@ -1,15 +1,17 @@
-// Nombre fijo del cache para archivos que cambian poco
-const CACHE_NAME = "winnet-static-v1";
+// Nombre del cache: cada vez que cambies algo importante, cambia este nombre
+const CACHE_NAME = "winnet-cache-v2"; // <-- cambia v2 → v3, v4, etc.
 
-// Archivos esenciales que casi nunca cambian
 const STATIC_ASSETS = [
   "/espana/index.html",
+  "/espana/detalle.html",
+  "/espana/combinadas.html",
+  "/espana/style.css",
+  "/espana/main.js",
   "/espana/icono-192.png",
-  "/espana/icono-512.png",
-  "/espana/style.css"
+  "/espana/icono-512.png"
 ];
 
-// Instalar service worker y cachear archivos estáticos
+// Instalar SW y cachear archivos
 self.addEventListener("install", event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
@@ -18,7 +20,7 @@ self.addEventListener("install", event => {
   );
 });
 
-// Activar y limpiar caches viejos si los hubiera
+// Activar SW y limpiar caches viejos
 self.addEventListener("activate", event => {
   event.waitUntil(
     caches.keys().then(keys => 
@@ -36,8 +38,8 @@ self.addEventListener("fetch", event => {
   event.respondWith(
     fetch(event.request)
       .then(response => {
-        // Solo cacheamos respuestas GET válidas
-        if(event.request.method === "GET" && response && response.status === 200) {
+        // Solo cachear GET válidos
+        if(event.request.method === "GET" && response && response.status === 200){
           const responseClone = response.clone();
           caches.open(CACHE_NAME).then(cache => cache.put(event.request, responseClone));
         }
