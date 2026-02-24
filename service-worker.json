@@ -1,37 +1,49 @@
-const CACHE_NAME = "winnet-v1";
+// Nombre base del cache
+const CACHE_NAME = "winnet-cache-v1";
 
-const urlsToCache = [
-  "/",
-  "/index.html",
-  "/assets/css/style.css",
-  "/assets/js/main.js"
+// Archivos que quieres cachear (añade aquí todos los que cambian poco)
+const STATIC_ASSETS = [
+  "/espana/index.html",
+  "/espana/icono-192.png",
+  "/espana/icono-512.png",
+  "/espana/style.css",
+  "/espana/main.js"
 ];
 
-// Instalar service worker
+// Service Worker Install: cache inicial
 self.addEventListener("install", event => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      return cache.addAll(urlsToCache);
-    })
+    caches.open(CACHE_NAME)
+      .then(cache => cache.addAll(STATIC_ASSETS))
+      .then(() => self.skipWaiting())
   );
-  self.skipWaiting();
 });
 
-// Activar y limpiar caché vieja
+// Activate: limpiar caches antiguos si los hubiera
 self.addEventListener("activate", event => {
   event.waitUntil(
-    caches.keys().then(keys =>
+    caches.keys().then(keys => 
       Promise.all(
-        keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
+        keys.filter(key => key !== CACHE_NAME)
+            .map(key => caches.delete(key))
       )
     )
   );
   self.clients.claim();
 });
 
-// Interceptar peticiones
+// Fetch: intenta siempre la red primero, luego cache
 self.addEventListener("fetch", event => {
   event.respondWith(
-    fetch(event.request).catch(() => caches.match(event.request))
+    fetch(event.request)
+      .then(response => {
+        // Actualiza cache solo si la respuesta es válida
+        if(event.request.method === "GET" && response && response.status === 200) {
+          const responseClone = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, responseClone));
+        }
+        return response;
+      })
+      .catch(() => caches.match(event.request))
   );
 });
