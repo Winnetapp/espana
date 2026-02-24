@@ -1,5 +1,5 @@
 // Cambia CACHE_NAME cada vez que actualices archivos
-const CACHE_NAME = "winnet-cache-v1";
+const CACHE_NAME = "winnet-cache-v2";
 
 const STATIC_ASSETS = [
   // Páginas HTML
