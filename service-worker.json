@@ -1,4 +1,5 @@
-const CACHE_NAME = "winnet-cache-v4"; // cambia v4 → v5 → v6… cada actualización
+// Cambia CACHE_NAME cada vez que actualices archivos
+const CACHE_NAME = "winnet-cache-v1";
 
 const STATIC_ASSETS = [
   // Páginas HTML
@@ -35,7 +36,7 @@ const STATIC_ASSETS = [
   "/espana/icono-512.png"
 ];
 
-// Instalar SW y cachear archivos
+// Instalación: cache inicial de archivos
 self.addEventListener("install", event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
@@ -44,13 +45,12 @@ self.addEventListener("install", event => {
   );
 });
 
-// Activar SW y limpiar caches viejos
+// Activación: borrar caches antiguos
 self.addEventListener("activate", event => {
   event.waitUntil(
-    caches.keys().then(keys => 
+    caches.keys().then(keys =>
       Promise.all(
-        keys.filter(key => key !== CACHE_NAME)
-            .map(key => caches.delete(key))
+        keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
       )
     )
   );
@@ -62,8 +62,7 @@ self.addEventListener("fetch", event => {
   event.respondWith(
     fetch(event.request)
       .then(response => {
-        // Solo cachear GET válidos
-        if(event.request.method === "GET" && response && response.status === 200){
+        if(event.request.method === "GET" && response && response.status === 200) {
           const responseClone = response.clone();
           caches.open(CACHE_NAME).then(cache => cache.put(event.request, responseClone));
         }
