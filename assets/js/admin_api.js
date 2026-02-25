@@ -1,14 +1,15 @@
+// admin_api.js
+// Administra importación y actualización de cuotas usando API
+
 import { generar_cuotas } from "./generador_cuotas_api.js";
 
-// Traer partidos desde Bzzoiro API
-export async function importarPartidos(db, apiToken) {
+export async function importar_partidos(db, apiToken) {
   const res = await fetch("https://sports.bzzoiro.com/api/events/", {
     headers: { "Authorization": `Token ${apiToken}` }
   });
   const data = await res.json();
-  const partidos = data.results;
-
-  for (const p of partidos) {
+  
+  for (const p of data.results) {
     const id = p.id.toString();
     const docRef = db.collection("partidos").doc(id);
     const doc = await docRef.get();
@@ -24,8 +25,7 @@ export async function importarPartidos(db, apiToken) {
   }
 }
 
-// Actualizar cuotas usando predicciones API
-export async function actualizarCuotas(db, apiToken) {
+export async function actualizar_cuotas(db, apiToken) {
   const res = await fetch("https://sports.bzzoiro.com/api/predictions/?upcoming=true", {
     headers: { "Authorization": `Token ${apiToken}` }
   });
