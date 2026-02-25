@@ -1,0 +1,62 @@
+import { fuerza_equipos } from "./datos_futbol.js";
+
+// Margen para mercados PRO
+const MARGEN_CASA = 1.07;
+
+function cuota(prob) {
+  return (1 / prob * MARGEN_CASA).toFixed(2);
+}
+
+function media(arr) {
+  return arr.reduce((a,b)=>a+b,0)/arr.length;
+}
+
+// Mercados que no da la API
+function calcularForma(ultimos) {
+  let puntos = 0;
+  ultimos.forEach(p => {
+    if(p.result==="W") puntos+=3;
+    else if(p.result==="D") puntos+=1;
+  });
+  return puntos;
+}
+
+function generar_lineas(esperado) {
+  return {
+    "3.5": { mas: cuota(esperado*0.9), menos: cuota(esperado*0.5) },
+    "4.5": { mas: cuota(esperado*1.1), menos: cuota(esperado*0.4) },
+    "5.5": { mas: cuota(esperado*1.3), menos: cuota(esperado*0.3) }
+  };
+}
+
+// Función principal
+export function generar_cuotas(partido, predicApi) {
+  // predicApi: {prob_home_win, prob_draw, prob_away_win, prob_over_25, prob_btts_yes}
+  const cuotas = {
+    "1X2": {
+      local: (1/(predicApi.prob_home_win/100)).toFixed(2),
+      empate: (1/(predicApi.prob_draw/100)).toFixed(2),
+      visitante: (1/(predicApi.prob_away_win/100)).toFixed(2)
+    },
+    "mas_menos_25": {
+      mas: (1/(predicApi.prob_over_25/100)).toFixed(2),
+      menos: (1/(1 - predicApi.prob_over_25/100)).toFixed(2)
+    },
+    "ambos_marcan": {
+      si: (1/(predicApi.prob_btts_yes/100)).toFixed(2),
+      no: (1/(1 - predicApi.prob_btts_yes/100)).toFixed(2)
+    }
+  };
+
+  // Mercados PRO: tarjetas, corners, resultado exacto, primer gol
+  const ultimosLocal = partido.ultimosLocal || [];
+  const ultimosVisit = partido.ultimosVisit || [];
+
+  const tarjetas_esperadas = ((media(ultimosLocal.map(p=>p.tarjetas||2)) + media(ultimosVisit.map(p=>p.tarjetas||2))));
+  const tarjetas = generar_lineas(tarjetas_esperadas);
+
+  const corners_esperados = ((media(ultimosLocal.map(p=>p.corners||6)) + media(ultimosVisit.map(p=>p.corners||6))));
+  const corners = generar_lineas(corners_esperados);
+
+  return {...cuotas, tarjetas, corners};
+}
