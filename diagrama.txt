@@ -1,0 +1,32 @@
+[API Bzzoiro] 
+       │
+       │ (1) Trae próximos partidos
+       ▼
+[Firebase - Colección "partidos"]
+       │
+       │ (2) Guardar: local, visitante, liga, fecha, estado="pendiente"
+       ▼
+[Generador de cuotas]  <───────┐
+       │                      │
+       │ (3) Calcula cuotas    │
+       │ 1X2, Over/Under, BTTS │
+       ▼                      │
+[Firebase - actualización] ----┘
+       │
+       │
+       │ (4) Cada 2 min: Trae resultados en vivo de la API
+       ▼
+[Firebase - actualización resultados]
+       │
+       │ Guarda: goles, tarjetas, córners
+       │ Marca partido como "finalizado"
+       ▼
+[Web / Usuarios]
+       │
+       │ Muestra: partidos, cuotas, resultados reales
+       ▼
+[Opcional PRO]
+       │
+       │ Calcula mercados adicionales (primer gol, goles por mitades, resultado exacto)
+       ▼
+[Firebase - actualización PRO]
