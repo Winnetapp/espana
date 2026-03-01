@@ -1,0 +1,168 @@
+/* =============================================================
+   assets/css/bottom-nav.css
+   Barra de navegación inferior — Winnet PWA
+   ============================================================= */
+
+:root {
+  --bn-h: 64px;
+  --bn-bg: rgba(13,14,18,0.97);
+  --bn-borde: #1f2130;
+  --bn-rojo: #e63030;
+  --bn-rojo-dim: rgba(230,48,48,0.12);
+  --bn-texto: #6b7080;
+  --bn-activo: #e8e8ea;
+}
+
+/* ── Espacio para que el contenido no quede tapado ── */
+body {
+  padding-bottom: var(--bn-h);
+}
+
+/* ── Barra ── */
+.bottom-nav {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: var(--bn-h);
+  z-index: 999;
+  background: var(--bn-bg);
+  border-top: 1px solid var(--bn-borde);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  display: flex;
+  align-items: stretch;
+  /* safe area para iPhone con notch */
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* ── Items ── */
+.bn-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  text-decoration: none;
+  color: var(--bn-texto);
+  font-family: 'Barlow', sans-serif;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  padding: 8px 4px;
+  position: relative;
+  transition: color 0.18s;
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+  background: none;
+  border: none;
+  outline: none;
+}
+
+.bn-item:hover {
+  color: var(--bn-activo);
+}
+
+/* ── Icono ── */
+.bn-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 28px;
+}
+
+.bn-icon i {
+  font-size: 1.1rem;
+  transition: transform 0.2s;
+}
+
+/* ── Label ── */
+.bn-label {
+  line-height: 1;
+  transition: color 0.18s;
+}
+
+/* ── Estado activo ── */
+.bn-item.activo {
+  color: var(--bn-activo);
+}
+
+.bn-item.activo .bn-icon::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px;
+  height: 3px;
+  background: var(--bn-rojo);
+  border-radius: 2px;
+}
+
+.bn-item.activo i {
+  transform: translateY(-1px);
+  color: var(--bn-rojo);
+}
+
+.bn-item.activo .bn-label {
+  color: var(--bn-rojo);
+}
+
+/* ── Badge (En Vivo) ── */
+.bn-badge {
+  position: absolute;
+  top: -2px;
+  right: -4px;
+  min-width: 16px;
+  height: 16px;
+  background: var(--bn-rojo);
+  color: #fff;
+  font-size: 0.55rem;
+  font-weight: 900;
+  border-radius: 8px;
+  padding: 0 4px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Barlow Condensed', sans-serif;
+}
+.bn-badge.visible {
+  display: flex;
+}
+
+/* ── Punto vivo ── */
+.bn-vivo-dot {
+  position: absolute;
+  top: 0; right: 0;
+  width: 8px; height: 8px;
+  background: var(--bn-rojo);
+  border-radius: 50%;
+  border: 2px solid var(--bn-bg);
+  display: none;
+}
+.bn-vivo-dot.visible {
+  display: block;
+  animation: bn-pulso 1.2s ease-in-out infinite;
+}
+@keyframes bn-pulso {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.5; transform: scale(0.7); }
+}
+
+/* ── Ripple al tocar ── */
+.bn-item::before {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border-radius: 10px;
+  background: var(--bn-rojo-dim);
+  opacity: 0;
+  transform: scale(0.8);
+  transition: opacity 0.15s, transform 0.15s;
+}
+.bn-item:active::before {
+  opacity: 1;
+  transform: scale(1);
+}

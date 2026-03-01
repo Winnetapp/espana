@@ -71,6 +71,7 @@
                 <div class="hdr-dd-sep"></div>
                 <a href="index.html"    class="hdr-dd-item" role="menuitem"><i class="fas fa-futbol"></i> Partidos</a>
                 <a href="apuestas.html" class="hdr-dd-item" role="menuitem"><i class="fas fa-ticket-alt"></i> Mis Apuestas</a>
+                <a href="ranking.html"  class="hdr-dd-item" role="menuitem"><i class="fas fa-trophy"></i> Ranking</a>
                 ${ud.rol === 'admin' ? `<a href="adminpartidos.html" class="hdr-dd-item hdr-dd-admin" role="menuitem"><i class="fas fa-shield-alt"></i> Panel Admin</a>` : ''}
                 <div class="hdr-dd-sep"></div>
                 <button class="hdr-dd-item hdr-dd-logout" id="_logoutBtn" role="menuitem">

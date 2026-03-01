@@ -43,6 +43,212 @@ auth.onAuthStateChanged(async user => {
 });
 
 /* ════════════════════════════════
+   DEFINICIÓN DE LOGROS
+════════════════════════════════ */
+const LOGROS = [
+  {
+    id: 'primera_apuesta',
+    icon: '🎯',
+    nombre: 'Primera apuesta',
+    desc: 'Realiza tu primera apuesta',
+    color: '#3b82f6',
+    check: ({ total }) => total >= 1,
+  },
+  {
+    id: 'diez_apuestas',
+    icon: '📋',
+    nombre: '10 apuestas',
+    desc: 'Realiza 10 apuestas en total',
+    color: '#8b5cf6',
+    check: ({ total }) => total >= 10,
+  },
+  {
+    id: 'cincuenta_apuestas',
+    icon: '📚',
+    nombre: '50 apuestas',
+    desc: 'Realiza 50 apuestas en total',
+    color: '#6366f1',
+    check: ({ total }) => total >= 50,
+  },
+  {
+    id: 'primera_combinada',
+    icon: '🔗',
+    nombre: 'Combinadora',
+    desc: 'Gana tu primera apuesta combinada',
+    color: '#0ea5e9',
+    check: ({ combinadasGanadas }) => combinadasGanadas >= 1,
+  },
+  {
+    id: 'racha_5',
+    icon: '🔥',
+    nombre: 'En racha',
+    desc: 'Gana 5 apuestas seguidas',
+    color: '#f97316',
+    check: ({ rachaMax }) => rachaMax >= 5,
+  },
+  {
+    id: 'allin_ganado',
+    icon: '💎',
+    nombre: 'All-in ganado',
+    desc: 'Gana una apuesta apostando todo tu saldo',
+    color: '#ec4899',
+    check: ({ allInGanado }) => allInGanado,
+  },
+  {
+    id: 'cien_ganados',
+    icon: '💰',
+    nombre: '100€ ganados',
+    desc: 'Acumula 100€ en ganancias totales',
+    color: '#22c55e',
+    check: ({ totalCobrado }) => totalCobrado >= 100,
+  },
+  {
+    id: 'quinientos_ganados',
+    icon: '🤑',
+    nombre: '500€ ganados',
+    desc: 'Acumula 500€ en ganancias totales',
+    color: '#f5c518',
+    check: ({ totalCobrado }) => totalCobrado >= 500,
+  },
+  {
+    id: 'saldo_x2',
+    icon: '📈',
+    nombre: 'Saldo x2',
+    desc: 'Dobla el saldo inicial de 1.000€',
+    color: '#14b8a6',
+    check: ({ saldo }) => saldo >= 2000,
+  },
+  {
+    id: 'top_ranking',
+    icon: '👑',
+    nombre: 'Top del ranking',
+    desc: 'Aparece en el top 3 del ranking de saldo',
+    color: '#f5c518',
+    check: ({ enTopRanking }) => enTopRanking,
+  },
+];
+
+/* ════════════════════════════════
+   CALCULAR LOGROS
+════════════════════════════════ */
+async function calcularLogros(uid, saldo, apuestas) {
+  // Datos básicos
+  const total     = apuestas.length;
+  const ganadas   = apuestas.filter(a => a.estado === 'ganada');
+  const totalCobrado = ganadas.reduce((s, a) => s + (a.ganancia || a.potentialWin || 0), 0);
+
+  // Combinadas ganadas
+  const combinadasGanadas = ganadas.filter(a => a.tipo === 'combinada' && (a.bets?.length || 0) > 1).length;
+
+  // Racha máxima
+  const resueltas = apuestas
+    .filter(a => a.estado === 'ganada' || a.estado === 'perdida')
+    .sort((a, b) => (a.fecha?.seconds || 0) - (b.fecha?.seconds || 0));
+  let rachaMax = 0, rachaActual = 0;
+  for (const a of resueltas) {
+    if (a.estado === 'ganada') { rachaActual++; rachaMax = Math.max(rachaMax, rachaActual); }
+    else rachaActual = 0;
+  }
+
+  // All-in ganado: apuesta cuyo stake era >= 90% del saldo en ese momento
+  // Como no guardamos el saldo previo, detectamos si stake >= 90% del saldo actual
+  // como aproximación razonable
+  const allInGanado = ganadas.some(a => {
+    const stakePct = (a.stake || 0) / ((saldo || 1000));
+    return stakePct >= 0.85;
+  });
+
+  // Top ranking: comprobar si está en top 3 por saldo
+  let enTopRanking = false;
+  try {
+    const snap = await db.collection('usuarios').orderBy('saldo', 'desc').limit(3).get();
+    enTopRanking = snap.docs.some(d => d.id === uid);
+  } catch { enTopRanking = false; }
+
+  return { total, totalCobrado, combinadasGanadas, rachaMax, allInGanado, saldo, enTopRanking };
+}
+
+/* ════════════════════════════════
+   RENDER LOGROS (hero)
+════════════════════════════════ */
+function renderLogros(stats) {
+  const logrosDesbloqueados = LOGROS.filter(l => l.check(stats));
+  const logrosBloqueados    = LOGROS.filter(l => !l.check(stats));
+  const total               = LOGROS.length;
+  const conseguidos         = logrosDesbloqueados.length;
+
+  // Chips de logros desbloqueados (máx 4 visibles + "ver todos")
+  const visibles = logrosDesbloqueados.slice(0, 4);
+  const extras   = logrosDesbloqueados.length - visibles.length;
+
+  const chipsHTML = visibles.map(l => `
+    <div class="logro-chip desbloqueado" title="${l.desc}" style="--logro-color:${l.color}">
+      <span class="logro-chip-icon">${l.icon}</span>
+      <span class="logro-chip-nombre">${l.nombre}</span>
+    </div>
+  `).join('');
+
+  const extrasHTML = extras > 0
+    ? `<div class="logro-chip-extra">+${extras} más</div>`
+    : '';
+
+  // Barra de progreso
+  const pct = Math.round((conseguidos / total) * 100);
+
+  return `
+    <div class="perfil-logros-wrap" id="perfil-logros-wrap">
+      <div class="logros-header">
+        <span class="logros-titulo">
+          <i class="fas fa-medal"></i> Logros
+        </span>
+        <span class="logros-progreso-txt">${conseguidos}/${total}</span>
+      </div>
+
+      <div class="logros-barra-wrap">
+        <div class="logros-barra">
+          <div class="logros-barra-fill" style="width:${pct}%"></div>
+        </div>
+      </div>
+
+      ${conseguidos > 0 ? `
+        <div class="logros-chips">
+          ${chipsHTML}
+          ${extrasHTML}
+          <button class="logros-ver-todos" id="btn-ver-logros">
+            Ver todos <i class="fas fa-chevron-down" style="font-size:0.6rem;"></i>
+          </button>
+        </div>
+      ` : `
+        <div class="logros-vacio">
+          Aún no has desbloqueado ningún logro. ¡Empieza a apostar!
+        </div>
+      `}
+
+      <!-- Panel expandible con todos los logros -->
+      <div class="logros-panel" id="logros-panel" style="display:none;">
+        <div class="logros-grid">
+          ${LOGROS.map(l => {
+            const ok = l.check(stats);
+            return `
+              <div class="logro-item ${ok ? 'ok' : 'bloqueado'}" style="--logro-color:${l.color}">
+                <div class="logro-item-icon">${l.icon}</div>
+                <div class="logro-item-info">
+                  <div class="logro-item-nombre">${l.nombre}</div>
+                  <div class="logro-item-desc">${l.desc}</div>
+                </div>
+                <div class="logro-item-estado">
+                  ${ok
+                    ? `<i class="fas fa-check-circle" style="color:${l.color};font-size:1rem;"></i>`
+                    : `<i class="fas fa-lock" style="color:#3a3f52;font-size:0.85rem;"></i>`}
+                </div>
+              </div>`;
+          }).join('')}
+        </div>
+      </div>
+    </div>`;
+}
+
+/* ════════════════════════════════
    CARGAR DATOS DEL PERFIL
 ════════════════════════════════ */
 async function cargarPerfil(user) {
@@ -53,6 +259,15 @@ async function cargarPerfil(user) {
     const username = _userData.username || user.email || 'Usuario';
     const email    = user.email || '';
     const esAdmin  = _userData.rol === 'admin';
+
+    /* ── Cargar apuestas para logros ── */
+    const snapAp = await db.collection('apuestas')
+      .where('usuarioId', '==', user.uid)
+      .orderBy('fecha', 'desc')
+      .limit(200)
+      .get();
+    const apuestas = snapAp.docs.map(d => d.data());
+    const statsLogros = await calcularLogros(user.uid, saldo, apuestas);
 
     /* ── Hero identity ── */
     const inicial = username.charAt(0).toUpperCase();
@@ -76,7 +291,19 @@ async function cargarPerfil(user) {
           <span class="perfil-saldo-chip-label">Saldo</span>
           <span class="perfil-saldo-chip-val" id="hero-saldo-val">${saldo.toFixed(2)} €</span>
         </div>
+        ${renderLogros(statsLogros)}
       </div>`;
+
+    /* ── Toggle ver todos los logros ── */
+    document.getElementById('btn-ver-logros')?.addEventListener('click', () => {
+      const panel = document.getElementById('logros-panel');
+      const btn   = document.getElementById('btn-ver-logros');
+      const abierto = panel.style.display !== 'none';
+      panel.style.display = abierto ? 'none' : 'block';
+      btn.innerHTML = abierto
+        ? `Ver todos <i class="fas fa-chevron-down" style="font-size:0.6rem;"></i>`
+        : `Cerrar <i class="fas fa-chevron-up" style="font-size:0.6rem;"></i>`;
+    });
 
     /* ── Panel cuenta ── */
     const inputUsername = document.getElementById('input-username');
@@ -90,7 +317,7 @@ async function cargarPerfil(user) {
     if (btnReset)      btnReset.disabled = saldo >= 100;
 
     /* ── Panel overview ── */
-    await renderOverview(user.uid);
+    await renderOverview(user.uid, apuestas);
 
   } catch (err) {
     console.error('[perfil] Error cargando datos:', err);
@@ -101,18 +328,22 @@ async function cargarPerfil(user) {
 /* ════════════════════════════════
    PANEL RESUMEN
 ════════════════════════════════ */
-async function renderOverview(uid) {
+async function renderOverview(uid, apuestasParam) {
   const panel = document.getElementById('panel-overview');
   panel.innerHTML = `<div class="perfil-loading"><div class="spinner-ring"></div>Cargando estadísticas...</div>`;
 
   try {
-    const snap = await db.collection('apuestas')
-      .where('usuarioId', '==', uid)
-      .orderBy('fecha', 'desc')
-      .limit(100)
-      .get();
+    // Reusar las apuestas ya cargadas si se pasan como parámetro
+    let apuestas = apuestasParam;
+    if (!apuestas) {
+      const snap = await db.collection('apuestas')
+        .where('usuarioId', '==', uid)
+        .orderBy('fecha', 'desc')
+        .limit(100)
+        .get();
+      apuestas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    }
 
-    const apuestas  = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     const total     = apuestas.length;
     const ganadas   = apuestas.filter(a => a.estado === 'ganada');
     const perdidas  = apuestas.filter(a => a.estado === 'perdida');
@@ -136,7 +367,7 @@ async function renderOverview(uid) {
           const fecha = a.fecha?.toDate
             ? a.fecha.toDate().toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })
             : '—';
-          const tipo  = a.bets?.length === 1
+          const tipo = a.bets?.length === 1
             ? (a.bets[0]?.tipo || 'Apuesta')
             : `Combinada · ${a.bets?.length || 0} sel.`;
 
@@ -246,7 +477,6 @@ document.getElementById('btn-guardar-nombre')?.addEventListener('click', async (
     input.disabled    = true;
     _usernameEditando = false;
 
-    /* Actualizar hero en tiempo real */
     const heroNombre = document.querySelector('.perfil-nombre');
     if (heroNombre) heroNombre.childNodes[0].textContent = nuevoNombre + ' ';
     const heroAvatar = document.querySelector('.perfil-avatar');
@@ -260,8 +490,8 @@ document.getElementById('btn-guardar-nombre')?.addEventListener('click', async (
     errEl.classList.add('visible');
     showToast('Error al guardar', 'error');
   } finally {
-    btn.innerHTML   = '<i class="fas fa-check"></i> Guardar cambios';
-    btn.disabled    = !_usernameEditando;
+    btn.innerHTML = '<i class="fas fa-check"></i> Guardar cambios';
+    btn.disabled  = !_usernameEditando;
   }
 });
 
@@ -277,14 +507,14 @@ document.getElementById('btn-reset-saldo')?.addEventListener('click', async () =
     return;
   }
 
-  btn.disabled     = true;
-  btn.textContent  = 'Restableciendo...';
+  btn.disabled    = true;
+  btn.textContent = 'Restableciendo...';
 
   try {
     await db.collection('usuarios').doc(_uid).update({ saldo: 1000 });
     _userData.saldo = 1000;
 
-    const fmt = '1.000,00 €';
+    const fmt          = '1.000,00 €';
     const saldoDisplay = document.getElementById('saldo-display');
     const heroSaldo    = document.getElementById('hero-saldo-val');
     const hdrSaldo     = document.getElementById('hdr-saldo-val');
