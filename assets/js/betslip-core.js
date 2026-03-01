@@ -351,6 +351,15 @@
     renderMobileBtn();
     actualizarBotones();
     actualizarPestanas();
+
+    // Deshabilitar botón apostar si carrito vacío
+    document.querySelectorAll('.accept-btn, #btn-apostar, #btn-apostar-modal').forEach(btn => {
+      if (btn) {
+        btn.disabled      = bets.length === 0;
+        btn.style.opacity = bets.length === 0 ? '0.4' : '1';
+        btn.style.cursor  = bets.length === 0 ? 'not-allowed' : 'pointer';
+      }
+    });
   }
 
   function renderListas() {
@@ -690,8 +699,15 @@
       toast('¡Apuesta realizada! 🎉', 'ok');
       vaciar();
 
-      const hl = document.getElementById('header-left');
-      if (hl) hl.innerHTML = `${(saldo - totalDescontar).toFixed(2)} €`;
+      const nuevoSaldo = saldo - totalDescontar;
+      window._saldoUsuario = nuevoSaldo;
+      // Actualizar solo el valor sin tocar el HTML del header
+      const saldoVal = document.getElementById('hdr-saldo-val');
+      if (saldoVal) saldoVal.textContent = `${nuevoSaldo.toFixed(2)} €`;
+      // También el saldo del dropdown si está abierto
+      document.querySelectorAll('.hdr-dd-saldo').forEach(el => {
+        el.textContent = `${nuevoSaldo.toFixed(2)} €`;
+      });
 
       document.getElementById('userSidebar')?.classList.remove('open');
       document.getElementById('sidebar-overlay')?.classList.remove('active');
