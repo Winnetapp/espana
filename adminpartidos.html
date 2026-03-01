@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Winnet Admin — Partidos & Cuotas</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700;800&family=Barlow+Condensed:wght@500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+  <style>
+    :root {
+      --rojo:        #e63030;
+      --rojo-oscuro: #300404;
+      --rojo-dim:    rgba(230,48,48,0.12);
+      --negro:       #0a0a0c;
+      --fondo:       #111114;
+      --card:        #16181d;
+      --card-hover:  #1c1f26;
+      --borde:       #252830;
+      --borde-claro: #2e3242;
+      --amarillo:    #f5c518;
+      --amarillo-dim: rgba(245,197,24,0.1);
+      --texto:       #e8e8ea;
+      --texto-dim:   #8a8f9e;
+      --verde:       #22c55e;
+      --verde-dim:   rgba(34,197,94,0.12);
+      --naranja:     #f59e0b;
+      --naranja-dim: rgba(245,158,11,0.12);
+      --azul:        #3b82f6;
+      --azul-dim:    rgba(59,130,246,0.12);
+      --morado:      #8b5cf6;
+      --morado-dim:  rgba(139,92,246,0.12);
+      --cyan:        #06b6d4;
+      --cyan-dim:    rgba(6,182,212,0.12);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Barlow', sans-serif; background: var(--negro); color: var(--texto); min-height: 100vh; }
+
+    /* ── LOGIN ── */
+    #pantalla-acceso {
+      position: fixed; inset: 0; background: var(--negro);
+      display: flex; align-items: center; justify-content: center; z-index: 9999;
+    }
+    #pantalla-acceso.oculto { display: none; }
+
+    .login-box {
+      background: var(--card); border: 1px solid var(--borde); border-radius: 18px;
+      padding: 40px 36px; width: 100%; max-width: 380px; text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.6); position: relative; overflow: hidden;
+    }
+    .login-box::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, var(--rojo-oscuro), var(--rojo), var(--rojo-oscuro));
+    }
+    .login-logo { font-family: 'Barlow Condensed', sans-serif; font-size: 2rem; font-weight: 800; color: var(--rojo); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 4px; }
+    .login-box h2 { font-size: 1rem; color: var(--texto-dim); font-weight: 400; margin-bottom: 28px; }
+    .login-field { position: relative; margin-bottom: 12px; }
+    .login-field i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--texto-dim); font-size: 0.85rem; }
+    .login-box input {
+      width: 100%; padding: 11px 14px 11px 38px; border-radius: 10px;
+      border: 1px solid var(--borde); background: #0e0f14; color: var(--texto);
+      font-family: 'Barlow', sans-serif; font-size: 0.95rem; outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .login-box input:focus { border-color: var(--rojo); box-shadow: 0 0 0 3px rgba(230,48,48,0.12); }
+    .login-box input::placeholder { color: #444; }
+    .btn-login {
+      width: 100%; padding: 12px;
+      background: linear-gradient(135deg, var(--rojo) 0%, #c02020 100%);
+      color: #fff; border: none; border-radius: 10px;
+      font-family: 'Barlow Condensed', sans-serif; font-size: 1.05rem; font-weight: 700;
+      letter-spacing: 1px; text-transform: uppercase; cursor: pointer; margin-top: 8px;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      transition: opacity 0.2s, box-shadow 0.2s, transform 0.15s;
+      box-shadow: 0 4px 20px rgba(230,48,48,0.3);
+    }
+    .btn-login:hover { box-shadow: 0 6px 24px rgba(230,48,48,0.45); transform: translateY(-1px); }
+    .btn-login:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .btn-spinner-login { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; display: none; }
+    .btn-login.loading .btn-spinner-login { display: block; }
+    .login-error { color: var(--rojo); font-size: 0.82rem; margin-top: 12px; min-height: 18px; padding: 6px 10px; background: var(--rojo-dim); border-radius: 6px; display: none; }
+    .login-error.visible { display: block; }
+
+    /* ── LAYOUT ── */
+    #contenido-admin { display: none; }
+    .topbar {
+      background: var(--card); border-bottom: 1px solid var(--borde); padding: 0 32px;
+      height: 60px; display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .topbar-brand { font-family: 'Barlow Condensed', sans-serif; font-size: 1.4rem; font-weight: 800; color: var(--rojo); letter-spacing: 2px; text-transform: uppercase; }
+    .topbar-brand span { color: var(--texto-dim); font-size: 0.8rem; font-weight: 400; letter-spacing: 0; margin-left: 8px; font-family: 'Barlow', sans-serif; text-transform: none; }
+    .topbar-right { display: flex; align-items: center; gap: 12px; }
+    .admin-badge { background: var(--amarillo-dim); border: 1px solid rgba(245,197,24,0.2); color: var(--amarillo); padding: 4px 12px; border-radius: 20px; font-size: 0.78rem; font-weight: 700; }
+    .admin-email { color: var(--texto-dim); font-size: 0.85rem; }
+    .btn-logout { background: transparent; border: 1px solid var(--borde); color: var(--texto-dim); padding: 6px 14px; border-radius: 8px; font-family: 'Barlow', sans-serif; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 6px; }
+    .btn-logout:hover { border-color: var(--rojo); color: var(--rojo); }
+
+    /* ── CONTENIDO ── */
+    .page-content { max-width: 1100px; margin: 0 auto; padding: 32px 24px 60px; }
+    .page-title { font-family: 'Barlow Condensed', sans-serif; font-size: 1.6rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: var(--texto); margin-bottom: 24px; }
+    .page-title span { color: var(--rojo); }
+
+    /* ── STATS ── */
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 32px; }
+    .stat-card { background: var(--card); border: 1px solid var(--borde); border-radius: 14px; padding: 20px 22px; position: relative; overflow: hidden; transition: border-color 0.2s, transform 0.15s; }
+    .stat-card:hover { border-color: var(--borde-claro); transform: translateY(-1px); }
+    .stat-card::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px; transition: opacity 0.2s; opacity: 0; }
+    .stat-card:hover::after { opacity: 1; }
+    .stat-card.proximos::after   { background: var(--rojo); }
+    .stat-card.vivo::after       { background: var(--verde); }
+    .stat-card.historial::after  { background: var(--texto-dim); }
+    .stat-card.cuotas::after     { background: var(--amarillo); }
+    .stat-card.apuestas::after   { background: var(--morado); }
+    .stat-icon { font-size: 1.3rem; margin-bottom: 10px; display: block; }
+    .stat-label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; color: var(--texto-dim); margin-bottom: 4px; }
+    .stat-num { font-family: 'Barlow Condensed', sans-serif; font-size: 2.2rem; font-weight: 800; line-height: 1; }
+    .stat-card.proximos  .stat-num { color: var(--rojo); }
+    .stat-card.vivo      .stat-num { color: var(--verde); }
+    .stat-card.historial .stat-num { color: var(--texto-dim); }
+    .stat-card.cuotas    .stat-num { color: var(--amarillo); }
+    .stat-card.apuestas  .stat-num { color: var(--morado); }
+
+    /* ── COLUMNAS ── */
+    .admin-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+    @media (max-width: 768px) { .admin-columns { grid-template-columns: 1fr; } .topbar { padding: 0 16px; } .page-content { padding: 20px 16px 60px; } }
+
+    /* ── SECCIÓN ── */
+    .section { background: var(--card); border: 1px solid var(--borde); border-radius: 16px; overflow: hidden; }
+    .section-header { padding: 16px 20px; border-bottom: 1px solid var(--borde); display: flex; align-items: center; gap: 10px; }
+    .section-title { font-family: 'Barlow Condensed', sans-serif; font-size: 1rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--texto); }
+    .section-body { padding: 16px 20px; }
+
+    /* ── BOTONES ── */
+    .acciones { display: flex; flex-direction: column; gap: 10px; }
+    .btn-accion {
+      width: 100%; padding: 13px 18px; border-radius: 11px; border: 1px solid transparent;
+      cursor: pointer; font-family: 'Barlow', sans-serif; font-size: 0.92rem; font-weight: 700;
+      display: flex; align-items: center; gap: 12px; transition: all 0.2s; text-align: left;
+      position: relative; overflow: hidden;
+    }
+    .btn-accion:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn-accion .btn-icon { font-size: 1.1rem; width: 28px; text-align: center; flex-shrink: 0; }
+    .btn-accion .btn-text { flex: 1; }
+    .btn-accion .btn-text strong { display: block; font-size: 0.9rem; }
+    .btn-accion .btn-text small  { font-size: 0.75rem; opacity: 0.7; font-weight: 400; }
+
+    .btn-importar    { background: var(--rojo-dim);    border-color: rgba(230,48,48,0.25);   color: #ff8080; }
+    .btn-cuotas      { background: var(--amarillo-dim);border-color: rgba(245,197,24,0.2);   color: var(--amarillo); }
+    .btn-cuotas-full { background: var(--azul-dim);    border-color: rgba(59,130,246,0.25);  color: #93c5fd; }
+    .btn-cuotas-afb  { background: var(--cyan-dim);    border-color: rgba(6,182,212,0.25);   color: var(--cyan); }
+    .btn-vivo        { background: var(--verde-dim);   border-color: rgba(34,197,94,0.2);    color: var(--verde); }
+    .btn-resolver    { background: var(--morado-dim);  border-color: rgba(139,92,246,0.25);  color: #c4b5fd; }
+    .btn-archivar    { background: var(--naranja-dim); border-color: rgba(245,158,11,0.2);   color: var(--naranja); }
+
+    .btn-importar:not(:disabled):hover    { background: rgba(230,48,48,0.2);   border-color: var(--rojo);    color: #fff; box-shadow: 0 4px 16px rgba(230,48,48,0.2); }
+    .btn-cuotas:not(:disabled):hover      { background: rgba(245,197,24,0.18); border-color: var(--amarillo);color: #fff; box-shadow: 0 4px 16px rgba(245,197,24,0.15); }
+    .btn-cuotas-full:not(:disabled):hover { background: rgba(59,130,246,0.2);  border-color: var(--azul);    color: #fff; box-shadow: 0 4px 16px rgba(59,130,246,0.2); }
+    .btn-cuotas-afb:not(:disabled):hover  { background: rgba(6,182,212,0.2);   border-color: var(--cyan);    color: #fff; box-shadow: 0 4px 16px rgba(6,182,212,0.2); }
+    .btn-vivo:not(:disabled):hover        { background: rgba(34,197,94,0.18);  border-color: var(--verde);   color: #fff; box-shadow: 0 4px 16px rgba(34,197,94,0.15); }
+    .btn-resolver:not(:disabled):hover    { background: rgba(139,92,246,0.2);  border-color: var(--morado);  color: #fff; box-shadow: 0 4px 16px rgba(139,92,246,0.2); }
+    .btn-archivar:not(:disabled):hover    { background: rgba(245,158,11,0.18); border-color: var(--naranja); color: #fff; box-shadow: 0 4px 16px rgba(245,158,11,0.15); }
+
+    /* ── Separador ── */
+    .acciones-divider {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 1px; color: var(--texto-dim); margin: 4px 0 2px;
+    }
+    .acciones-divider::before,
+    .acciones-divider::after { content: ''; flex: 1; height: 1px; background: var(--borde); }
+
+    /* ── Spinner inline ── */
+    .btn-spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.25); border-top-color: currentColor; border-radius: 50%; animation: spin 0.7s linear infinite; display: none; flex-shrink: 0; }
+    .btn-accion.loading .btn-spinner { display: block; }
+    .btn-accion.loading .btn-icon    { display: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Ligas ── */
+    .ligas-status { display: flex; flex-direction: column; gap: 6px; }
+    .liga-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: #0e0f14; border: 1px solid var(--borde); border-radius: 8px; font-size: 0.85rem; }
+    .liga-nombre { font-weight: 600; color: var(--texto); display: flex; align-items: center; gap: 6px; }
+    .liga-nombre .liga-tag { font-size: 0.68rem; color: var(--texto-dim); background: #1a1c22; padding: 1px 6px; border-radius: 4px; font-weight: 400; font-family: monospace; }
+    /* Badge de fuente de cuotas */
+    .liga-nombre .liga-src {
+      font-size: 0.62rem; font-weight: 700; padding: 1px 5px; border-radius: 4px;
+      letter-spacing: 0.5px; text-transform: uppercase;
+    }
+    .liga-src.odds  { background: rgba(59,130,246,0.15);  color: #93c5fd; border: 1px solid rgba(59,130,246,0.25); }
+    .liga-src.afb   { background: rgba(6,182,212,0.15);   color: var(--cyan); border: 1px solid rgba(6,182,212,0.25); }
+    .liga-src.none  { background: #1a1c22; color: var(--texto-dim); border: 1px solid var(--borde); }
+
+    .liga-badge { font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 10px; white-space: nowrap; }
+    .liga-badge.ok       { background: var(--verde-dim);    color: var(--verde);    border: 1px solid rgba(34,197,94,0.25); }
+    .liga-badge.pending  { background: #1e2028;             color: var(--texto-dim); border: 1px solid var(--borde); }
+    .liga-badge.error    { background: var(--rojo-dim);     color: #ff8080;         border: 1px solid rgba(230,48,48,0.25); }
+    .liga-badge.loading  { background: var(--amarillo-dim); color: var(--amarillo); border: 1px solid rgba(245,197,24,0.25); }
+
+    /* ── Log ── */
+    .log-container { background: #0a0a0d; border: 1px solid var(--borde); border-radius: 11px; font-family: 'Courier New', monospace; font-size: 0.8rem; max-height: 340px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--borde) transparent; }
+    .log-entry { display: flex; gap: 10px; padding: 7px 14px; border-bottom: 1px solid #111215; transition: background 0.1s; align-items: flex-start; }
+    .log-entry:hover { background: #0e0f14; }
+    .log-entry:last-child { border-bottom: none; }
+    .log-time { color: #444; flex-shrink: 0; font-size: 0.75rem; padding-top: 1px; }
+    .log-msg { flex: 1; line-height: 1.4; }
+    .log-entry.ok    .log-msg { color: var(--verde); }
+    .log-entry.error .log-msg { color: #ff6b6b; }
+    .log-entry.info  .log-msg { color: var(--texto-dim); }
+    .log-entry.warn  .log-msg { color: var(--naranja); }
+
+    /* ── Misc ── */
+    .last-update { font-size: 0.75rem; color: var(--texto-dim); margin-top: 8px; text-align: right; }
+    .hint-box { background: var(--amarillo-dim); border: 1px solid rgba(245,197,24,0.15); border-radius: 8px; padding: 10px 14px; font-size: 0.8rem; color: var(--amarillo); display: flex; gap: 8px; align-items: flex-start; margin-bottom: 14px; }
+    .hint-box.azul   { background: var(--azul-dim);   border-color: rgba(59,130,246,0.15);  color: #93c5fd; }
+    .hint-box.cyan   { background: var(--cyan-dim);   border-color: rgba(6,182,212,0.15);   color: var(--cyan); }
+    .hint-box.morado { background: var(--morado-dim); border-color: rgba(139,92,246,0.15);  color: #c4b5fd; }
+
+    #progress-bar-wrap { margin-bottom: 14px; }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════ LOGIN ═══════════════════ -->
+<div id="pantalla-acceso">
+  <div class="login-box">
+    <div class="login-logo">Winnet</div>
+    <h2>Panel de administración</h2>
+    <div class="login-field">
+      <i class="fas fa-envelope"></i>
+      <input type="email" id="login-email" placeholder="Correo electrónico" autocomplete="username"/>
+    </div>
+    <div class="login-field">
+      <i class="fas fa-lock"></i>
+      <input type="password" id="login-password" placeholder="Contraseña" autocomplete="current-password"/>
+    </div>
+    <button class="btn-login" id="btn-login">
+      <div class="btn-spinner-login"></div>
+      <i class="fas fa-sign-in-alt"></i>
+      Entrar
+    </button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════ CONTENIDO ADMIN ═══════════════════ -->
+<div id="contenido-admin">
+
+  <div class="topbar">
+    <div class="topbar-brand">Winnet <span>/ Panel Admin</span></div>
+    <div class="topbar-right">
+      <span class="admin-badge"><i class="fas fa-shield-alt"></i> Admin</span>
+      <span class="admin-email" id="admin-email">—</span>
+      <span id="scheduler-badge">⚙ Iniciando...</span>
+      <button class="btn-logout" id="btn-logout"><i class="fas fa-sign-out-alt"></i> Salir</button>
+    </div>
+  </div>
+
+  <div class="page-content">
+
+    <div class="page-title">⚙ Gestión de <span>Partidos</span></div>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+      <div class="stat-card proximos">
+        <span class="stat-icon">🗓</span>
+        <div class="stat-label">Próximos</div>
+        <div class="stat-num" id="stat-proximos">—</div>
+      </div>
+      <div class="stat-card vivo">
+        <span class="stat-icon">🔴</span>
+        <div class="stat-label">En vivo</div>
+        <div class="stat-num" id="stat-vivo">—</div>
+      </div>
+      <div class="stat-card historial">
+        <span class="stat-icon">📦</span>
+        <div class="stat-label">Historial</div>
+        <div class="stat-num" id="stat-historial">—</div>
+      </div>
+      <div class="stat-card cuotas">
+        <span class="stat-icon">💰</span>
+        <div class="stat-label">Con cuotas</div>
+        <div class="stat-num" id="stat-cuotas">—</div>
+      </div>
+      <div class="stat-card apuestas">
+        <span class="stat-icon">🎯</span>
+        <div class="stat-label">Apuestas pend.</div>
+        <div class="stat-num" id="stat-apuestas">—</div>
+      </div>
+    </div>
+
+    <div class="admin-columns">
+
+      <!-- ── Columna izquierda: acciones ── -->
+      <div>
+        <div class="section">
+          <div class="section-header">
+            <i class="fas fa-bolt" style="color:var(--amarillo);"></i>
+            <span class="section-title">Acciones</span>
+          </div>
+          <div class="section-body">
+
+            <div class="hint-box">
+              <i class="fas fa-info-circle"></i>
+              <span>
+                Orden recomendado:<br>
+                <strong>Importar → Cuotas top 5 → Cuotas ligas secundarias → En vivo → Resolver → Archivar</strong><br>
+                <small style="opacity:0.8">Importar 12 ligas tarda ~75s por las pausas anti-rate-limit (6s entre ligas).</small>
+              </span>
+            </div>
+
+            <div class="hint-box azul">
+              <i class="fas fa-database"></i>
+              <span><strong>Cuotas top 5</strong> usa The Odds API (500 créditos/mes). Premier, La Liga, Bundesliga, Serie A y Ligue 1.</span>
+            </div>
+
+            <div class="hint-box cyan">
+              <i class="fas fa-futbol"></i>
+              <span><strong>Cuotas ligas secundarias</strong> usa API-Football (100 req/día gratis). Champions, Eredivisie, Championship, Primeira Liga y Brasil.</span>
+            </div>
+
+            <div class="hint-box morado">
+              <i class="fas fa-check-circle"></i>
+              <span><strong>Resolver apuestas</strong> evalúa todos los mercados de las apuestas pendientes cuyos partidos ya han terminado (FT) y actualiza el saldo de los usuarios automáticamente.</span>
+            </div>
+
+            <!-- Progress bar -->
+            <div id="progress-bar-wrap" style="display:none;">
+              <div style="font-size:0.75rem;color:var(--texto-dim);margin-bottom:6px;display:flex;justify-content:space-between;">
+                <span id="progress-label">Procesando...</span>
+                <span id="progress-timer">0s</span>
+              </div>
+              <div style="background:#0e0f14;border-radius:20px;height:6px;overflow:hidden;border:1px solid var(--borde);">
+                <div id="progress-bar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--rojo),var(--amarillo));border-radius:20px;transition:width 0.5s ease;"></div>
+              </div>
+            </div>
+
+            <!-- Botones -->
+            <div class="acciones">
+
+              <!-- Datos -->
+              <div class="acciones-divider">Datos</div>
+
+              <button class="btn-accion btn-importar" id="btn-importar">
+                <span class="btn-icon">📥</span><div class="btn-spinner"></div>
+                <div class="btn-text">
+                  <strong>Importar partidos</strong>
+                  <small>12 ligas · Próximos 7 días · Football-Data.org</small>
+                </div>
+              </button>
+
+              <!-- Cuotas -->
+              <div class="acciones-divider">Cuotas</div>
+
+              <button class="btn-accion btn-cuotas" id="btn-cuotas">
+                <span class="btn-icon">💰</span><div class="btn-spinner"></div>
+                <div class="btn-text">
+                  <strong>Cuotas top 5 ligas</strong>
+                  <small>Premier · La Liga · Bundesliga · Serie A · Ligue 1 · The Odds API</small>
+                </div>
+              </button>
+
+              <button class="btn-accion btn-cuotas-full" id="btn-cuotas-full">
+                <span class="btn-icon">🎯</span><div class="btn-spinner"></div>
+                <div class="btn-text">
+                  <strong>Cuotas completas (ambas APIs)</strong>
+                  <small>Top 5 + ligas secundarias en una sola ejecución</small>
+                </div>
+              </button>
+
+              <button class="btn-accion btn-cuotas-afb" id="btn-cuotas-afb">
+                <span class="btn-icon">🌍</span><div class="btn-spinner"></div>
+                <div class="btn-text">
+                  <strong>Cuotas ligas secundarias</strong>
+                  <small>Champions · Eredivisie · Championship · Primeira Liga · Brasil · API-Football</small>
+                </div>
+              </button>
+
+              <!-- En vivo -->
+              <div class="acciones-divider">En vivo</div>
+
+              <button class="btn-accion btn-vivo" id="btn-vivo">
+                <span class="btn-icon">🔴</span><div class="btn-spinner"></div>
+                <div class="btn-text">
+                  <strong>Actualizar en vivo</strong>
+                  <small>Resultados de partidos en curso</small>
+                </div>
+              </button>
+
+              <!-- Apuestas -->
+              <div class="acciones-divider">Apuestas</div>
+
+              <button class="btn-accion btn-resolver" id="btn-resolver">
+                <span class="btn-icon">✅</span><div class="btn-spinner"></div>
+                <div class="btn-text">
+                  <strong>Resolver apuestas</strong>
+                  <small>Evalúa resultados · Actualiza saldos · DNB incluido</small>
+                </div>
+              </button>
+
+              <!-- Mantenimiento -->
+              <div class="acciones-divider">Mantenimiento</div>
+
+              <button class="btn-accion btn-archivar" id="btn-archivar">
+                <span class="btn-icon">📦</span><div class="btn-spinner"></div>
+                <div class="btn-text">
+                  <strong>Archivar terminados</strong>
+                  <small>Mueve partidos FT al historial</small>
+                </div>
+              </button>
+
+              <!-- Rescate -->
+              <div class="acciones-divider">Rescate</div>
+
+              <button class="btn-accion btn-resolver" id="btn-rescatar" style="background:rgba(139,92,246,0.08);border-color:rgba(139,92,246,0.3);color:#c4b5fd;">
+                <span class="btn-icon">🚑</span><div class="btn-spinner"></div>
+                <div class="btn-text">
+                  <strong>Rescatar partidos NS</strong>
+                  <small>Fuerza resultado de partidos pasados sin actualizar</small>
+                </div>
+              </button>
+
+            </div>
+            <div class="last-update" id="last-update">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Columna derecha: estado ligas + log ── -->
+      <div style="display:flex;flex-direction:column;gap:16px;">
+
+        <div class="section">
+          <div class="section-header">
+            <i class="fas fa-flag" style="color:var(--rojo);"></i>
+            <span class="section-title">
+              Estado de ligas
+              <span style="font-size:0.75rem;font-weight:400;color:var(--texto-dim);margin-left:6px;">Plan FREE · 12 competiciones</span>
+            </span>
+          </div>
+          <div class="section-body">
+            <div style="display:flex;gap:10px;margin-bottom:10px;font-size:0.72rem;color:var(--texto-dim);">
+              <span><span class="liga-src odds">OddsAPI</span> The Odds API</span>
+              <span><span class="liga-src afb">AFB</span> API-Football</span>
+              <span><span class="liga-src none">—</span> Sin cuotas</span>
+            </div>
+            <div class="ligas-status" id="ligas-status">
+              <div class="liga-row"><span class="liga-nombre">🏴󠁧󠁢󠁥󠁮󠁧󠁿 Premier League <span class="liga-tag">PL</span><span class="liga-src odds">OddsAPI</span></span><span class="liga-badge pending" id="badge-39">—</span></div>
+              <div class="liga-row"><span class="liga-nombre">🇪🇸 La Liga <span class="liga-tag">PD</span><span class="liga-src odds">OddsAPI</span></span><span class="liga-badge pending" id="badge-140">—</span></div>
+              <div class="liga-row"><span class="liga-nombre">🇩🇪 Bundesliga <span class="liga-tag">BL1</span><span class="liga-src odds">OddsAPI</span></span><span class="liga-badge pending" id="badge-78">—</span></div>
+              <div class="liga-row"><span class="liga-nombre">🇮🇹 Serie A <span class="liga-tag">SA</span><span class="liga-src odds">OddsAPI</span></span><span class="liga-badge pending" id="badge-135">—</span></div>
+              <div class="liga-row"><span class="liga-nombre">🇫🇷 Ligue 1 <span class="liga-tag">FL1</span><span class="liga-src odds">OddsAPI</span></span><span class="liga-badge pending" id="badge-61">—</span></div>
+              <div class="liga-row"><span class="liga-nombre">🏆 Champions League <span class="liga-tag">CL</span><span class="liga-src afb">AFB</span></span><span class="liga-badge pending" id="badge-2001">—</span></div>
+              <div class="liga-row"><span class="liga-nombre">🇳🇱 Eredivisie <span class="liga-tag">DED</span><span class="liga-src afb">AFB</span></span><span class="liga-badge pending" id="badge-88">—</span></div>
+              <div class="liga-row"><span class="liga-nombre">🏴󠁧󠁢󠁥󠁮󠁧󠁿 Championship <span class="liga-tag">ELC</span><span class="liga-src afb">AFB</span></span><span class="liga-badge pending" id="badge-40">—</span></div>
+              <div class="liga-row"><span class="liga-nombre">🇵🇹 Primeira Liga <span class="liga-tag">PPL</span><span class="liga-src afb">AFB</span></span><span class="liga-badge pending" id="badge-94">—</span></div>
+              <div class="liga-row"><span class="liga-nombre">🇧🇷 Serie A Brasil <span class="liga-tag">BSA</span><span class="liga-src afb">AFB</span></span><span class="liga-badge pending" id="badge-71">—</span></div>
+              <div class="liga-row"><span class="liga-nombre">🌍 Copa del Mundo <span class="liga-tag">WC</span><span class="liga-src none">—</span></span><span class="liga-badge pending" id="badge-2000">—</span></div>
+              <div class="liga-row"><span class="liga-nombre">🇪🇺 Eurocopa <span class="liga-tag">EC</span><span class="liga-src none">—</span></span><span class="liga-badge pending" id="badge-2016">—</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-header">
+            <i class="fas fa-terminal" style="color:var(--texto-dim);"></i>
+            <span class="section-title">Log de actividad</span>
+          </div>
+          <div class="section-body" style="padding:0;">
+            <div class="log-container" id="log">
+              <div class="log-entry info">
+                <span class="log-time">--:--:--</span>
+                <span class="log-msg">Esperando acciones...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+
+<!-- Lógica del panel -->
+<script type="module" src="assets/js/adminpartidos.js"></script>
+
+</body>
+</html>

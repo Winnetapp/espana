@@ -1,0 +1,458 @@
+/* =============================================================
+   assets/css/header-unified.css
+   Header unificado — Winnet
+   Incluir en index.html, partido.html, apuestas.html
+   ============================================================= */
+
+/* ── Variables ── */
+:root {
+  --hdr-h:        62px;
+  --hdr-bg:       rgba(9,9,11,0.97);
+  --hdr-borde:    #1f2130;
+  --hdr-borde2:   #2a2d3e;
+  --hdr-rojo:     #e63030;
+  --hdr-rojo2:    #c41f1f;
+  --hdr-rojo-dim: rgba(230,48,48,0.12);
+  --hdr-verde:    #22c55e;
+  --hdr-verde-dim:rgba(34,197,94,0.10);
+  --hdr-amarillo: #f5c518;
+  --hdr-texto:    #e8e8ea;
+  --hdr-dim:      #6b7080;
+  --hdr-dim2:     #9299aa;
+  --hdr-card:     #13151c;
+  --hdr-card2:    #16181f;
+}
+
+/* ══════════════════════════════════════════════════════════
+   HEADER BASE
+══════════════════════════════════════════════════════════ */
+header {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: var(--hdr-h);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  background: var(--hdr-bg);
+  border-bottom: 1px solid var(--hdr-borde);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 1px 0 var(--hdr-borde), 0 4px 32px rgba(0,0,0,0.6);
+}
+
+/* Línea roja superior */
+header::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent 0%, var(--hdr-rojo2) 20%, var(--hdr-rojo) 50%, var(--hdr-rojo2) 80%, transparent 100%);
+  opacity: 0.8;
+}
+
+/* ── 3 zonas ── */
+.header-left {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.header-center {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  pointer-events: none; /* permite clicks en elementos debajo */
+}
+.header-center * { pointer-events: auto; }
+
+.header-right {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+/* ── Logo ── */
+.header-logo-link {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+}
+.logo {
+  height: 28px;
+  width: auto;
+  object-fit: contain;
+  transition: filter 0.2s, transform 0.2s;
+  display: block;
+}
+.logo:hover {
+  filter: brightness(1.15);
+  transform: scale(1.05);
+}
+
+/* ══════════════════════════════════════════════════════════
+   SALDO (izquierda)
+══════════════════════════════════════════════════════════ */
+.hdr-saldo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--hdr-verde-dim);
+  border: 1px solid rgba(34,197,94,0.22);
+  border-radius: 8px;
+  font-family: 'Barlow Condensed', 'Barlow', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--hdr-verde);
+  white-space: nowrap;
+  letter-spacing: 0.2px;
+  transition: border-color 0.2s;
+}
+.hdr-saldo:hover { border-color: rgba(34,197,94,0.4); }
+
+.hdr-saldo-icon {
+  font-size: 0.75rem;
+  opacity: 0.7;
+}
+
+/* "Saldo" label — oculto en móvil */
+.hdr-saldo-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: rgba(34,197,94,0.6);
+  margin-right: 1px;
+}
+
+.hdr-saldo-val {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--hdr-verde);
+}
+
+/* ══════════════════════════════════════════════════════════
+   DERECHA: wrap notif + usuario
+══════════════════════════════════════════════════════════ */
+.hdr-right-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Botón notificaciones ── */
+.hdr-notif-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 6px 10px;
+  background: none;
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 8px;
+  color: rgba(255,255,255,0.35);
+  font-size: 0.85rem;
+  font-family: 'Barlow', sans-serif;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s, background 0.2s;
+  white-space: nowrap;
+  line-height: 1;
+}
+.hdr-notif-btn:hover {
+  border-color: rgba(255,255,255,0.18);
+  color: rgba(255,255,255,0.65);
+}
+.hdr-notif-btn.activo {
+  border-color: rgba(34,197,94,0.35);
+  color: var(--hdr-verde);
+  background: var(--hdr-verde-dim);
+}
+
+/* ── Menú usuario ── */
+.hdr-user-menu {
+  position: relative;
+  display: inline-block;
+}
+
+.hdr-user-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px 6px 8px;
+  background: var(--hdr-card2);
+  border: 1px solid var(--hdr-borde2);
+  border-radius: 8px;
+  color: var(--hdr-texto);
+  font-family: 'Barlow', sans-serif;
+  font-size: 0.83rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.18s, background 0.18s;
+  white-space: nowrap;
+  user-select: none;
+}
+.hdr-user-trigger:hover,
+.hdr-user-trigger.active {
+  border-color: var(--hdr-rojo);
+  background: #1a1b22;
+}
+
+/* Avatar circular */
+.hdr-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px; height: 24px;
+  background: linear-gradient(135deg, var(--hdr-rojo), var(--hdr-rojo2));
+  border-radius: 50%;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 900;
+  color: #fff;
+  flex-shrink: 0;
+  letter-spacing: 0;
+}
+
+/* Nombre usuario — oculto en móvil */
+.hdr-username {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Chevron */
+.hdr-chevron {
+  font-size: 0.6rem;
+  color: var(--hdr-dim);
+  transition: transform 0.22s;
+  flex-shrink: 0;
+}
+.hdr-user-trigger.active .hdr-chevron { transform: rotate(180deg); }
+
+/* ── Dropdown ── */
+.hdr-dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 200px;
+  background: #13151c;
+  border: 1px solid var(--hdr-borde2);
+  border-radius: 12px;
+  padding: 6px;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.03);
+  z-index: 2000;
+  transform-origin: top right;
+}
+.hdr-dropdown.open {
+  display: block;
+  animation: hdrDDOpen 0.18s cubic-bezier(0.2,0,0,1) both;
+}
+@keyframes hdrDDOpen {
+  from { opacity: 0; transform: scale(0.94) translateY(-6px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0);    }
+}
+
+/* Cabecera usuario en dropdown */
+.hdr-dd-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px 12px;
+}
+.hdr-dd-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px; height: 34px;
+  background: linear-gradient(135deg, var(--hdr-rojo), var(--hdr-rojo2));
+  border-radius: 50%;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 900;
+  color: #fff;
+  flex-shrink: 0;
+}
+.hdr-dd-name {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--hdr-texto);
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hdr-dd-saldo {
+  display: block;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--hdr-verde);
+  margin-top: 1px;
+}
+
+/* Separador */
+.hdr-dd-sep {
+  height: 1px;
+  background: var(--hdr-borde);
+  margin: 4px 0;
+}
+
+/* Items del dropdown */
+.hdr-dd-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 12px;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  color: var(--hdr-dim2);
+  font-family: 'Barlow', sans-serif;
+  font-size: 0.83rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.13s, color 0.13s;
+  text-align: left;
+  box-sizing: border-box;
+  white-space: nowrap;
+}
+.hdr-dd-item i {
+  width: 15px;
+  text-align: center;
+  font-size: 0.78rem;
+  opacity: 0.5;
+  flex-shrink: 0;
+  transition: opacity 0.13s;
+}
+.hdr-dd-item:hover {
+  background: rgba(255,255,255,0.05);
+  color: var(--hdr-texto);
+}
+.hdr-dd-item:hover i { opacity: 0.9; }
+
+.hdr-dd-admin {
+  color: var(--hdr-amarillo) !important;
+}
+.hdr-dd-admin:hover {
+  background: rgba(245,197,24,0.08) !important;
+}
+
+.hdr-dd-logout {
+  color: var(--hdr-dim) !important;
+  margin-top: 2px;
+}
+.hdr-dd-logout:hover {
+  background: rgba(230,48,48,0.1) !important;
+  color: #ff7070 !important;
+}
+
+/* ══════════════════════════════════════════════════════════
+   BOTONES NO LOGUEADO
+══════════════════════════════════════════════════════════ */
+.hdr-auth-btns {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hdr-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-family: 'Barlow', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.18s;
+  white-space: nowrap;
+  line-height: 1;
+}
+.hdr-btn i { font-size: 0.78rem; }
+
+.hdr-btn-ghost {
+  background: transparent;
+  border-color: var(--hdr-borde2);
+  color: var(--hdr-dim2);
+}
+.hdr-btn-ghost:hover {
+  border-color: var(--hdr-rojo);
+  color: var(--hdr-texto);
+  background: var(--hdr-rojo-dim);
+}
+
+.hdr-btn-solid {
+  background: var(--hdr-rojo);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 2px 12px rgba(230,48,48,0.3);
+}
+.hdr-btn-solid:hover {
+  background: var(--hdr-rojo2);
+  box-shadow: 0 4px 20px rgba(230,48,48,0.45);
+  transform: translateY(-1px);
+}
+
+/* ══════════════════════════════════════════════════════════
+   RESPONSIVE
+══════════════════════════════════════════════════════════ */
+
+/* Tablet: ocultar label de saldo y nombre usuario */
+@media (max-width: 768px) {
+  .hdr-saldo-label { display: none; }
+  .hdr-saldo { padding: 6px 10px; gap: 5px; }
+  .hdr-saldo-icon { display: none; }
+
+  .hdr-username { display: none; }
+  .hdr-chevron  { display: none; }
+  .hdr-user-trigger { padding: 5px 8px; gap: 0; }
+
+  .hdr-btn-label { display: none; }
+  .hdr-btn { padding: 7px 10px; }
+}
+
+/* Móvil pequeño */
+@media (max-width: 480px) {
+  header { padding: 0 12px; }
+
+  .hdr-saldo { padding: 5px 9px; font-size: 0.88rem; }
+  .hdr-saldo-val { font-size: 0.92rem; }
+
+  .hdr-right-wrap { gap: 6px; }
+  .hdr-notif-btn { padding: 5px 8px; font-size: 0.8rem; }
+
+  .hdr-dropdown { min-width: 180px; right: -8px; }
+}
+
+/* ── Mi Perfil — item destacado en el dropdown ── */
+.hdr-dd-perfil {
+  color: var(--hdr-texto) !important;
+  font-weight: 700 !important;
+  background: rgba(230,48,48,0.06);
+  border: 1px solid rgba(230,48,48,0.12);
+  border-radius: 8px;
+  margin-bottom: 2px;
+}
+.hdr-dd-perfil i {
+  opacity: 1 !important;
+  color: var(--hdr-rojo) !important;
+}
+.hdr-dd-perfil:hover {
+  background: rgba(230,48,48,0.12) !important;
+  color: #fff !important;
+}

@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mis Apuestas — Winnet</title>
+  <link rel="stylesheet" href="assets/css/apuestas.css">
+  <link rel="stylesheet" href="assets/css/footer.css" />
+  <link rel="stylesheet" href="assets/css/header-unified.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800&family=Barlow+Condensed:wght@500;700;800&display=swap" rel="stylesheet">
+  <!-- Flatpickr -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+</head>
+<body>
+
+  <!-- ===== HEADER ==================================================== -->
+<header>
+  <!-- Saldo / botón Registrarse -->
+  <div class="header-left" id="header-left"></div>
+
+  <!-- Logo centrado -->
+  <div class="header-center">
+    <a href="index.html">
+      <img src="logohead.png" alt="Winnet" class="logo" id="logo-scroll" />
+    </a>
+  </div>
+
+  <!-- Usuario / Iniciar sesión -->
+  <div class="header-right" id="header-right"></div>
+</header>
+
+  <main class="apuestas-main">
+
+    <!-- ── PAGE HEADER ── -->
+    <div class="page-header">
+      <div class="page-header-inner">
+        <h1 class="page-title"><i class="fas fa-ticket-alt"></i> Mis Apuestas</h1>
+        <div class="page-header-right">
+          <div id="stats-apuestas" class="stats-row" style="display:none;">
+            <div class="stat-pill">
+              <span class="stat-pill-label">Apostado</span>
+              <span class="stat-pill-val" id="stat-apostado">0,00 €</span>
+            </div>
+            <div class="stat-pill verde">
+              <span class="stat-pill-label">Cobrado</span>
+              <span class="stat-pill-val" id="stat-ganancias">0,00 €</span>
+            </div>
+            <div class="stat-pill amarillo">
+              <span class="stat-pill-label">Pendientes</span>
+              <span class="stat-pill-val" id="stat-pendiente">0</span>
+            </div>
+            <div class="stat-pill azul">
+              <span class="stat-pill-label">Acierto</span>
+              <span class="stat-pill-val" id="stat-acierto">—</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TABS ── -->
+    <div class="tabs-bar">
+      <div class="tabs-inner">
+        <button class="tab-btn active" data-tab="pendientes">
+          <i class="fas fa-clock"></i>
+          <span>En curso</span>
+          <span class="tab-count" id="count-pendientes">0</span>
+        </button>
+        <button class="tab-btn" data-tab="listas">
+          <i class="fas fa-bell"></i>
+          <span>Para confirmar</span>
+          <span class="tab-count alerta" id="count-listas">0</span>
+        </button>
+        <button class="tab-btn" data-tab="terminadas">
+          <i class="fas fa-check-circle"></i>
+          <span>Historial</span>
+        </button>
+        <button class="tab-btn" data-tab="todas">
+          <i class="fas fa-list"></i>
+          <span>Todas</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ── FILTROS (solo en "todas") ── -->
+    <div id="filtros-apuestas-todas" style="display:none;">
+      <div class="filtros-bar">
+        <div class="filtros-inner">
+          <select id="filtro-principal" class="filtro-select">
+            <option value="">Filtrar por...</option>
+            <option value="estado">Estado</option>
+            <option value="fecha">Rango de fechas</option>
+            <option value="ganancia">Ganancia mínima</option>
+            <option value="perdida">Importe mínimo</option>
+            <option value="ordenar">Ordenar</option>
+          </select>
+          <div id="filtro-extra" class="filtro-extra-wrap"></div>
+          <button id="aplicar-filtros" class="btn-filtro btn-filtro-apply"><i class="fas fa-filter"></i> Filtrar</button>
+          <button id="limpiar-filtros" class="btn-filtro btn-filtro-clear"><i class="fas fa-times"></i> Limpiar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── CONTENIDO ── -->
+    <div class="apuestas-content">
+      <div id="apuestas-container" class="apuestas-lista"></div>
+    </div>
+
+  </main>
+
+  <!-- ===== FOOTER ==================================================== -->
+<footer class="footer">
+
+  <!-- Cuerpo: marca + columnas de links + redes -->
+  <div class="footer-content">
+
+    <!-- Marca -->
+    <div class="footer-logo">
+      <h2>Win<span style="color:var(--hf-rojo, #e63030)">net</span></h2>
+      <p>Apuestas deportivas con dinero ficticio.<br>Solo para entretenimiento.</p>
+      <div style="
+        display:inline-flex;align-items:center;gap:6px;
+        margin-top:12px;padding:6px 10px;
+        background:rgba(245,197,24,0.06);
+        border:1px solid rgba(245,197,24,0.18);
+        border-radius:6px;font-size:0.7rem;
+        color:#f5c518;font-weight:700;letter-spacing:0.4px;">
+        <i class="fas fa-shield-alt" style="font-size:0.75rem;"></i>
+        JUEGO RESPONSABLE · +18
+      </div>
+    </div>
+
+    <!-- Contacto & navegación -->
+    <div class="footer-contacto">
+      <h2>Navegación</h2>
+      <p><a href="index.html"><i class="fas fa-futbol"></i> Partidos</a></p>
+      <p><a href="apuestas.html"><i class="fas fa-ticket-alt"></i> Mis Apuestas</a></p>
+      <p><a href="https://winnetapp.github.io/soporte/" target="_blank" rel="noopener">
+        <i class="fas fa-life-ring"></i> Soporte &amp; errores</a></p>
+      <p><a href="mailto:winnetaplicacion@gmail.com">
+        <i class="fas fa-envelope"></i> winnetaplicacion@gmail.com</a></p>
+    </div>
+
+    <!-- Redes sociales -->
+    <div class="footer-redes">
+      <h2>Síguenos</h2>
+      <div class="redes-iconos">
+        <a href="https://youtube.com" target="_blank" rel="noopener" aria-label="YouTube">
+          <i class="fab fa-youtube"></i>
+        </a>
+        <a href="https://www.instagram.com/winnetapp?igsh=MXBvazY2anFqN3Nsdw==" target="_blank" rel="noopener" aria-label="Instagram">
+          <i class="fab fa-instagram"></i>
+        </a>
+        <a href="https://www.tiktok.com/@winnetapp?_t=ZN-8xTDcL9VuTu&_r=1" target="_blank" rel="noopener" aria-label="TikTok">
+          <i class="fab fa-tiktok"></i>
+        </a>
+        <a href="https://winnetapp.github.io/donaciones/" target="_blank" rel="noopener" aria-label="PayPal">
+          <i class="fab fa-paypal"></i>
+        </a>
+        <a href="mailto:winnetaplicacion@gmail.com" aria-label="Email">
+          <i class="fas fa-envelope"></i>
+        </a>
+      </div>
+    </div>
+
+  </div><!-- /.footer-content -->
+
+  <!-- Barra inferior -->
+  <div class="footer-bar" style="
+    border-top:1px solid #252830;padding:14px 24px;
+    max-width:1200px;margin:0 auto;
+    display:flex;align-items:center;justify-content:space-between;
+    flex-wrap:wrap;gap:12px;">
+    <span class="footer-bar-copy">&copy; 2025 Winnet · Todos los derechos reservados.</span>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+      <span style="
+        display:inline-flex;align-items:center;gap:5px;
+        padding:3px 10px;background:#1a1d24;
+        border:1px solid #252830;border-radius:20px;
+        font-size:0.68rem;font-weight:700;
+        color:#555b6e;text-transform:uppercase;letter-spacing:0.5px;">
+        <i class="fas fa-lock" style="font-size:0.65rem;"></i> Dinero ficticio
+      </span>
+      <span style="
+        display:inline-flex;align-items:center;gap:5px;
+        padding:3px 10px;background:rgba(34,197,94,0.08);
+        border:1px solid rgba(34,197,94,0.2);border-radius:20px;
+        font-size:0.68rem;font-weight:700;
+        color:#22c55e;text-transform:uppercase;letter-spacing:0.5px;">
+        <i class="fas fa-check-circle" style="font-size:0.65rem;"></i> Solo entretenimiento
+      </span>
+    </div>
+  </div>
+
+</footer>
+  <script src="assets/js/firebase-init.js"></script>
+  <script src="assets/js/header.js"></script>
+  <script src="assets/js/push-notifications.js"></script>
+  <script src="assets/js/apuestas.js"></script>
+</body>
+</html>

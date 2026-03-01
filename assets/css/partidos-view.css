@@ -1,0 +1,1693 @@
+/* =========================================================
+   partidos-view.css
+   Estilos para el visor de partidos: tabs, filtro de ligas,
+   tarjetas, cuotas, estados en vivo y bet slip.
+   ========================================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,600;0,700;0,800;1,400&family=Barlow+Condensed:wght@500;700;800&display=swap');
+
+/* ── Variables ── */
+:root {
+  --rojo-oscuro: #300404;
+  --rojo: #e63030;
+  --negro: #0a0a0c;
+  --blanco: #ffffff;
+  --fondo: #111114;
+  --fondo-card: #16181d;
+  --fondo-card-hover: #1c1f26;
+  --borde: #252830;
+  --amarillo: #f5c518;
+  --amarillo-hover: #ffe555;
+  --texto-secundario: #8a8f9e;
+  --color-hover-cuota: #e63030;
+  --color-hover-texto: #fff8e1;
+  --vivo-color: #e63030;
+  --goleadores-bg: #12131a;
+  --goleadores-hover: #1c1d27;
+  --goleador-cuota-bg: #f5c518;
+  --badge-vivo-bg: #e63030;
+  --accent: #4f6ef7;
+  --shadow-card: 0 4px 24px rgba(0,0,0,0.35);
+  --shadow-hover: 0 8px 32px rgba(230,48,48,0.12);
+}
+
+/* ═══════════════════════════════════════════════
+   TABS (Próximos / En Vivo / Historial)
+   ═══════════════════════════════════════════════ */
+.partidos-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 14px 0 10px;
+  border-bottom: 1px solid var(--borde);
+  margin-bottom: 14px;
+}
+
+.p-tab {
+  padding: 8px 22px;
+  border-radius: 20px;
+  border: 1px solid var(--borde);
+  cursor: pointer;
+  font-family: 'Barlow', sans-serif;
+  font-size: 0.88rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  background: transparent;
+  color: var(--texto-secundario);
+  transition: all 0.22s;
+}
+
+.p-tab:hover {
+  border-color: var(--rojo);
+  color: #fff;
+}
+
+.p-tab.active {
+  background: var(--rojo);
+  border-color: var(--rojo);
+  color: #fff;
+  box-shadow: 0 2px 12px rgba(230,48,48,0.35);
+}
+
+/* ═══════════════════════════════════════════════
+   FILTRO LIGAS
+   ═══════════════════════════════════════════════ */
+.ligas-filter {
+  display: flex;
+  gap: 6px;
+  padding: 6px 0 14px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.ligas-filter::-webkit-scrollbar { display: none; }
+
+.liga-btn {
+  padding: 5px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--borde);
+  background: transparent;
+  color: var(--texto-secundario);
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: 'Barlow', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  transition: all 0.2s;
+}
+.liga-btn:hover {
+  border-color: var(--amarillo);
+  color: var(--amarillo);
+}
+.liga-btn.active {
+  border-color: var(--amarillo);
+  color: var(--amarillo);
+  background: rgba(245,197,24,0.1);
+}
+
+/* ═══════════════════════════════════════════════
+   CONTENEDOR PARTIDOS
+   ═══════════════════════════════════════════════ */
+#partidos-container {
+  width: 100%;
+  max-width: 500px;
+  margin: 0 auto;
+  padding: 0;
+}
+
+/* ── Loading ── */
+.partidos-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: var(--texto-secundario);
+  font-family: 'Barlow', sans-serif;
+  font-size: 0.95rem;
+  gap: 16px;
+}
+
+.partidos-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid var(--borde);
+  border-top-color: var(--rojo);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.empty {
+  text-align: center;
+  color: var(--texto-secundario);
+  padding: 50px 20px;
+  font-family: 'Barlow', sans-serif;
+  font-size: 0.95rem;
+}
+
+/* ═══════════════════════════════════════════════
+   SECCIÓN POR LIGA
+   ═══════════════════════════════════════════════ */
+.seccion-liga {
+  margin-bottom: 28px;
+}
+
+.seccion-liga-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 0 2px;
+}
+
+.seccion-liga-titulo {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--texto-secundario);
+  flex: 1;
+}
+
+.seccion-liga-linea {
+  flex: 1;
+  height: 1px;
+  background: var(--borde);
+}
+
+/* ═══════════════════════════════════════════════
+   TARJETA DE PARTIDO
+   ═══════════════════════════════════════════════ */
+.partido-card {
+  background: var(--fondo-card);
+  border-radius: 14px;
+  padding: 16px 16px 14px;
+  margin-bottom: 10px;
+  border: 1px solid var(--borde);
+  box-shadow: var(--shadow-card);
+  transition: box-shadow 0.22s, border-color 0.22s, transform 0.15s;
+  position: relative;
+  overflow: hidden;
+}
+
+.partido-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--borde), transparent);
+  transition: background 0.3s;
+}
+
+.partido-card:hover {
+  box-shadow: var(--shadow-hover);
+  border-color: rgba(230,48,48,0.2);
+  transform: translateY(-1px);
+}
+
+.partido-card:hover::before {
+  background: linear-gradient(90deg, transparent, var(--rojo), transparent);
+}
+
+.partido-card.en-vivo {
+  border-color: rgba(230,48,48,0.3);
+}
+.partido-card.en-vivo::before {
+  background: linear-gradient(90deg, transparent, var(--rojo), transparent);
+  animation: vivo-pulse 2s ease-in-out infinite;
+}
+
+@keyframes vivo-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.partido-card.terminado {
+  opacity: 0.65;
+}
+
+/* ── Info equipos ── */
+.info-equipos {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 8px;
+}
+
+.equipo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.equipo span {
+  font-family: 'Barlow', sans-serif;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--blanco);
+  text-align: center;
+  line-height: 1.25;
+  word-break: break-word;
+}
+
+.escudo-wrapper {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: #1e2028;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--borde);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.escudo-wrapper img {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+}
+
+/* ── Centro ── */
+.centro {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.marcador {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--blanco);
+  letter-spacing: 3px;
+  line-height: 1;
+}
+
+.hora {
+  font-family: 'Barlow', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--amarillo);
+  display: block;
+  text-align: center;
+}
+
+.hora small {
+  font-size: 0.72rem;
+  color: var(--texto-secundario);
+  font-weight: 400;
+  display: block;
+  margin-top: 1px;
+}
+
+.badge-vivo {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--badge-vivo-bg);
+  color: #fff;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  animation: vivo-badge 1.5s ease-in-out infinite;
+}
+
+.badge-vivo::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #fff;
+  animation: vivo-dot 1.5s ease-in-out infinite;
+}
+
+@keyframes vivo-badge {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(230,48,48,0.4); }
+  50% { box-shadow: 0 0 0 4px rgba(230,48,48,0); }
+}
+
+@keyframes vivo-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.minuto {
+  font-family: 'Barlow', sans-serif;
+  font-size: 0.78rem;
+  color: var(--rojo);
+  font-weight: 700;
+}
+
+/* ═══════════════════════════════════════════════
+   CUOTAS
+   ═══════════════════════════════════════════════ */
+.cuotas-futbol {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-top: 14px;
+}
+
+.cuota {
+  background: #0e0f14;
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  padding: 8px 4px 6px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  user-select: none;
+}
+
+.cuota:hover {
+  background: rgba(230,48,48,0.1);
+  border-color: var(--rojo);
+  transform: translateY(-1px);
+}
+
+.cuota.activa,
+.cuota.selected {
+  background: rgba(230,48,48,0.18);
+  border-color: var(--rojo);
+  box-shadow: 0 0 10px rgba(230,48,48,0.2);
+}
+
+.nombre-equipo-cuota {
+  font-family: 'Barlow', sans-serif;
+  font-size: 0.7rem;
+  color: var(--texto-secundario);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 90%;
+}
+
+.valor-cuota,
+.cuota-btn {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--amarillo);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.cuota:hover .valor-cuota,
+.cuota.activa .valor-cuota {
+  color: #fff;
+}
+
+/* ═══════════════════════════════════════════════
+   VER MERCADOS / GOLEADORES
+   ═══════════════════════════════════════════════ */
+.ver-partido-btn {
+  display: block;
+  margin: 10px auto 0;
+  background: transparent;
+  color: var(--texto-secundario);
+  font-family: 'Barlow', sans-serif;
+  font-weight: 600;
+  font-size: 0.8rem;
+  border: 1px solid var(--borde);
+  border-radius: 20px;
+  padding: 6px 18px;
+  cursor: pointer;
+  text-decoration: none;
+  text-align: center;
+  width: fit-content;
+  letter-spacing: 0.4px;
+  transition: all 0.2s;
+}
+
+.ver-partido-btn:hover {
+  color: var(--amarillo);
+  border-color: var(--amarillo);
+  background: rgba(245,197,24,0.06);
+}
+
+.btn-goleadores {
+  margin: 8px auto 0;
+  display: block;
+  background: var(--goleadores-bg);
+  color: var(--amarillo);
+  font-family: 'Barlow', sans-serif;
+  font-weight: 700;
+  font-size: 0.85rem;
+  border: 1px solid var(--borde);
+  border-radius: 7px;
+  padding: 7px 18px;
+  cursor: pointer;
+  letter-spacing: 0.4px;
+  transition: all 0.2s;
+}
+.btn-goleadores:hover, .btn-goleadores.active {
+  background: var(--goleadores-hover);
+  border-color: var(--amarillo);
+}
+
+/* Goleadores lista */
+.goleadores-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.goleador-opcion {
+  display: grid;
+  grid-template-columns: 1fr min-content;
+  align-items: center;
+  cursor: pointer;
+  padding: 7px 12px;
+  border-radius: 7px;
+  background: #0e0f14;
+  border: 1px solid var(--borde);
+  transition: all 0.15s;
+}
+
+.goleador-opcion:hover {
+  background: #181926;
+  border-color: rgba(245,197,24,0.3);
+}
+
+.nombre-goleador {
+  font-family: 'Barlow', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #e8e8e8;
+}
+
+.cuota-goleador {
+  background: var(--goleador-cuota-bg);
+  color: #111;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  border-radius: 5px;
+  padding: 3px 10px;
+  margin-left: 10px;
+}
+
+/* ═══════════════════════════════════════════════
+   BET SLIP / USER SIDEBAR
+   ═══════════════════════════════════════════════ */
+.user-sidebar {
+  background: var(--fondo-card);
+  color: #fff;
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  height: auto;
+  box-shadow: 0 0 30px rgba(0,0,0,0.5);
+  font-family: 'Barlow', sans-serif;
+  font-size: 15px;
+  width: 300px;
+  border: 1px solid var(--borde);
+  overflow: hidden;
+}
+
+.bs-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  background: #111215;
+  border-bottom: 1px solid var(--borde);
+}
+
+.bs-toggle,
+.bs-clear {
+  background: none;
+  border: none;
+  color: var(--texto-secundario);
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 4px;
+  border-radius: 5px;
+  transition: color 0.2s;
+}
+.bs-toggle:hover, .bs-clear:hover { color: #fff; }
+
+.bs-title {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #fff;
+}
+
+.bs-tabs {
+  display: flex;
+  background: #0e0f14;
+  margin: 10px 10px 0;
+  border-radius: 25px;
+  padding: 4px;
+  gap: 2px;
+}
+
+.bs-tab {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--texto-secundario);
+  padding: 6px 0;
+  font-family: 'Barlow', sans-serif;
+  font-weight: 600;
+  font-size: 0.78rem;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+  letter-spacing: 0.3px;
+}
+
+.bs-tab.active {
+  background: #252830;
+  color: #fff;
+}
+
+.bs-content {
+  padding: 4px 10px 0;
+}
+
+.bs-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 10px 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--borde) transparent;
+}
+
+.bs-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* ── Item bet slip ── */
+.bs-item {
+  background: #0e0f14;
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  padding: 10px 10px 8px;
+  color: #fff;
+  margin-bottom: 8px;
+  position: relative;
+  transition: border-color 0.2s;
+}
+
+.bs-item:hover { border-color: #2d3147; }
+
+.bs-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bs-deporte { font-size: 0.9rem; flex-shrink: 0; }
+
+.bs-tipo {
+  flex-grow: 1;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #d8d8d8;
+  line-height: 1.3;
+}
+
+.bs-tipo-correlada { color: var(--amarillo) !important; }
+
+.bs-cuota {
+  margin-right: 22px;
+  background: #1e2240;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #7fb3ff;
+  flex-shrink: 0;
+}
+
+.bs-info {
+  margin-top: 5px;
+  color: var(--texto-secundario);
+  font-size: 0.75rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bs-remove {
+  position: absolute;
+  right: 6px;
+  top: 8px;
+  background: none;
+  border: none;
+  color: #555;
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 2px 5px;
+  border-radius: 4px;
+  transition: color 0.15s, background 0.15s;
+}
+.bs-remove:hover { color: #e53935; background: rgba(229,57,53,0.1); }
+
+/* ── Grupo bet slip ── */
+.bs-item-grupo-header {
+  background: #0e0f14;
+  border: 1px solid #2a2400;
+  border-left: 3px solid var(--amarillo);
+  border-radius: 10px 10px 4px 4px;
+  margin-bottom: 2px;
+}
+.bs-item-grupo-header:not(:first-child) { margin-top: 16px; }
+
+.bs-grupo-nombre {
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: #fff;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bs-grupo-cuota {
+  margin-right: 6px;
+  background: rgba(245,197,24,0.12);
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--amarillo);
+}
+
+.bs-item-sub {
+  background: #0e0f14;
+  border: 1px solid var(--borde);
+  border-top: none;
+  border-radius: 4px;
+  margin-bottom: 2px;
+  padding: 8px 10px;
+}
+.bs-item-sub:last-child {
+  border-radius: 4px 4px 10px 10px;
+  margin-bottom: 8px;
+}
+
+/* ── Footer bet slip ── */
+.bs-footer {
+  background: #111215;
+  padding: 12px 12px 8px;
+  border-top: 1px solid var(--borde);
+  margin-top: 4px;
+}
+
+.stake-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.stake {
+  font-size: 0.72rem;
+  text-align: left;
+  margin-bottom: 5px;
+  color: var(--texto-secundario);
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+.stake-group {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.stake-input {
+  display: flex;
+  align-items: center;
+  background: #0e0f14;
+  border: 1px solid var(--borde);
+  padding: 4px 10px;
+  border-radius: 50px;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+.stake-input:focus-within { border-color: var(--rojo); }
+
+.stake-input input {
+  width: 100%;
+  padding: 6px 4px;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: #fff;
+  font-family: 'Barlow', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-align: right;
+}
+
+.stake-input span {
+  padding: 0 4px;
+  color: var(--texto-secundario);
+  font-size: 0.9rem;
+}
+
+.total-odds {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.tot-label {
+  color: var(--texto-secundario);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.tot-value {
+  display: block;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--rojo);
+}
+
+.potential-winnings {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(245,197,24,0.05);
+  border: 1px solid rgba(245,197,24,0.12);
+  border-radius: 8px;
+  padding: 7px 10px;
+  margin-bottom: 8px;
+}
+
+.pw-label {
+  font-size: 0.75rem;
+  color: var(--texto-secundario);
+  white-space: nowrap;
+}
+
+.pw-divider {
+  flex: 1;
+  height: 1px;
+  background: rgba(245,197,24,0.15);
+}
+
+.pw-value {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--amarillo);
+  white-space: nowrap;
+}
+
+/* ── Quick stakes ── */
+.quick-stakes {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  padding: 8px 12px;
+  background: #0e0f14;
+  border-top: 1px solid var(--borde);
+}
+
+.qs {
+  flex: 1 1 50px;
+  background: #16181d;
+  border: 1px solid var(--borde);
+  color: #ccc;
+  padding: 5px 4px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: 'Barlow', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  transition: all 0.15s;
+}
+.qs:hover { background: var(--rojo-oscuro); border-color: var(--rojo); color: #fff; }
+.qs.all-in { border-color: var(--amarillo); color: var(--amarillo); }
+.qs.all-in:hover { background: rgba(245,197,24,0.1); }
+
+/* ── Botón aceptar ── */
+.accept-btn {
+  width: calc(100% - 24px);
+  margin: 0 12px 12px;
+  border: none;
+  padding: 11px 0;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  border-radius: 50px;
+  cursor: pointer;
+  background: linear-gradient(135deg, var(--rojo) 0%, #c02020 100%);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(230,48,48,0.25);
+  transition: all 0.2s;
+}
+.accept-btn:hover {
+  background: linear-gradient(135deg, #f03030 0%, var(--rojo) 100%);
+  box-shadow: 0 4px 20px rgba(230,48,48,0.4);
+  transform: translateY(-1px);
+}
+
+/* ═══════════════════════════════════════════════
+   TOAST
+   ═══════════════════════════════════════════════ */
+#bet-toast {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: #16181d;
+  color: #fff;
+  border-left: 3px solid var(--amarillo);
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-family: 'Barlow', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 500;
+  z-index: 99999;
+  opacity: 0;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  pointer-events: none;
+  max-width: 300px;
+  text-align: center;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  border: 1px solid var(--borde);
+}
+#bet-toast.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+#bet-toast.toast-error { border-left-color: #e53935; }
+#bet-toast.toast-ok    { border-left-color: #43a047; }
+
+/* ═══════════════════════════════════════════════
+   ANIMACIÓN ELIMINAR APUESTA
+   ═══════════════════════════════════════════════ */
+@keyframes bs-barrido {
+  0%   { opacity: 1; transform: translateX(0);    max-height: 80px; }
+  60%  { opacity: 0; transform: translateX(60px); max-height: 80px; }
+  100% { opacity: 0; transform: translateX(60px); max-height: 0; padding: 0; margin: 0; }
+}
+.bs-item-removing {
+  animation: bs-barrido 0.28s ease-in forwards;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* ═══════════════════════════════════════════════
+   BOTÓN MÓVIL CARRITO
+   ═══════════════════════════════════════════════ */
+.mobile-menu-btn {
+  display: none;
+}
+
+.mobile-menu-btn img#cartIcon {
+  width: 22px;
+  height: 22px;
+}
+
+#totalOddsText {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--amarillo);
+  display: none;
+}
+
+.bet-badge {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  background: var(--rojo);
+  color: #fff;
+  font-family: 'Barlow', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 50%;
+  display: none;
+  min-width: 18px;
+  text-align: center;
+  border: 2px solid var(--negro);
+}
+
+/* ═══════════════════════════════════════════════
+   RESPONSIVE MÓVIL
+   ═══════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .mobile-menu-btn {
+    display: flex !important;
+    position: fixed;
+    bottom: 22px;
+    right: 18px;
+    background: var(--rojo-oscuro);
+    color: var(--amarillo);
+    border: 1px solid rgba(230,48,48,0.3);
+    padding: 11px 16px;
+    border-radius: 50px;
+    font-weight: 700;
+    font-size: 15px;
+    cursor: pointer;
+    z-index: 2001;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.2s;
+  }
+  .mobile-menu-btn:hover { background: var(--rojo); }
+  .bet-badge { background: var(--amarillo); color: #111; border-color: var(--negro); }
+
+  .column-right {
+    display: block !important;
+    position: fixed;
+    top: 0; right: 0;
+    width: 100vw; height: 100vh;
+    z-index: 1000;
+    pointer-events: none;
+  }
+
+  .column-right .user-sidebar {
+    position: fixed;
+    top: 0; right: 0; left: 0; bottom: 0;
+    width: 100vw; height: 100vh;
+    border-radius: 0;
+    border: none;
+    transform: translateX(100%);
+    transition: transform 0.3s cubic-bezier(.77,0,.18,1);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    pointer-events: auto;
+  }
+
+  .column-right .user-sidebar.open {
+    transform: translateX(0);
+  }
+
+  .partidos-tabs { padding: 10px 0 8px; }
+  .p-tab { padding: 7px 14px; font-size: 0.82rem; }
+}
+
+/* ═══════════════════════════════════════════════
+   COLUMNAS PRINCIPALES
+   ═══════════════════════════════════════════════ */
+.main-columns {
+  display: flex;
+  gap: 24px;
+  margin-top: 20px;
+  align-items: flex-start;
+}
+
+.column { flex: 1; }
+
+.column-left  { max-width: 220px; }
+.column-center { max-width: 520px; flex: 1; }
+.column-right  { max-width: 310px; flex-shrink: 0; }
+
+@media (max-width: 1100px) {
+  .column-left { display: none; }
+}
+
+@media (max-width: 768px) {
+  .main-columns { flex-direction: column; gap: 0; }
+  .column-right { max-width: 100%; }
+  .column-left  { display: none; }
+  .column-center { max-width: 100%; width: 100%; }
+}
+
+/* =============================================================
+   Añadir al FINAL de assets/css/partidos-view.css
+   Estilos para:
+   · Carrito mejorado (agrupación visual)
+   · Badges de correlación
+   · Apuestas de sistema
+   · Estado vacío del carrito
+   ============================================================= */
+
+/* ── Estado vacío del carrito ── */
+.bs-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 32px 16px;
+  color: var(--texto-dim, #8a8f9e);
+  font-size: 0.85rem;
+  text-align: center;
+  list-style: none;
+}
+.bs-empty span:first-child { font-size: 1.8rem; opacity: 0.4; }
+
+/* ── Grupo de apuestas del mismo partido ── */
+.bs-item-grupo-header {
+  background: linear-gradient(135deg, #0e0f14, #12141c);
+  border: 1px solid rgba(245,197,24,0.2);
+  border-left: 3px solid var(--amarillo);
+  border-radius: 10px 10px 4px 4px;
+  margin-bottom: 2px;
+  margin-top: 12px;
+}
+.bs-item-grupo-header:first-child { margin-top: 0; }
+
+.bs-grupo-nombre {
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: #fff;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bs-grupo-cuota {
+  margin-right: 6px;
+  background: rgba(245,197,24,0.12);
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--amarillo);
+}
+
+/* ── Sub-items del grupo ── */
+.bs-item-sub {
+  background: #0b0c10;
+  border: 1px solid var(--borde);
+  border-top: none;
+  border-radius: 4px;
+  margin-bottom: 2px;
+  padding: 7px 10px 6px;
+  position: relative;
+}
+.bs-item-sub:last-of-type {
+  border-radius: 4px 4px 10px 10px;
+  margin-bottom: 10px;
+}
+
+/* ── Cuota sub-item ── */
+.bs-cuota-sub {
+  font-size: 0.88rem;
+  background: transparent;
+  color: var(--texto-dim, #8a8f9e);
+  text-decoration: line-through;
+  opacity: 0.7;
+}
+
+/* ── Badges de correlación ── */
+.bs-corr-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'Barlow', sans-serif;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 8px;
+  margin-top: 4px;
+  letter-spacing: 0.3px;
+}
+.bs-corr-reducida {
+  background: rgba(245,197,24,0.1);
+  border: 1px solid rgba(245,197,24,0.25);
+  color: var(--amarillo);
+}
+.bs-corr-incompatible {
+  background: rgba(230,48,48,0.1);
+  border: 1px solid rgba(230,48,48,0.25);
+  color: #ff8080;
+}
+
+/* ── Tooltip de correlación en el bs-tipo ── */
+.bs-tipo-correlada {
+  color: var(--amarillo) !important;
+  position: relative;
+}
+
+/* ── Aviso de cuota ajustada en el footer ── */
+.bs-cuota-ajustada-aviso {
+  font-size: 0.72rem;
+  color: var(--amarillo);
+  text-align: center;
+  padding: 4px 10px;
+  background: rgba(245,197,24,0.06);
+  border-top: 1px solid rgba(245,197,24,0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+/* ═══════════════════════════════════════════════
+   APUESTAS DE SISTEMA
+   ═══════════════════════════════════════════════ */
+.sistema-vacio {
+  padding: 20px 14px;
+  color: var(--texto-dim, #8a8f9e);
+  font-size: 0.82rem;
+  text-align: center;
+  line-height: 1.5;
+}
+
+.sistema-info {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--texto-dim, #8a8f9e);
+  padding: 8px 4px 6px;
+}
+
+.sistema-opciones {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sistema-opcion {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #0e0f14;
+  border: 1px solid var(--borde);
+  border-radius: 9px;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+.sistema-opcion:hover {
+  border-color: rgba(59,130,246,0.4);
+  background: #10111a;
+}
+.sistema-opcion:has(input:checked) {
+  border-color: #3b82f6;
+  background: rgba(59,130,246,0.06);
+}
+
+.sis-radio-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+
+.sis-radio {
+  accent-color: #3b82f6;
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.sis-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.sis-titulo {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #e8e8ea;
+}
+
+.sis-detalle {
+  font-size: 0.75rem;
+  color: var(--texto-dim, #8a8f9e);
+}
+.sis-detalle strong { color: #fff; }
+
+.sis-retorno {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #3b82f6;
+  background: rgba(59,130,246,0.1);
+  border: 1px solid rgba(59,130,246,0.2);
+  padding: 3px 9px;
+  border-radius: 7px;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+.sistema-footer {
+  margin-top: 8px;
+  background: #0e0f14;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sis-detalle-apuesta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sis-label {
+  font-size: 0.75rem;
+  color: var(--texto-dim, #8a8f9e);
+}
+.sis-valor {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+/* ── Pestaña sistema activa ── */
+.bs-tab[data-target="sistema"].active {
+  background: rgba(59,130,246,0.15);
+  color: #93c5fd;
+}
+
+/* ── Reset de listas para el BetSlip ── */
+.bs-list, #slip-list, #slip-list-modal {
+  list-style: none !important; /* Elimina el punto/marcador */
+  padding: 0;
+  margin: 0;
+}
+
+.bs-item, .bs-item-sub, .bs-item-grupo-header {
+  list-style: none !important;
+  display: block; /* Asegura que no se comporte como list-item */
+}
+
+/* Forzado extra para navegadores modernos */
+.bs-item::marker, 
+.bs-item-sub::marker, 
+.bs-item-grupo-header::marker {
+  content: none;
+  display: none;
+}
+
+
+/* =============================================================
+   Añadir a assets/css/partidos-view.css
+   (o al final de style.css si prefieres un solo archivo)
+
+   Estilos para la agrupación por fecha en la vista Próximos
+   ============================================================= */
+
+/* ── Sección de fecha (wrapper externo) ── */
+.seccion-fecha {
+  margin-bottom: 8px;
+}
+
+/* ── Cabecera del día: "Hoy", "Mañana", "vie 6 mar" ── */
+.seccion-fecha-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 4px 6px;
+  position: sticky;
+  top: 60px; /* altura del header, ajusta si el tuyo es distinto */
+  z-index: 10;
+  background: var(--fondo, #111114); /* mismo fondo que la página */
+}
+
+.seccion-fecha-titulo {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--rojo, #e63030);
+  white-space: nowrap;
+  padding: 3px 10px;
+  background: rgba(230, 48, 48, 0.10);
+  border: 1px solid rgba(230, 48, 48, 0.20);
+  border-radius: 6px;
+}
+
+/* Etiquetas especiales */
+.seccion-fecha-titulo[data-hoy="true"],
+.seccion-fecha-header:first-child .seccion-fecha-titulo {
+  color: var(--amarillo, #f5c518);
+  background: rgba(245, 197, 24, 0.10);
+  border-color: rgba(245, 197, 24, 0.20);
+}
+
+/* Línea decorativa al lado del título de fecha */
+.seccion-fecha-header::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, var(--borde, #252830) 0%, transparent 100%);
+}
+
+/* ── Ligas dentro de una fecha: menos margen superior ── */
+.seccion-fecha .seccion-liga {
+  margin-top: 2px;
+}
+
+.seccion-fecha .seccion-liga:first-of-type {
+  margin-top: 0;
+}
+
+/* =============================================================
+   AÑADIR al final de assets/css/partidos-view.css
+   Estilos para: En Vivo, Historial, marcadores con ganador
+   ============================================================= */
+
+/* ── Dot pulsante rojo ──────────────────────────────────────── */
+.vivo-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #e63030;
+  margin-right: 4px;
+  animation: pulse-vivo 1.2s ease-in-out infinite;
+  vertical-align: middle;
+}
+@keyframes pulse-vivo {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.35; transform: scale(0.65); }
+}
+
+/* ── Header global en vivo ──────────────────────────────────── */
+.envivo-header {
+  padding: 10px 0 14px;
+  display: flex;
+  align-items: center;
+}
+.envivo-titulo-global {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #e63030;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ── Marcador en vivo (números más grandes y vivos) ─────────── */
+.marcador-vivo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 1.6rem;
+  font-weight: 800;
+  line-height: 1;
+  color: #e8e8ea;
+}
+.marcador-sep {
+  color: #454960;
+  font-weight: 400;
+}
+.gol-ganador {
+  color: #22c55e;
+}
+
+/* Nombre equipo que va ganando */
+.equipo-ganando {
+  color: #22c55e;
+  font-weight: 700;
+}
+
+/* ── Marcador final historial ───────────────────────────────── */
+.resultado-ft {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.ft-label {
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #454960;
+}
+.marcador-final {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #e8e8ea;
+  line-height: 1;
+}
+.ft-hora {
+  font-size: 0.68rem;
+  color: #454960;
+}
+
+/* Ganador / perdedor en historial */
+.equipo-ganador-hist {
+  font-weight: 700;
+  color: #e8e8ea;
+}
+.equipo-perdedor-hist {
+  color: #454960;
+}
+
+/* ── Tarjeta terminada: sin hover agresivo ──────────────────── */
+.partido-card.terminado {
+  opacity: 0.85;
+}
+.partido-card.terminado:hover {
+  opacity: 1;
+}
+/* Sin cuotas en historial */
+.partido-card.terminado .cuotas {
+  display: none;
+}
+
+/* ── Estado vacío en vivo ───────────────────────────────────── */
+.envivo-vacio {
+  text-align: center;
+  padding: 60px 20px;
+  color: #7a7f92;
+}
+.envivo-vacio-icon {
+  font-size: 2.5rem;
+  margin-bottom: 14px;
+  opacity: 0.3;
+  animation: pulse-vivo 2s ease-in-out infinite;
+}
+.envivo-vacio-titulo {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #454960;
+  margin-bottom: 6px;
+}
+.envivo-vacio-sub {
+  font-size: 0.82rem;
+  color: #454960;
+}
+
+/* ── Badge EN VIVO con minuto ───────────────────────────────── */
+.badge-vivo {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(230,48,48,0.12);
+  border: 1px solid rgba(230,48,48,0.25);
+  color: #e63030;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  padding: 3px 8px;
+  border-radius: 5px;
+  white-space: nowrap;
+}
+
+/* ── Partido en vivo: borde izquierdo rojo ──────────────────── */
+.partido-card.en-vivo {
+  border-left: 3px solid #e63030;
+}
+
+/* =============================================================
+   AÑADIR AL FINAL de assets/css/partidos-view.css
+   Estilos para cuotas bloqueadas en partidos en vivo
+   ============================================================= */
+
+/* Cuotas en vivo — no clicables, apariencia bloqueada */
+.cuotas-bloqueadas {
+  pointer-events: none;
+  opacity: 0.45;
+  filter: grayscale(0.5);
+}
+
+.cuota-vivo-bloqueada {
+  cursor: not-allowed !important;
+  border-color: var(--borde) !important;
+  background: #0a0b0e !important;
+}
+
+.cuota-vivo-bloqueada:hover {
+  background: #0a0b0e !important;
+  border-color: var(--borde) !important;
+  transform: none !important;
+}
+
+.cuota-vivo-lock {
+  color: #555 !important;
+  font-size: 0.9rem !important;
+}
+
+/* Aviso textual bajo las cuotas bloqueadas */
+.cuotas-vivo-aviso {
+  text-align: center;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #454960;
+  padding: 6px 0 2px;
+  letter-spacing: 0.4px;
+}
+
+/* =============================================================
+   AÑADIR AL FINAL de assets/css/partidos-view.css
+   (o al final del bloque <style> de partido.html)
+   Estilos para mercados de partidos terminados (FT)
+   ============================================================= */
+
+/* ── Banner "partido finalizado" ── */
+.ft-mercados-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: rgba(139, 92, 246, 0.08);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: 10px;
+  padding: 10px 16px;
+  margin-bottom: 14px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #a78bfa;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+/* ── Botón bloqueado (partido terminado) ── */
+.opcion-btn.ft-bloqueada {
+  cursor: default !important;
+  opacity: 0.55;
+}
+
+.opcion-btn.ft-bloqueada:hover {
+  border-color: var(--borde) !important;
+  background: #0e0f14 !important;
+  box-shadow: none !important;
+}
+
+/* ── Opción ganadora ── */
+.opcion-btn.ft-ganadora {
+  border-color: #22c55e !important;
+  background: rgba(34, 197, 94, 0.1) !important;
+  opacity: 1 !important;       /* override del ft-bloqueada */
+  cursor: default !important;
+  position: relative;
+}
+
+.opcion-btn.ft-ganadora .opcion-cuota {
+  color: #22c55e !important;
+}
+
+.opcion-btn.ft-ganadora .opcion-label {
+  color: #e8e8ea !important;
+}
+
+/* Badge "✓ Ganadora" dentro del botón */
+.ft-ganadora-badge {
+  font-size: 0.62rem;
+  font-weight: 800;
+  color: #22c55e;
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  border-radius: 6px;
+  padding: 1px 6px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-top: 2px;
+  display: block;
+}
+
+/* Hover sobre ganadora: sutil glow verde (no confundir con seleccionable) */
+.opcion-btn.ft-ganadora:hover {
+  box-shadow: 0 0 12px rgba(34, 197, 94, 0.2) !important;
+  border-color: #22c55e !important;
+  background: rgba(34, 197, 94, 0.13) !important;
+}
+
+/* =============================================================
+   Botones de cuota (próximos) — reset de estilos nativos <button>
+   ============================================================= */
+.cuota-btn-wrap {
+  appearance: none;
+  -webkit-appearance: none;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  outline: none;
+}
+
+.cuota-btn-wrap.sin-cuota {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.cuota-btn-wrap:focus-visible {
+  outline: 2px solid var(--rojo, #e63030);
+  outline-offset: 2px;
+  border-radius: 4px;
+}

@@ -1,0 +1,160 @@
+/* =============================================================
+   assets/css/favoritos.css
+   · Botón corazón en tarjetas de partido
+   · Tab "Favoritos" en la navegación principal
+   · Estado vacío de favoritos
+   ============================================================= */
+
+/* ── Botón corazón ── */
+.fav-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: rgba(14, 15, 20, 0.85);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255,255,255,0.06);
+  flex-shrink: 0;
+  padding: 0;
+}
+
+.fav-btn:hover {
+  background: rgba(230, 48, 48, 0.15);
+  border-color: rgba(230, 48, 48, 0.35);
+  transform: scale(1.12);
+  box-shadow: 0 2px 12px rgba(230, 48, 48, 0.2);
+}
+
+.fav-btn:active {
+  transform: scale(0.92);
+}
+
+.fav-heart {
+  width: 15px;
+  height: 15px;
+  fill: rgba(255, 255, 255, 0.25);
+  stroke: rgba(255, 255, 255, 0.4);
+  stroke-width: 1.5;
+  transition: fill 0.25s, stroke 0.25s, transform 0.2s;
+  pointer-events: none;
+}
+
+/* Estado activo — corazón rojo */
+.fav-btn.fav-activo {
+  background: rgba(230, 48, 48, 0.18);
+  border-color: rgba(230, 48, 48, 0.5);
+  box-shadow: 0 2px 12px rgba(230, 48, 48, 0.25);
+}
+
+.fav-btn.fav-activo .fav-heart {
+  fill: #e63030;
+  stroke: #e63030;
+  transform: scale(1.1);
+}
+
+/* Animación al hacer click */
+@keyframes heartPop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.4); }
+  60%  { transform: scale(0.9); }
+  80%  { transform: scale(1.15); }
+  100% { transform: scale(1.1); }
+}
+
+.fav-btn.fav-activo .fav-heart {
+  animation: heartPop 0.35s ease forwards;
+}
+
+/* ── Tarjeta: posición relativa para el botón ── */
+.partido-card {
+  position: relative;
+}
+
+/* ── Tab Favoritos con badge contador ── */
+.p-tab[data-tab="favoritos"] {
+  position: relative;
+}
+
+.fav-tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  background: #e63030;
+  color: #fff;
+  font-size: 0.6rem;
+  font-weight: 800;
+  border-radius: 9px;
+  margin-left: 5px;
+  vertical-align: middle;
+  transition: opacity 0.2s, transform 0.2s;
+  font-family: 'Barlow', sans-serif;
+  letter-spacing: 0;
+}
+
+.fav-tab-badge.oculto {
+  display: none;
+}
+
+/* ── Estado vacío de favoritos ── */
+.favoritos-vacio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 24px;
+  gap: 14px;
+  text-align: center;
+}
+
+.favoritos-vacio-icon {
+  font-size: 3rem;
+  opacity: 0.25;
+  line-height: 1;
+  filter: grayscale(1);
+}
+
+.favoritos-vacio-titulo {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 1.2rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--texto-dim, #8a8f9e);
+}
+
+.favoritos-vacio-sub {
+  font-size: 0.82rem;
+  color: var(--texto-dim, #8a8f9e);
+  max-width: 280px;
+  line-height: 1.5;
+}
+
+/* ── Sección de favoritos — pequeño badge en header de liga ── */
+.seccion-liga-favoritos .seccion-liga-header::before {
+  content: '♥';
+  color: #e63030;
+  margin-right: 6px;
+  font-size: 0.75rem;
+}
+
+/* ── Animación de entrada de tarjetas en favoritos ── */
+@keyframes favCardIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+#partidos-container .partido-card {
+  animation: favCardIn 0.22s ease both;
+}

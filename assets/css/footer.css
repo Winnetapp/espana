@@ -1,0 +1,240 @@
+/* ============================================================
+   headfoot.css — FOOTER profesional — Winnet
+   ============================================================ */
+
+/* ── Variables mínimas necesarias ── */
+:root {
+  --hf-negro:   #09090b;
+  --hf-card2:   #16181f;
+  --hf-borde:   #1f2130;
+  --hf-borde2:  #2a2d3e;
+  --hf-rojo:    #e63030;
+  --hf-texto:   #e8e8ea;
+  --hf-dim:     #6b7080;
+  --hf-dim2:    #9299aa;
+}
+
+/* ══════════════════════════════════════════════════════════
+   FOOTER
+══════════════════════════════════════════════════════════ */
+.footer {
+  background: var(--hf-negro);
+  border-top: 1px solid var(--hf-borde);
+  margin-top: 60px;
+  font-family: 'Barlow', sans-serif;
+  color: var(--hf-dim2);
+  position: relative;
+  overflow: hidden;
+}
+
+.footer::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, var(--hf-rojo) 50%, transparent 100%);
+  opacity: 0.35;
+}
+
+/* ── Cuerpo principal ── */
+.footer-content {
+  display: grid;
+  grid-template-columns: 1.8fr 1fr 1fr;
+  gap: 48px;
+  padding: 44px 48px 36px;
+  max-width: 1300px;
+  margin: 0 auto;
+}
+
+@media (max-width: 900px) {
+  .footer-content {
+    grid-template-columns: 1fr 1fr;
+    gap: 28px;
+    padding: 32px 24px 24px;
+  }
+}
+
+@media (max-width: 520px) {
+  .footer-content {
+    grid-template-columns: 1fr;
+    padding: 24px 20px;
+  }
+}
+
+/* Columna logo */
+.footer-logo {
+  display: flex;
+  flex-direction: column;
+}
+
+.footer-logo h2 {
+  font-family: 'Barlow Condensed', 'Barlow', sans-serif;
+  font-size: 1.7rem;
+  font-weight: 900;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--hf-texto);
+  margin: 0 0 8px;
+  line-height: 1;
+}
+
+.footer-logo .footer-tagline {
+  font-size: 0.8rem;
+  color: var(--hf-dim);
+  line-height: 1.6;
+  max-width: 200px;
+  margin-bottom: 16px;
+}
+
+.footer-logo p {
+  font-size: 0.73rem;
+  color: var(--hf-dim);
+  margin: 0;
+}
+
+/* Aviso +18 inline */
+.footer-18-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--hf-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.footer-18-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background: var(--hf-dim);
+  color: var(--hf-negro);
+  border-radius: 50%;
+  font-size: 0.66rem;
+  font-weight: 900;
+}
+
+/* Columnas */
+.footer-contacto h2,
+.footer-redes h2 {
+  font-family: 'Barlow Condensed', 'Barlow', sans-serif;
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--hf-dim);
+  margin: 0 0 16px;
+}
+
+.footer-contacto p {
+  margin: 0 0 8px;
+  font-size: 0.82rem;
+  color: var(--hf-dim2);
+}
+
+.footer-contacto p a {
+  color: var(--hf-dim2);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.footer-contacto p a:hover {
+  color: var(--hf-texto);
+}
+
+/* Redes */
+.redes-iconos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.redes-iconos a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  background: var(--hf-card2);
+  border: 1px solid var(--hf-borde2);
+  border-radius: 10px;
+  color: var(--hf-dim2);
+  font-size: 0.92rem;
+  text-decoration: none;
+  transition: all 0.18s;
+}
+
+.redes-iconos a:hover {
+  border-color: var(--hf-rojo);
+  color: var(--hf-texto);
+  background: rgba(230,48,48,0.12);
+  transform: translateY(-2px);
+}
+
+/* Bottom */
+.footer-bottom {
+  border-top: 1px solid var(--hf-borde);
+  padding: 16px 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+@media (max-width: 600px) {
+  .footer-bottom {
+    padding: 14px 20px;
+    flex-direction: column;
+    text-align: center;
+  }
+}
+
+.footer-bottom-copy {
+  font-size: 0.73rem;
+  color: var(--hf-dim);
+}
+
+.footer-bottom-links {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.footer-bottom-links a {
+  font-size: 0.73rem;
+  color: var(--hf-dim);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.footer-bottom-links a:hover {
+  color: var(--hf-dim2);
+}
+
+.footer-bottom-links .sep {
+  color: var(--hf-borde2);
+  font-size: 0.55rem;
+}
+
+/* Aviso juego responsable */
+.footer-aviso {
+  background: rgba(230,48,48,0.04);
+  border-top: 1px solid rgba(230,48,48,0.1);
+  padding: 13px 48px;
+  font-size: 0.71rem;
+  color: var(--hf-dim);
+  text-align: center;
+  line-height: 1.7;
+}
+
+@media (max-width: 600px) {
+  .footer-aviso {
+    padding: 13px 20px;
+  }
+}

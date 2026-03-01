@@ -1,0 +1,57 @@
+AL ARRANCAR LA APP (admin_resultados_api.js se importa)
+│
+├─▶ recuperarPartidosSinResultado()
+│     Busca partidos en Firestore con estado NS/1H/HT cuya fecha ya pasó
+│     Consulta Football-Data.org por rango de fechas (sin gastar RapidAPI)
+│     Si están FINISHED → los pone FT + liquida apuestas automáticamente
+│
+└─▶ ¿Hay partidos EN VIVO ahora mismo?
+      │
+      ├─ SÍ → iniciarPolling() ──────────────────────────────────────────┐
+      │                                                                   │
+      └─ NO → check cada 10 min hasta que los haya ──────────────────────┘
+
+POLLING EN VIVO (mientras hay partidos en curso)
+│
+│  Cada 90 segundos
+│  ├─▶ fetchEnVivo() por cada liga [PL, LaLiga, Bundesliga,
+│  │   Serie A, Ligue1, BSA, Eredivisie, Championship, Primeira]
+│  │
+│  ├─▶ Si partido estado = FT/AET/PEN
+│  │     → procesarPartidoTerminado()
+│  │           → Archiva en historial
+│  │           → Elimina de partidos activos
+│  │           → liquidarApuestas() → paga saldo al usuario
+│  │
+│  └─▶ Si partido en curso
+│        → Actualiza estado, minuto y marcador en Firestore
+│
+│  ¿Siguen habiendo partidos en vivo?
+│  ├─ SÍ → repite en 90s
+│  └─ NO → procesarRecienTerminados() → detiene polling
+│                                      → reactiva check cada 10 min
+
+POLLING EN VIVO (mientras hay partidos en curso)
+│
+│  Cada 90 segundos
+│  ├─▶ fetchEnVivo() por cada liga [PL, LaLiga, Bundesliga,
+│  │   Serie A, Ligue1, BSA, Eredivisie, Championship, Primeira]
+│  │
+│  ├─▶ Si partido estado = FT/AET/PEN
+│  │     → procesarPartidoTerminado()
+│  │           → Archiva en historial
+│  │           → Elimina de partidos activos
+│  │           → liquidarApuestas() → paga saldo al usuario
+│  │
+│  └─▶ Si partido en curso
+│        → Actualiza estado, minuto y marcador en Firestore
+│
+│  ¿Siguen habiendo partidos en vivo?
+│  ├─ SÍ → repite en 90s
+│  └─ NO → procesarRecienTerminados() → detiene polling
+│                                      → reactiva check cada 10 min
+
+
+git add .
+git commit -m "descripción de lo que cambiaste"
+git push origin main
