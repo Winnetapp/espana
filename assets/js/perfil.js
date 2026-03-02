@@ -132,15 +132,12 @@ const LOGROS = [
    CALCULAR LOGROS
 ════════════════════════════════ */
 async function calcularLogros(uid, saldo, apuestas) {
-  // Datos básicos
   const total     = apuestas.length;
   const ganadas   = apuestas.filter(a => a.estado === 'ganada');
   const totalCobrado = ganadas.reduce((s, a) => s + (a.ganancia || a.potentialWin || 0), 0);
 
-  // Combinadas ganadas
   const combinadasGanadas = ganadas.filter(a => a.tipo === 'combinada' && (a.bets?.length || 0) > 1).length;
 
-  // Racha máxima
   const resueltas = apuestas
     .filter(a => a.estado === 'ganada' || a.estado === 'perdida')
     .sort((a, b) => (a.fecha?.seconds || 0) - (b.fecha?.seconds || 0));
@@ -150,15 +147,11 @@ async function calcularLogros(uid, saldo, apuestas) {
     else rachaActual = 0;
   }
 
-  // All-in ganado: apuesta cuyo stake era >= 90% del saldo en ese momento
-  // Como no guardamos el saldo previo, detectamos si stake >= 90% del saldo actual
-  // como aproximación razonable
   const allInGanado = ganadas.some(a => {
     const stakePct = (a.stake || 0) / ((saldo || 1000));
     return stakePct >= 0.85;
   });
 
-  // Top ranking: comprobar si está en top 3 por saldo
   let enTopRanking = false;
   try {
     const snap = await db.collection('usuarios').orderBy('saldo', 'desc').limit(3).get();
@@ -173,11 +166,9 @@ async function calcularLogros(uid, saldo, apuestas) {
 ════════════════════════════════ */
 function renderLogros(stats) {
   const logrosDesbloqueados = LOGROS.filter(l => l.check(stats));
-  const logrosBloqueados    = LOGROS.filter(l => !l.check(stats));
   const total               = LOGROS.length;
   const conseguidos         = logrosDesbloqueados.length;
 
-  // Chips de logros desbloqueados (máx 4 visibles + "ver todos")
   const visibles = logrosDesbloqueados.slice(0, 4);
   const extras   = logrosDesbloqueados.length - visibles.length;
 
@@ -192,7 +183,6 @@ function renderLogros(stats) {
     ? `<div class="logro-chip-extra">+${extras} más</div>`
     : '';
 
-  // Barra de progreso
   const pct = Math.round((conseguidos / total) * 100);
 
   return `
@@ -255,6 +245,15 @@ async function cargarPerfil(user) {
   try {
     const snap = await db.collection('usuarios').doc(user.uid).get();
     _userData = snap.data() || {};
+
+    /* ── Seguidores / Siguiendo ── */
+    const [snapSeguidores, snapSiguiendo] = await Promise.all([
+      db.collection('seguidores').where('siguiendoA', '==', user.uid).get(),
+      db.collection('seguidores').where('seguidor', '==', user.uid).get(),
+    ]);
+    const numSeguidores = snapSeguidores.size;
+    const numSiguiendo  = snapSiguiendo.size;
+
     const saldo    = parseFloat(_userData.saldo || 0);
     const username = _userData.username || user.email || 'Usuario';
     const email    = user.email || '';
@@ -287,6 +286,20 @@ async function cargarPerfil(user) {
         </div>
         <div class="perfil-email">${email}</div>
         ${miembro ? `<div class="perfil-miembro"><i class="far fa-calendar-alt"></i>${miembro}</div>` : ''}
+
+        <!-- Contadores sociales -->
+        <div class="perfil-social-row">
+          <div class="perfil-social-stat" id="btn-mis-seguidores" style="cursor:pointer;">
+            <span class="perfil-social-num" id="num-seguidores-hero">${numSeguidores}</span>
+            <span class="perfil-social-label">Seguidores</span>
+          </div>
+          <div class="perfil-social-sep"></div>
+          <div class="perfil-social-stat" id="btn-mis-siguiendo" style="cursor:pointer;">
+            <span class="perfil-social-num" id="num-siguiendo-hero">${numSiguiendo}</span>
+            <span class="perfil-social-label">Siguiendo</span>
+          </div>
+        </div>
+
         <div class="perfil-saldo-chip">
           <span class="perfil-saldo-chip-label">Saldo</span>
           <span class="perfil-saldo-chip-val" id="hero-saldo-val">${saldo.toFixed(2)} €</span>
@@ -304,6 +317,12 @@ async function cargarPerfil(user) {
         ? `Ver todos <i class="fas fa-chevron-down" style="font-size:0.6rem;"></i>`
         : `Cerrar <i class="fas fa-chevron-up" style="font-size:0.6rem;"></i>`;
     });
+
+    /* ── Modales seguidores / siguiendo ── */
+    document.getElementById('btn-mis-seguidores')?.addEventListener('click', () =>
+      abrirModalLista(user.uid, 'seguidores'));
+    document.getElementById('btn-mis-siguiendo')?.addEventListener('click', () =>
+      abrirModalLista(user.uid, 'siguiendo'));
 
     /* ── Panel cuenta ── */
     const inputUsername = document.getElementById('input-username');
@@ -333,7 +352,6 @@ async function renderOverview(uid, apuestasParam) {
   panel.innerHTML = `<div class="perfil-loading"><div class="spinner-ring"></div>Cargando estadísticas...</div>`;
 
   try {
-    // Reusar las apuestas ya cargadas si se pasan como parámetro
     let apuestas = apuestasParam;
     if (!apuestas) {
       const snap = await db.collection('apuestas')
@@ -600,3 +618,94 @@ document.getElementById('btn-logout-perfil')?.addEventListener('click', async ()
   localStorage.removeItem('carritoApuestas');
   window.location.href = 'login.html';
 });
+
+/* ════════════════════════════════
+   MODAL LISTA SEGUIDORES / SIGUIENDO
+════════════════════════════════ */
+async function abrirModalLista(uid, tipo) {
+  document.getElementById('perfil-lista-modal')?.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'perfil-lista-modal';
+  modal.innerHTML = `
+    <div class="plm-overlay" id="plm-overlay">
+      <div class="plm-box" id="plm-box">
+        <div class="plm-header">
+          <span class="plm-title">${tipo === 'seguidores' ? 'Seguidores' : 'Siguiendo'}</span>
+          <button class="plm-close" id="plm-close"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="plm-body" id="plm-body">
+          <div style="display:flex;justify-content:center;padding:40px;">
+            <div class="spinner-ring"></div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+
+  document.getElementById('plm-overlay').addEventListener('click', e => {
+    if (e.target.id === 'plm-overlay') cerrarModalLista();
+  });
+  document.getElementById('plm-close').addEventListener('click', cerrarModalLista);
+  document.addEventListener('keydown', function esc(e) {
+    if (e.key === 'Escape') { cerrarModalLista(); document.removeEventListener('keydown', esc); }
+  });
+
+  requestAnimationFrame(() => document.getElementById('plm-box').classList.add('open'));
+
+  try {
+    let uids = [];
+    if (tipo === 'seguidores') {
+      const snap = await db.collection('seguidores')
+        .where('siguiendoA', '==', uid)
+        .orderBy('fecha', 'desc')
+        .limit(100).get();
+      uids = snap.docs.map(d => d.data().seguidor);
+    } else {
+      const snap = await db.collection('seguidores')
+        .where('seguidor', '==', uid)
+        .orderBy('fecha', 'desc')
+        .limit(100).get();
+      uids = snap.docs.map(d => d.data().siguiendoA);
+    }
+
+    if (!uids.length) {
+      document.getElementById('plm-body').innerHTML = `
+        <div style="text-align:center;padding:40px;color:var(--texto-dim);font-size:0.85rem;">
+          ${tipo === 'seguidores' ? 'Aún no tienes seguidores' : 'No sigues a nadie aún'}
+        </div>`;
+      return;
+    }
+
+    const usuarios = await Promise.all(
+      uids.map(u => db.collection('usuarios').doc(u).get())
+    );
+
+    const html = usuarios.map(snap => {
+      if (!snap.exists) return '';
+      const d      = snap.data();
+      const nombre = d.username || 'Usuario';
+      return `
+        <a href="usuario.html?uid=${snap.id}" class="plm-row">
+          <div class="plm-avatar">${nombre.charAt(0).toUpperCase()}</div>
+          <div class="plm-nombre">${nombre}</div>
+          <i class="fas fa-chevron-right" style="color:var(--texto-sutil);font-size:0.7rem;"></i>
+        </a>`;
+    }).join('');
+
+    document.getElementById('plm-body').innerHTML = `<div class="plm-lista">${html}</div>`;
+  } catch (e) {
+    console.error('[modal-lista]', e);
+    document.getElementById('plm-body').innerHTML = `
+      <div style="text-align:center;padding:40px;color:var(--texto-dim);">Error al cargar</div>`;
+  }
+}
+
+function cerrarModalLista() {
+  const modal = document.getElementById('perfil-lista-modal');
+  if (!modal) return;
+  const box = document.getElementById('plm-box');
+  box.classList.remove('open');
+  box.classList.add('closing');
+  setTimeout(() => modal.remove(), 220);
+}

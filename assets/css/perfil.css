@@ -189,11 +189,9 @@ body {
   padding: 28px 20px 80px;
 }
 
-/* Panels de cada tab */
 .perfil-panel { display: none; }
 .perfil-panel.active { display: block; }
 
-/* ── Título de sección ── */
 .section-title {
   font-family: 'Barlow Condensed', sans-serif;
   font-size: 0.75rem; font-weight: 800;
@@ -210,7 +208,6 @@ body {
   background: var(--borde);
 }
 
-/* ── Card genérica ── */
 .p-card {
   background: var(--card);
   border: 1px solid var(--borde);
@@ -218,7 +215,6 @@ body {
   overflow: hidden;
 }
 
-/* ── Fila de ajuste ── */
 .setting-row {
   display: flex;
   align-items: center;
@@ -384,10 +380,10 @@ body {
   position: absolute; top: 0; left: 0; right: 0;
   height: 2px;
 }
-.stat-card.verde::before   { background: var(--verde); }
-.stat-card.rojo::before    { background: var(--rojo); }
+.stat-card.verde::before    { background: var(--verde); }
+.stat-card.rojo::before     { background: var(--rojo); }
 .stat-card.amarillo::before { background: var(--amarillo); }
-.stat-card.azul::before    { background: var(--azul); }
+.stat-card.azul::before     { background: var(--azul); }
 
 .stat-card-label {
   font-size: 0.62rem; font-weight: 700;
@@ -401,10 +397,10 @@ body {
   color: var(--texto);
   display: block; line-height: 1;
 }
-.stat-card.verde   .stat-card-val { color: var(--verde); }
-.stat-card.rojo    .stat-card-val { color: var(--rojo); }
+.stat-card.verde    .stat-card-val { color: var(--verde); }
+.stat-card.rojo     .stat-card-val { color: var(--rojo); }
 .stat-card.amarillo .stat-card-val { color: var(--amarillo); }
-.stat-card.azul    .stat-card-val { color: var(--azul); }
+.stat-card.azul     .stat-card-val { color: var(--azul); }
 
 .stat-card-sub {
   font-size: 0.68rem; color: var(--texto-dim);
@@ -427,8 +423,8 @@ body {
   border-radius: 50%;
   flex-shrink: 0;
 }
-.apuesta-mini-dot.ganada   { background: var(--verde); }
-.apuesta-mini-dot.perdida  { background: var(--rojo); }
+.apuesta-mini-dot.ganada    { background: var(--verde); }
+.apuesta-mini-dot.perdida   { background: var(--rojo); }
 .apuesta-mini-dot.pendiente {
   background: var(--amarillo);
   animation: pulse-mini 1.4s infinite;
@@ -452,8 +448,8 @@ body {
   font-size: 0.95rem; font-weight: 800;
   flex-shrink: 0;
 }
-.apuesta-mini-importe.ganada   { color: var(--verde); }
-.apuesta-mini-importe.perdida  { color: #45485a; }
+.apuesta-mini-importe.ganada    { color: var(--verde); }
+.apuesta-mini-importe.perdida   { color: #45485a; }
 .apuesta-mini-importe.pendiente { color: var(--amarillo); }
 
 /* ══════════════════════════════════════════
@@ -504,11 +500,6 @@ body {
   .perfil-tab span { display: none; }
 }
 
-/* =============================================================
-   AÑADIR AL FINAL DE assets/css/perfil.css
-   Estilos del sistema de logros — Winnet
-   ============================================================= */
-
 /* ══════════════════════════════════════════
    LOGROS — wrap principal
 ══════════════════════════════════════════ */
@@ -520,8 +511,6 @@ body {
   padding: 12px 14px;
   max-width: 520px;
 }
-
-/* ── Cabecera ── */
 .logros-header {
   display: flex;
   align-items: center;
@@ -529,35 +518,21 @@ body {
   margin-bottom: 8px;
 }
 .logros-titulo {
-  font-size: 0.7rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 1px;
+  font-size: 0.7rem; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 1px;
   color: var(--texto-dim);
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  display: flex; align-items: center; gap: 6px;
 }
-.logros-titulo i {
-  color: var(--amarillo);
-  font-size: 0.75rem;
-}
+.logros-titulo i { color: var(--amarillo); font-size: 0.75rem; }
 .logros-progreso-txt {
   font-family: 'Barlow Condensed', sans-serif;
-  font-size: 0.85rem;
-  font-weight: 800;
+  font-size: 0.85rem; font-weight: 800;
   color: var(--amarillo);
 }
-
-/* ── Barra de progreso ── */
-.logros-barra-wrap {
-  margin-bottom: 10px;
-}
+.logros-barra-wrap { margin-bottom: 10px; }
 .logros-barra {
-  height: 4px;
-  background: var(--borde);
-  border-radius: 2px;
-  overflow: hidden;
+  height: 4px; background: var(--borde);
+  border-radius: 2px; overflow: hidden;
 }
 .logros-barra-fill {
   height: 100%;
@@ -566,23 +541,14 @@ body {
   transition: width 0.6s ease;
   min-width: 4px;
 }
-
-/* ── Chips de logros desbloqueados ── */
 .logros-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  align-items: center;
+  display: flex; flex-wrap: wrap;
+  gap: 6px; align-items: center;
 }
-
 .logro-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 10px;
-  border-radius: 20px;
-  font-size: 0.72rem;
-  font-weight: 700;
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 10px; border-radius: 20px;
+  font-size: 0.72rem; font-weight: 700;
   border: 1px solid rgba(255,255,255,0.06);
   background: rgba(255,255,255,0.04);
   transition: transform 0.15s, border-color 0.15s;
@@ -594,56 +560,32 @@ body {
   color: var(--logro-color);
 }
 .logro-chip:hover { transform: translateY(-1px); }
-
-.logro-chip-icon { font-size: 0.85rem; line-height: 1; }
+.logro-chip-icon  { font-size: 0.85rem; line-height: 1; }
 .logro-chip-nombre { white-space: nowrap; }
-
 .logro-chip-extra {
-  font-size: 0.7rem;
-  font-weight: 700;
+  font-size: 0.7rem; font-weight: 700;
   color: var(--texto-dim);
-  padding: 4px 8px;
-  background: var(--borde);
-  border-radius: 20px;
-  white-space: nowrap;
+  padding: 4px 8px; background: var(--borde);
+  border-radius: 20px; white-space: nowrap;
 }
-
-/* ── Botón ver todos ── */
 .logros-ver-todos {
   background: none;
-  border: 1px solid var(--borde2);
-  border-radius: 20px;
+  border: 1px solid var(--borde2); border-radius: 20px;
   color: var(--texto-dim);
   font-family: 'Barlow', sans-serif;
-  font-size: 0.7rem;
-  font-weight: 700;
-  padding: 4px 10px;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
+  font-size: 0.7rem; font-weight: 700;
+  padding: 4px 10px; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 4px;
   transition: color 0.15s, border-color 0.15s;
   white-space: nowrap;
 }
-.logros-ver-todos:hover {
-  color: var(--texto);
-  border-color: var(--texto-dim);
-}
-
-/* ── Vacío ── */
+.logros-ver-todos:hover { color: var(--texto); border-color: var(--texto-dim); }
 .logros-vacio {
-  font-size: 0.75rem;
-  color: var(--texto-dim);
-  font-style: italic;
-  padding: 4px 0;
+  font-size: 0.75rem; color: var(--texto-dim);
+  font-style: italic; padding: 4px 0;
 }
-
-/* ══════════════════════════════════════════
-   LOGROS — panel expandible (grid completo)
-══════════════════════════════════════════ */
 .logros-panel {
-  margin-top: 12px;
-  border-top: 1px solid var(--borde);
+  margin-top: 12px; border-top: 1px solid var(--borde);
   padding-top: 12px;
   animation: fadeInDown 0.2s ease both;
 }
@@ -651,21 +593,11 @@ body {
   from { opacity: 0; transform: translateY(-6px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-
-.logros-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-/* ── Item de logro ── */
+.logros-grid { display: flex; flex-direction: column; gap: 6px; }
 .logro-item {
-  display: grid;
-  grid-template-columns: 36px 1fr 28px;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  border-radius: 10px;
+  display: grid; grid-template-columns: 36px 1fr 28px;
+  align-items: center; gap: 10px;
+  padding: 10px 12px; border-radius: 10px;
   border: 1px solid var(--borde);
   background: rgba(255,255,255,0.02);
   transition: border-color 0.15s, background 0.15s;
@@ -674,45 +606,180 @@ body {
   background: color-mix(in srgb, var(--logro-color) 6%, transparent);
   border-color: color-mix(in srgb, var(--logro-color) 25%, transparent);
 }
-.logro-item.bloqueado {
-  opacity: 0.45;
-  filter: grayscale(0.6);
-}
+.logro-item.bloqueado { opacity: 0.45; filter: grayscale(0.6); }
+.logro-item-icon { font-size: 1.4rem; text-align: center; line-height: 1; }
+.logro-item.bloqueado .logro-item-icon { filter: grayscale(1); opacity: 0.4; }
+.logro-item-nombre { font-size: 0.84rem; font-weight: 700; color: var(--texto); margin-bottom: 2px; }
+.logro-item.ok .logro-item-nombre { color: var(--logro-color); }
+.logro-item-desc { font-size: 0.7rem; color: var(--texto-dim); line-height: 1.3; }
+.logro-item-estado { display: flex; align-items: center; justify-content: center; }
 
-.logro-item-icon {
-  font-size: 1.4rem;
-  text-align: center;
-  line-height: 1;
-}
-.logro-item.bloqueado .logro-item-icon {
-  filter: grayscale(1);
-  opacity: 0.4;
-}
-
-.logro-item-nombre {
-  font-size: 0.84rem;
-  font-weight: 700;
-  color: var(--texto);
-  margin-bottom: 2px;
-}
-.logro-item.ok .logro-item-nombre {
-  color: var(--logro-color);
-}
-.logro-item-desc {
-  font-size: 0.7rem;
-  color: var(--texto-dim);
-  line-height: 1.3;
-}
-
-.logro-item-estado {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* ── Responsive ── */
 @media (max-width: 600px) {
   .perfil-logros-wrap { max-width: 100%; }
   .logro-chip-nombre  { display: none; }
   .logro-chip         { padding: 5px 8px; }
+}
+
+/* ══════════════════════════════════════════
+   SOCIAL ROW — seguidores / siguiendo
+══════════════════════════════════════════ */
+.perfil-social-row {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-top: 10px;
+  margin-bottom: 2px;
+}
+.perfil-social-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 16px;
+  border-radius: 8px;
+  transition: background 0.15s;
+}
+.perfil-social-stat:hover { background: rgba(255,255,255,0.04); }
+.perfil-social-num {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 1.2rem; font-weight: 900;
+  color: var(--texto);
+  line-height: 1;
+}
+.perfil-social-label {
+  font-size: 0.65rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.8px;
+  color: var(--texto-dim);
+  margin-top: 2px;
+}
+.perfil-social-sep {
+  width: 1px; height: 28px;
+  background: var(--borde);
+}
+
+/* ── Fila social en usuario.html ── */
+.usuario-social-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+.usuario-seguidores {
+  font-size: 0.8rem; color: #8a8f9e;
+  display: flex; align-items: center; gap: 6px;
+}
+.usuario-seguidores i      { font-size: 0.72rem; opacity: 0.6; }
+.usuario-seguidores strong { color: #e8e8ea; font-weight: 800; }
+
+/* ── Botón seguir ── */
+.btn-seguir {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 14px; border-radius: 20px;
+  font-family: 'Barlow', sans-serif;
+  font-size: 0.78rem; font-weight: 700;
+  cursor: pointer;
+  border: 1px solid var(--rojo);
+  background: rgba(230,48,48,0.1);
+  color: var(--rojo);
+  text-decoration: none;
+  transition: background 0.18s, color 0.18s, transform 0.12s;
+  white-space: nowrap;
+}
+.btn-seguir:hover:not(:disabled) {
+  background: var(--rojo); color: #fff;
+  transform: translateY(-1px);
+}
+.btn-seguir.siguiendo {
+  background: rgba(34,197,94,0.1);
+  border-color: rgba(34,197,94,0.35);
+  color: var(--verde);
+}
+.btn-seguir.siguiendo:hover:not(:disabled) {
+  background: rgba(230,48,48,0.1);
+  border-color: rgba(230,48,48,0.35);
+  color: var(--rojo);
+}
+.btn-seguir:disabled { cursor: not-allowed; opacity: 0.6; }
+
+/* ══════════════════════════════════════════
+   MODAL LISTA (seguidores / siguiendo)
+══════════════════════════════════════════ */
+.plm-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.75);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 3000;
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+  animation: fadeOverlayPLM 0.18s ease both;
+}
+@keyframes fadeOverlayPLM { from { opacity: 0; } to { opacity: 1; } }
+
+.plm-box {
+  background: var(--card);
+  border: 1px solid var(--borde2);
+  border-radius: 16px;
+  width: 100%; max-width: 380px;
+  max-height: 70vh;
+  display: flex; flex-direction: column;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.7);
+  transform: scale(0.94) translateY(12px);
+  opacity: 0;
+  transition: transform 0.22s cubic-bezier(0.2,0,0,1), opacity 0.22s;
+  overflow: hidden;
+}
+.plm-box.open    { transform: scale(1) translateY(0); opacity: 1; }
+.plm-box.closing { transform: scale(0.94) translateY(8px); opacity: 0; }
+
+.plm-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px 14px;
+  border-bottom: 1px solid var(--borde);
+  flex-shrink: 0;
+}
+.plm-title {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 1rem; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 1px;
+  color: var(--texto);
+}
+.plm-close {
+  background: none; border: none;
+  color: var(--texto-dim); font-size: 0.9rem;
+  cursor: pointer; padding: 4px 8px; border-radius: 6px;
+  transition: color 0.15s, background 0.15s;
+}
+.plm-close:hover { color: var(--texto); background: rgba(255,255,255,0.06); }
+
+.plm-body { overflow-y: auto; flex: 1; }
+.plm-lista { display: flex; flex-direction: column; }
+
+.plm-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--borde);
+  text-decoration: none;
+  transition: background 0.12s;
+}
+.plm-row:last-child { border-bottom: none; }
+.plm-row:hover { background: rgba(255,255,255,0.03); }
+
+.plm-avatar {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--rojo), #a00);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 1rem; font-weight: 900; color: #fff;
+  flex-shrink: 0;
+}
+.plm-nombre {
+  flex: 1;
+  font-size: 0.88rem; font-weight: 700;
+  color: var(--texto);
+}
+
+@media (max-width: 480px) {
+  .plm-box { border-radius: 16px 16px 0 0; max-height: 80vh; }
+  .plm-overlay { align-items: flex-end; padding: 0; }
 }

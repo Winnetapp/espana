@@ -26,8 +26,8 @@ function showToast(msg, tipo = 'ok') {
 }
 
 /* ── Leer ?uid= de la URL ── */
-const params     = new URLSearchParams(window.location.search);
-const targetUid  = params.get('uid');
+const params    = new URLSearchParams(window.location.search);
+const targetUid = params.get('uid');
 
 let miUid = null;
 
@@ -74,20 +74,29 @@ async function cargarPerfilPublico(uid) {
     const esAdmin  = ud.rol === 'admin';
     const inicial  = username.charAt(0).toUpperCase();
 
-    /* 2. Apuestas para stats y logros */
-    const snapAp = await db.collection('apuestas')
-      .where('usuarioId', '==', uid)
-      .where('estado', 'in', ['ganada', 'perdida', 'devuelta'])
-      .get();
-    const apuestas = snapAp.docs.map(d => d.data());
+    /* 2. Apuestas para stats y logros
+         Solo leemos si el visitante está autenticado (las reglas lo requieren).
+         Si no hay sesión, mostramos stats vacías sin romper la página. */
+    let apuestas = [];
+    if (miUid) {
+      try {
+        const snapAp = await db.collection('apuestas')
+          .where('usuarioId', '==', uid)
+          .where('estado', 'in', ['ganada', 'perdida', 'devuelta'])
+          .get();
+        apuestas = snapAp.docs.map(d => d.data());
+      } catch (e) {
+        console.warn('[usuario] No se pudieron cargar apuestas:', e.message);
+      }
+    }
 
-    const ganadas        = apuestas.filter(a => a.estado === 'ganada');
-    const perdidas       = apuestas.filter(a => a.estado === 'perdida');
-    const resueltas      = ganadas.length + perdidas.length;
-    const totalApostado  = apuestas.reduce((s, a) => s + (a.stake || 0), 0);
-    const totalCobrado   = ganadas.reduce((s, a) => s + (a.ganancia || a.potentialWin || 0), 0);
-    const beneficio      = totalCobrado - totalApostado;
-    const pct            = resueltas > 0 ? Math.round((ganadas.length / resueltas) * 100) : null;
+    const ganadas       = apuestas.filter(a => a.estado === 'ganada');
+    const perdidas      = apuestas.filter(a => a.estado === 'perdida');
+    const resueltas     = ganadas.length + perdidas.length;
+    const totalApostado = apuestas.reduce((s, a) => s + (a.stake || 0), 0);
+    const totalCobrado  = ganadas.reduce((s, a) => s + (a.ganancia || a.potentialWin || 0), 0);
+    const beneficio     = totalCobrado - totalApostado;
+    const pct           = resueltas > 0 ? Math.round((ganadas.length / resueltas) * 100) : null;
 
     /* 3. Racha máxima */
     const ordenadas = [...apuestas].sort((a, b) => (a.fecha?.seconds || 0) - (b.fecha?.seconds || 0));
@@ -112,11 +121,13 @@ async function cargarPerfilPublico(uid) {
 
     const statsLogros = { total: apuestas.length, totalCobrado, combinadasGanadas, rachaMax, allInGanado, saldo, enTopRanking };
 
-    /* 7. Seguidores: cuántos le siguen */
-    const snapSeg = await db.collection('seguidores')
-      .where('siguiendoA', '==', uid)
-      .get();
-    const numSeguidores = snapSeg.size;
+    /* 7. Seguidores: cuántos le siguen + cuántos sigue */
+    const [snapSeguidores, snapSiguiendo] = await Promise.all([
+      db.collection('seguidores').where('siguiendoA', '==', uid).get(),
+      db.collection('seguidores').where('seguidor', '==', uid).get(),
+    ]);
+    const numSeguidores = snapSeguidores.size;
+    const numSiguiendo  = snapSiguiendo.size;
 
     /* 8. ¿Yo le sigo? */
     let yoLeSigo = false;
@@ -124,15 +135,13 @@ async function cargarPerfilPublico(uid) {
       const snapYo = await db.collection('seguidores')
         .where('seguidor', '==', miUid)
         .where('siguiendoA', '==', uid)
-        .limit(1)
-        .get();
+        .limit(1).get();
       yoLeSigo = !snapYo.empty;
     }
 
     /* 9. Logros desbloqueados */
-    const logrosOk      = LOGROS_DEF.filter(l => l.check(statsLogros));
-    const logrosBloq    = LOGROS_DEF.filter(l => !l.check(statsLogros));
-    const logroPct      = Math.round((logrosOk.length / LOGROS_DEF.length) * 100);
+    const logrosOk  = LOGROS_DEF.filter(l => l.check(statsLogros));
+    const logroPct  = Math.round((logrosOk.length / LOGROS_DEF.length) * 100);
 
     /* ── Render ── */
     document.title = `${username} — Winnet`;
@@ -145,7 +154,9 @@ async function cargarPerfilPublico(uid) {
           <div class="perfil-identity">
             <div class="perfil-avatar-wrap">
               <div class="perfil-avatar">${inicial}</div>
-              ${esAdmin ? `<div class="perfil-avatar-badge" style="background:#f5c518;"><i class="fas fa-star" style="font-size:0.4rem;color:#000;"></i></div>` : `<div class="perfil-avatar-badge"><i class="fas fa-check" style="font-size:0.5rem;"></i></div>`}
+              ${esAdmin
+                ? `<div class="perfil-avatar-badge" style="background:#f5c518;"><i class="fas fa-star" style="font-size:0.4rem;color:#000;"></i></div>`
+                : `<div class="perfil-avatar-badge"><i class="fas fa-check" style="font-size:0.5rem;"></i></div>`}
             </div>
             <div class="perfil-info">
               <div class="perfil-nombre">
@@ -153,13 +164,17 @@ async function cargarPerfilPublico(uid) {
                 <span class="perfil-rol-badge ${esAdmin ? 'admin' : ''}">${esAdmin ? 'Admin' : 'Usuario'}</span>
               </div>
 
-              <!-- Seguidores + botón seguir -->
+              <!-- Contadores sociales + botón seguir -->
               <div class="usuario-social-row">
-                <span class="usuario-seguidores" id="seguidores-count">
-                  <i class="fas fa-users"></i>
-                  <strong id="num-seguidores">${numSeguidores}</strong>
-                  seguidor${numSeguidores !== 1 ? 'es' : ''}
-                </span>
+                <div class="perfil-social-stat" style="cursor:default;">
+                  <span class="perfil-social-num" id="num-seguidores">${numSeguidores}</span>
+                  <span class="perfil-social-label">Seguidores</span>
+                </div>
+                <div class="perfil-social-sep"></div>
+                <div class="perfil-social-stat" style="cursor:default;">
+                  <span class="perfil-social-num">${numSiguiendo}</span>
+                  <span class="perfil-social-label">Siguiendo</span>
+                </div>
                 ${miUid ? `
                   <button class="btn-seguir ${yoLeSigo ? 'siguiendo' : ''}" id="btn-seguir">
                     ${yoLeSigo
@@ -253,6 +268,11 @@ async function cargarPerfilPublico(uid) {
           </div>
         </div>
 
+        ${!miUid ? `
+        <div style="margin-top:16px;text-align:center;padding:12px;background:#1a1f2e;border-radius:10px;font-size:0.82rem;color:#8a8f9e;">
+          <a href="login.html" style="color:#e63030;font-weight:700;">Inicia sesión</a> para ver las estadísticas completas de este usuario.
+        </div>` : ''}
+
         <div style="margin-top:24px;text-align:center;">
           <a href="ranking.html" style="color:#e63030;font-size:0.82rem;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:6px;">
             <i class="fas fa-arrow-left" style="font-size:0.7rem;"></i> Volver al ranking
@@ -272,10 +292,12 @@ async function cargarPerfilPublico(uid) {
     });
 
     /* ── Seguir / Dejar de seguir ── */
-    document.getElementById('btn-seguir')?.addEventListener('click', () => toggleSeguir(uid, yoLeSigo, numSeguidores, (nuevoEstado, nuevoNum) => {
-      yoLeSigo    = nuevoEstado;
-      numSeguidores = nuevoNum;
-    }));
+    document.getElementById('btn-seguir')?.addEventListener('click', () =>
+      toggleSeguir(uid, yoLeSigo, numSeguidores, (nuevoEstado, nuevoNum) => {
+        yoLeSigo      = nuevoEstado;
+        numSeguidores = nuevoNum;
+      })
+    );
 
   } catch (err) {
     console.error('[usuario] Error:', err);
@@ -293,15 +315,15 @@ async function cargarPerfilPublico(uid) {
 async function toggleSeguir(uid, yoLeSigo, numActual, cb) {
   if (!miUid) { window.location.href = 'login.html'; return; }
 
-  const btn     = document.getElementById('btn-seguir');
-  const numEl   = document.getElementById('num-seguidores');
+  const btn   = document.getElementById('btn-seguir');
+  const numEl = document.getElementById('num-seguidores');
   if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; }
 
   try {
     const segRef = db.collection('seguidores');
 
     if (yoLeSigo) {
-      /* Dejar de seguir: borrar documento */
+      /* Dejar de seguir */
       const snap = await segRef
         .where('seguidor', '==', miUid)
         .where('siguiendoA', '==', uid)
@@ -315,11 +337,11 @@ async function toggleSeguir(uid, yoLeSigo, numActual, cb) {
       cb(false, nuevoNum);
       showToast('Has dejado de seguir a este usuario', 'ok');
     } else {
-      /* Seguir: crear documento */
+      /* Seguir */
       await segRef.add({
-        seguidor:    miUid,
-        siguiendoA:  uid,
-        fecha:       firebase.firestore.FieldValue.serverTimestamp(),
+        seguidor:   miUid,
+        siguiendoA: uid,
+        fecha:      firebase.firestore.FieldValue.serverTimestamp(),
       });
 
       const nuevoNum = numActual + 1;
@@ -328,11 +350,37 @@ async function toggleSeguir(uid, yoLeSigo, numActual, cb) {
       btn?.classList.add('siguiendo');
       cb(true, nuevoNum);
       showToast('¡Ahora sigues a este usuario!', 'ok');
+
+      // Notificar al usuario seguido
+      _notificarNuevoSeguidor(uid).catch(() => {});
     }
   } catch (err) {
     console.error('[seguir] Error:', err);
     showToast('Error al actualizar. Inténtalo de nuevo.', 'error');
   } finally {
     if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
+  }
+}
+
+/* ════════════════════════════════
+   NOTIFICAR NUEVO SEGUIDOR
+════════════════════════════════ */
+async function _notificarNuevoSeguidor(uidSeguido) {
+  try {
+    const [snapSeguido, snapYo] = await Promise.all([
+      db.collection('usuarios').doc(uidSeguido).get(),
+      db.collection('usuarios').doc(miUid).get(),
+    ]);
+    const subs     = snapSeguido.data()?.pushSubs || [];
+    const miNombre = snapYo.data()?.username || 'Alguien';
+    if (!subs.length) return;
+
+    await fetch('https://winnet-proxy.winnetaplicacion.workers.dev/_push/nuevo-seguidor', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subs, nombre: miNombre }),
+    });
+  } catch (e) {
+    console.warn('[seguir] No se pudo notificar:', e.message);
   }
 }

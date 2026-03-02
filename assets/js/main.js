@@ -254,7 +254,7 @@ if (document.getElementById('partidos-container')) {
     const enVivo    = partidos.filter(p => ESTADOS_VIVO.includes(p.estado));
     const historial = partidos.filter(p => p.estado === 'FT' || p.estado === 'AET' || p.estado === 'PEN');
     const proximos  = partidos.filter(p => !ESTADOS_VIVO.includes(p.estado) && p.estado !== 'FT' && p.estado !== 'AET' && p.estado !== 'PEN');
-    let html = `<div class="favoritos-header"><span class="favoritos-titulo-global">♥ ${partidos.length} partido${partidos.length !== 1 ? 's' : ''} en favoritos</span></div>`;
+    let html = `<div class="favoritos-header"><span class="favoritos-titulo-global">${partidos.length} partido${partidos.length !== 1 ? 's' : ''} en favoritos</span></div>`;
     if (enVivo.length)    { html += `<div class="seccion-fecha"><div class="seccion-fecha-header"><span class="seccion-fecha-titulo">🔴 En directo</span></div>${_agruparPorLiga(enVivo, p => cardVivo(p))}</div>`; }
     if (proximos.length)  { html += `<div class="seccion-fecha"><div class="seccion-fecha-header"><span class="seccion-fecha-titulo">📅 Próximos</span></div>${_agruparPorLiga(proximos, p => cardProximo(p))}</div>`; }
     if (historial.length) { html += `<div class="seccion-fecha"><div class="seccion-fecha-header"><span class="seccion-fecha-titulo">🏁 Finalizados</span></div>${_agruparPorLiga(historial, p => cardHistorial(p))}</div>`; }

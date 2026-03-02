@@ -1,11 +1,12 @@
 /* =============================================================
-   assets/js/ranking.js — Winnet (con modal de usuario)
+   assets/js/ranking.js — Winnet (con modal de usuario + filtro seguidos)
    ============================================================= */
 
-let criterioActual = 'saldo';
-let rankingData    = [];
-let uidActual      = null;
-let cargando       = false;
+let criterioActual   = 'saldo';
+let rankingData      = [];
+let uidActual        = null;
+let cargando         = false;
+let _misSeguidosUids = new Set();
 
 document.querySelectorAll('.rk-tab').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -16,8 +17,14 @@ document.querySelectorAll('.rk-tab').forEach(btn => {
   });
 });
 
-auth.onAuthStateChanged(user => {
+auth.onAuthStateChanged(async user => {
   uidActual = user?.uid || null;
+  if (uidActual) {
+    try {
+      const snap = await db.collection('seguidores').where('seguidor', '==', uidActual).get();
+      _misSeguidosUids = new Set(snap.docs.map(d => d.data().siguiendoA));
+    } catch { _misSeguidosUids = new Set(); }
+  }
   if (!cargando) cargarRanking();
 });
 
@@ -67,7 +74,23 @@ function renderRanking() {
   const container = document.getElementById('ranking-container');
   if (!rankingData.length) return;
 
-  const sorted = [...rankingData].sort((a,b) => {
+  /* ── Filtro "Mis seguidos" ── */
+  let listaBase = [...rankingData];
+  if (criterioActual === 'seguidos') {
+    if (!uidActual) {
+      container.innerHTML = `<div class="rk-empty"><span class="rk-empty-icon">🔒</span><div class="rk-empty-title">Inicia sesión para ver tus seguidos</div></div>`;
+      actualizarMiBanner(null);
+      return;
+    }
+    listaBase = listaBase.filter(u => u.uid === uidActual || _misSeguidosUids.has(u.uid));
+    if (listaBase.length <= 1) {
+      container.innerHTML = `<div class="rk-empty"><span class="rk-empty-icon">👥</span><div class="rk-empty-title">Aún no sigues a nadie</div><div style="color:var(--texto-dim);font-size:0.82rem;margin-top:6px;">Sigue a otros usuarios desde su perfil para verlos aquí.</div></div>`;
+      actualizarMiBanner(null);
+      return;
+    }
+  }
+
+  const sorted = [...listaBase].sort((a,b) => {
     switch (criterioActual) {
       case 'saldo':     return (b.saldo||0)-(a.saldo||0);
       case 'beneficio': return (b.stats.beneficio||0)-(a.stats.beneficio||0);
@@ -75,11 +98,14 @@ function renderRanking() {
         if (a.stats.resueltas<3) return 1; if (b.stats.resueltas<3) return -1;
         return (b.stats.acierto??-1)-(a.stats.acierto??-1);
       case 'ganadas':   return (b.stats.ganadas||0)-(a.stats.ganadas||0);
+      case 'seguidos':  return (b.saldo||0)-(a.saldo||0); // seguidos ordenados por saldo
       default: return 0;
     }
   });
 
-  const lista = criterioActual==='acierto' ? sorted.filter(u=>u.stats.resueltas>=3) : sorted;
+  const lista = (criterioActual==='acierto')
+    ? sorted.filter(u=>u.stats.resueltas>=3)
+    : sorted;
 
   if (!lista.length) {
     container.innerHTML = `<div class="rk-empty"><span class="rk-empty-icon">📊</span><div class="rk-empty-title">Sin datos suficientes</div><div style="color:var(--texto-dim);font-size:0.82rem;margin-top:6px;">Se necesitan al menos 3 apuestas resueltas.</div></div>`;
@@ -236,14 +262,18 @@ async function cargarDatosModal(uid) {
         if (_sig) {
           const s=await db.collection('seguidores').where('seguidor','==',uidActual).where('siguiendoA','==',uid).limit(1).get();
           if (!s.empty) await s.docs[0].ref.delete();
+          _misSeguidosUids.delete(uid);
           _num=Math.max(0,_num-1); _sig=false;
           if (numEl) numEl.textContent=_num;
           if (btn) { btn.innerHTML=`<i class="fas fa-user-plus"></i> Seguir`; btn.classList.remove('siguiendo'); }
         } else {
           await db.collection('seguidores').add({ seguidor:uidActual, siguiendoA:uid, fecha:firebase.firestore.FieldValue.serverTimestamp() });
+          _misSeguidosUids.add(uid);
           _num++; _sig=true;
           if (numEl) numEl.textContent=_num;
           if (btn) { btn.innerHTML=`<i class="fas fa-user-check"></i> Siguiendo`; btn.classList.add('siguiendo'); }
+          // Notificar al usuario seguido
+          _notificarNuevoSeguidor(uid, uidActual).catch(() => {});
         }
       } catch(e){ console.error(e); }
       finally { if(btn){btn.disabled=false;btn.style.opacity='1';} }
@@ -251,6 +281,29 @@ async function cargarDatosModal(uid) {
 
   } catch(err) {
     body.innerHTML=`<div style="text-align:center;padding:30px;color:#8a8f9e;">Error al cargar los datos.</div>`;
+  }
+}
+
+/* ═══════════════════════════════════
+   NOTIFICAR NUEVO SEGUIDOR
+═══════════════════════════════════ */
+async function _notificarNuevoSeguidor(uidSeguido, miUid) {
+  try {
+    const [snapSeguido, snapYo] = await Promise.all([
+      db.collection('usuarios').doc(uidSeguido).get(),
+      db.collection('usuarios').doc(miUid).get(),
+    ]);
+    const subs     = snapSeguido.data()?.pushSubs || [];
+    const miNombre = snapYo.data()?.username || 'Alguien';
+    if (!subs.length) return;
+
+    await fetch('https://winnet-proxy.winnetaplicacion.workers.dev/_push/nuevo-seguidor', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subs, nombre: miNombre }),
+    });
+  } catch (e) {
+    console.warn('[seguir] No se pudo notificar:', e.message);
   }
 }
 
@@ -266,19 +319,21 @@ function actualizarMiBanner(lista) {
 
 function formatValor(u,criterio) {
   switch(criterio) {
-    case 'saldo': return `${(u.saldo||0).toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})} €`;
+    case 'saldo':    return `${(u.saldo||0).toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})} €`;
     case 'beneficio': { const b=u.stats.beneficio||0; return `${b>=0?'+':''}${b.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})} €`; }
-    case 'acierto': return u.stats.acierto!==null?`${u.stats.acierto}%`:'—';
-    case 'ganadas': return `${u.stats.ganadas||0} ✓`;
+    case 'acierto':  return u.stats.acierto!==null?`${u.stats.acierto}%`:'—';
+    case 'ganadas':  return `${u.stats.ganadas||0} ✓`;
+    case 'seguidos': return `${(u.saldo||0).toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})} €`;
     default: return '—';
   }
 }
 function getValorClass(u,criterio) {
   switch(criterio) {
-    case 'saldo': return 'amarillo';
+    case 'saldo':    return 'amarillo';
     case 'beneficio': return (u.stats.beneficio||0)>=0?'positivo':'negativo';
-    case 'acierto': return 'amarillo';
-    case 'ganadas': return 'positivo';
+    case 'acierto':  return 'amarillo';
+    case 'ganadas':  return 'positivo';
+    case 'seguidos': return 'amarillo';
     default: return 'neutro';
   }
 }
