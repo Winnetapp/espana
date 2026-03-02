@@ -531,6 +531,23 @@ window.aceptarApuesta = async function(id, estado, importe) {
       batch.update(usuarioRef, { saldo: firebase.firestore.FieldValue.increment(importe) });
     }
     await batch.commit();
+
+    // ── Actualizar saldo en el header sin recargar ──────────────
+    if (importe > 0) {
+      // Leer el saldo actualizado de Firestore y reflejarlo en el header
+      const usuarioSnap = await db.collection('usuarios').doc(apuesta.usuarioId).get();
+      const nuevoSaldo = parseFloat(usuarioSnap.data()?.saldo || 0);
+      window._saldoUsuario = nuevoSaldo;
+
+      // Actualizar los elementos del header (header.js los genera con estos IDs/clases)
+      const elSaldoVal = document.getElementById('hdr-saldo-val');
+      if (elSaldoVal) elSaldoVal.textContent = `${nuevoSaldo.toFixed(2)} €`;
+
+      const elDdSaldo = document.querySelector('.hdr-dd-saldo');
+      if (elDdSaldo) elDdSaldo.textContent = `${nuevoSaldo.toFixed(2)} €`;
+    }
+    // ────────────────────────────────────────────────────────────
+
   } catch (e) {
     console.error('[aceptar] Error:', e);
     alert('Error al confirmar la apuesta. Inténtalo de nuevo.');

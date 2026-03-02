@@ -1,7 +1,5 @@
 /* =========================================================
-   partidos-view.css
-   Estilos para el visor de partidos: tabs, filtro de ligas,
-   tarjetas, cuotas, estados en vivo y bet slip.
+   partidos-view.css — Winnet
    ========================================================= */
 
 @import url('https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,600;0,700;0,800;1,400&family=Barlow+Condensed:wght@500;700;800&display=swap');
@@ -32,7 +30,7 @@
 }
 
 /* ═══════════════════════════════════════════════
-   TABS (Próximos / En Vivo / Historial)
+   TABS
    ═══════════════════════════════════════════════ */
 .partidos-tabs {
   display: flex;
@@ -55,12 +53,7 @@
   color: var(--texto-secundario);
   transition: all 0.22s;
 }
-
-.p-tab:hover {
-  border-color: var(--rojo);
-  color: #fff;
-}
-
+.p-tab:hover { border-color: var(--rojo); color: #fff; }
 .p-tab.active {
   background: var(--rojo);
   border-color: var(--rojo);
@@ -95,10 +88,7 @@
   letter-spacing: 0.4px;
   transition: all 0.2s;
 }
-.liga-btn:hover {
-  border-color: var(--amarillo);
-  color: var(--amarillo);
-}
+.liga-btn:hover { border-color: var(--amarillo); color: var(--amarillo); }
 .liga-btn.active {
   border-color: var(--amarillo);
   color: var(--amarillo);
@@ -115,7 +105,6 @@
   padding: 0;
 }
 
-/* ── Loading ── */
 .partidos-loading {
   display: flex;
   flex-direction: column;
@@ -148,11 +137,51 @@
 }
 
 /* ═══════════════════════════════════════════════
-   SECCIÓN POR LIGA
+   SECCIONES (FECHA / LIGA)
    ═══════════════════════════════════════════════ */
-.seccion-liga {
-  margin-bottom: 28px;
+.seccion-fecha { margin-bottom: 8px; }
+
+.seccion-fecha-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 4px 6px;
+  position: sticky;
+  top: 60px;
+  z-index: 10;
+  background: var(--fondo, #111114);
 }
+.seccion-fecha-header::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, var(--borde, #252830) 0%, transparent 100%);
+}
+
+.seccion-fecha-titulo {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--rojo, #e63030);
+  white-space: nowrap;
+  padding: 3px 10px;
+  background: rgba(230,48,48,0.10);
+  border: 1px solid rgba(230,48,48,0.20);
+  border-radius: 6px;
+}
+.seccion-fecha-titulo[data-hoy="true"],
+.seccion-fecha-header:first-child .seccion-fecha-titulo {
+  color: var(--amarillo, #f5c518);
+  background: rgba(245,197,24,0.10);
+  border-color: rgba(245,197,24,0.20);
+}
+
+.seccion-fecha .seccion-liga { margin-top: 2px; }
+.seccion-fecha .seccion-liga:first-of-type { margin-top: 0; }
+
+.seccion-liga { margin-bottom: 28px; }
 
 .seccion-liga-header {
   display: flex;
@@ -161,7 +190,6 @@
   margin-bottom: 12px;
   padding: 0 2px;
 }
-
 .seccion-liga-titulo {
   font-family: 'Barlow Condensed', sans-serif;
   font-size: 0.78rem;
@@ -171,7 +199,6 @@
   color: var(--texto-secundario);
   flex: 1;
 }
-
 .seccion-liga-linea {
   flex: 1;
   height: 1px;
@@ -192,7 +219,6 @@
   position: relative;
   overflow: hidden;
 }
-
 .partido-card::before {
   content: '';
   position: absolute;
@@ -201,33 +227,31 @@
   background: linear-gradient(90deg, transparent, var(--borde), transparent);
   transition: background 0.3s;
 }
-
 .partido-card:hover {
   box-shadow: var(--shadow-hover);
   border-color: rgba(230,48,48,0.2);
   transform: translateY(-1px);
 }
-
 .partido-card:hover::before {
   background: linear-gradient(90deg, transparent, var(--rojo), transparent);
 }
 
 .partido-card.en-vivo {
   border-color: rgba(230,48,48,0.3);
+  border-left: 3px solid #e63030;
 }
 .partido-card.en-vivo::before {
   background: linear-gradient(90deg, transparent, var(--rojo), transparent);
   animation: vivo-pulse 2s ease-in-out infinite;
 }
-
 @keyframes vivo-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.4; }
 }
 
-.partido-card.terminado {
-  opacity: 0.65;
-}
+.partido-card.terminado { opacity: 0.85; }
+.partido-card.terminado:hover { opacity: 1; }
+.partido-card.terminado .cuotas { display: none; }
 
 /* ── Info equipos ── */
 .info-equipos {
@@ -243,7 +267,6 @@
   align-items: center;
   gap: 6px;
 }
-
 .equipo span {
   font-family: 'Barlow', sans-serif;
   font-size: 0.88rem;
@@ -266,14 +289,12 @@
   overflow: hidden;
   flex-shrink: 0;
 }
-
 .escudo-wrapper img {
   width: 30px;
   height: 30px;
   object-fit: contain;
 }
 
-/* ── Centro ── */
 .centro {
   text-align: center;
   display: flex;
@@ -299,7 +320,6 @@
   display: block;
   text-align: center;
 }
-
 .hora small {
   font-size: 0.72rem;
   color: var(--texto-secundario);
@@ -308,27 +328,38 @@
   margin-top: 1px;
 }
 
+.minuto {
+  font-family: 'Barlow', sans-serif;
+  font-size: 0.78rem;
+  color: var(--rojo);
+  font-weight: 700;
+}
+
+/* ═══════════════════════════════════════════════
+   BADGES EN VIVO
+   ═══════════════════════════════════════════════ */
 .badge-vivo {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  background: var(--badge-vivo-bg);
-  color: #fff;
+  background: rgba(230,48,48,0.12);
+  border: 1px solid rgba(230,48,48,0.25);
+  color: #e63030;
   font-family: 'Barlow Condensed', sans-serif;
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 1px;
-  padding: 2px 8px;
-  border-radius: 10px;
-  animation: vivo-badge 1.5s ease-in-out infinite;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  padding: 3px 8px;
+  border-radius: 5px;
+  white-space: nowrap;
 }
-
 .badge-vivo::before {
   content: '';
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: #fff;
+  background: #e63030;
   animation: vivo-dot 1.5s ease-in-out infinite;
 }
 
@@ -336,18 +367,106 @@
   0%, 100% { box-shadow: 0 0 0 0 rgba(230,48,48,0.4); }
   50% { box-shadow: 0 0 0 4px rgba(230,48,48,0); }
 }
-
 @keyframes vivo-dot {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.3; }
 }
 
-.minuto {
-  font-family: 'Barlow', sans-serif;
-  font-size: 0.78rem;
-  color: var(--rojo);
-  font-weight: 700;
+/* ── Dot pulsante rojo (global) ── */
+.vivo-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #e63030;
+  margin-right: 4px;
+  animation: pulse-vivo 1.2s ease-in-out infinite;
+  vertical-align: middle;
 }
+@keyframes pulse-vivo {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.35; transform: scale(0.65); }
+}
+
+/* ── Marcador en vivo ── */
+.marcador-vivo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 1.6rem;
+  font-weight: 800;
+  line-height: 1;
+  color: #e8e8ea;
+}
+.marcador-sep { color: #454960; font-weight: 400; }
+.gol-ganador  { color: #22c55e; }
+.equipo-ganando { color: #22c55e; font-weight: 700; }
+
+/* ── Marcador final historial ── */
+.resultado-ft {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.ft-label {
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #454960;
+}
+.marcador-final {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #e8e8ea;
+  line-height: 1;
+}
+.ft-hora { font-size: 0.68rem; color: #454960; }
+.equipo-ganador-hist { font-weight: 700; color: #e8e8ea; }
+.equipo-perdedor-hist { color: #454960; }
+
+/* ── Header en vivo ── */
+.envivo-header { padding: 10px 0 14px; display: flex; align-items: center; }
+.envivo-titulo-global {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #e63030;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ── Estados vacíos ── */
+.envivo-vacio, .favoritos-vacio {
+  text-align: center;
+  padding: 60px 20px;
+  color: #7a7f92;
+}
+.envivo-vacio-icon, .favoritos-vacio-icon {
+  font-size: 2.5rem;
+  margin-bottom: 14px;
+  opacity: 0.3;
+  animation: pulse-vivo 2s ease-in-out infinite;
+}
+.envivo-vacio-titulo, .favoritos-vacio-titulo {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #454960;
+  margin-bottom: 6px;
+}
+.envivo-vacio-sub, .favoritos-vacio-sub { font-size: 0.82rem; color: #454960; }
 
 /* ═══════════════════════════════════════════════
    CUOTAS
@@ -373,15 +492,12 @@
   gap: 3px;
   user-select: none;
 }
-
 .cuota:hover {
   background: rgba(230,48,48,0.1);
   border-color: var(--rojo);
   transform: translateY(-1px);
 }
-
-.cuota.activa,
-.cuota.selected {
+.cuota.activa, .cuota.selected {
   background: rgba(230,48,48,0.18);
   border-color: var(--rojo);
   box-shadow: 0 0 10px rgba(230,48,48,0.2);
@@ -398,8 +514,7 @@
   max-width: 90%;
 }
 
-.valor-cuota,
-.cuota-btn {
+.valor-cuota, .cuota-btn {
   font-family: 'Barlow Condensed', sans-serif;
   font-size: 1.1rem;
   font-weight: 700;
@@ -410,10 +525,122 @@
   padding: 0;
   line-height: 1;
 }
-
 .cuota:hover .valor-cuota,
-.cuota.activa .valor-cuota {
-  color: #fff;
+.cuota.activa .valor-cuota { color: #fff; }
+
+/* ── Cuotas bloqueadas (en vivo) ── */
+.cuotas-bloqueadas {
+  pointer-events: none;
+  opacity: 0.45;
+  filter: grayscale(0.5);
+}
+.cuota-vivo-bloqueada {
+  cursor: not-allowed !important;
+  border-color: var(--borde) !important;
+  background: #0a0b0e !important;
+}
+.cuota-vivo-bloqueada:hover {
+  background: #0a0b0e !important;
+  border-color: var(--borde) !important;
+  transform: none !important;
+}
+.cuota-vivo-lock { color: #555 !important; font-size: 0.9rem !important; }
+.cuotas-vivo-aviso {
+  text-align: center;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #454960;
+  padding: 6px 0 2px;
+  letter-spacing: 0.4px;
+}
+
+/* ── Botones de cuota próximos (reset <button>) ── */
+.cuota-btn-wrap {
+  appearance: none;
+  -webkit-appearance: none;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  outline: none;
+}
+.cuota-btn-wrap.sin-cuota {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+.cuota-btn-wrap:focus-visible {
+  outline: 2px solid var(--rojo, #e63030);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ═══════════════════════════════════════════════
+   MERCADOS PARTIDO TERMINADO (FT)
+   ═══════════════════════════════════════════════ */
+.ft-mercados-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: rgba(139,92,246,0.08);
+  border: 1px solid rgba(139,92,246,0.2);
+  border-radius: 10px;
+  padding: 10px 16px;
+  margin-bottom: 14px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #a78bfa;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+.opcion-btn.ft-bloqueada {
+  cursor: default !important;
+  opacity: 0.55;
+}
+.opcion-btn.ft-bloqueada:hover {
+  border-color: var(--borde) !important;
+  background: #0e0f14 !important;
+  box-shadow: none !important;
+}
+
+.opcion-btn.ft-ganadora {
+  border-color: #22c55e !important;
+  background: rgba(34,197,94,0.1) !important;
+  opacity: 1 !important;
+  cursor: default !important;
+  position: relative;
+}
+.opcion-btn.ft-ganadora .opcion-cuota { color: #22c55e !important; }
+.opcion-btn.ft-ganadora .opcion-label { color: #e8e8ea !important; }
+.opcion-btn.ft-ganadora:hover {
+  box-shadow: 0 0 12px rgba(34,197,94,0.2) !important;
+  border-color: #22c55e !important;
+  background: rgba(34,197,94,0.13) !important;
+}
+
+.ft-ganadora-badge {
+  font-size: 0.62rem;
+  font-weight: 800;
+  color: #22c55e;
+  background: rgba(34,197,94,0.15);
+  border: 1px solid rgba(34,197,94,0.3);
+  border-radius: 6px;
+  padding: 1px 6px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-top: 2px;
+  display: block;
 }
 
 /* ═══════════════════════════════════════════════
@@ -437,7 +664,6 @@
   letter-spacing: 0.4px;
   transition: all 0.2s;
 }
-
 .ver-partido-btn:hover {
   color: var(--amarillo);
   border-color: var(--amarillo);
@@ -464,7 +690,6 @@
   border-color: var(--amarillo);
 }
 
-/* Goleadores lista */
 .goleadores-lista {
   display: flex;
   flex-direction: column;
@@ -483,7 +708,6 @@
   border: 1px solid var(--borde);
   transition: all 0.15s;
 }
-
 .goleador-opcion:hover {
   background: #181926;
   border-color: rgba(245,197,24,0.3);
@@ -534,8 +758,7 @@
   border-bottom: 1px solid var(--borde);
 }
 
-.bs-toggle,
-.bs-clear {
+.bs-toggle, .bs-clear {
   background: none;
   border: none;
   color: var(--texto-secundario);
@@ -579,15 +802,13 @@
   transition: all 0.2s;
   letter-spacing: 0.3px;
 }
-
-.bs-tab.active {
-  background: #252830;
-  color: #fff;
+.bs-tab.active { background: #252830; color: #fff; }
+.bs-tab[data-target="sistema"].active {
+  background: rgba(59,130,246,0.15);
+  color: #93c5fd;
 }
 
-.bs-content {
-  padding: 4px 10px 0;
-}
+.bs-content { padding: 4px 10px 0; }
 
 .bs-body {
   flex: 1;
@@ -597,13 +818,37 @@
   scrollbar-color: var(--borde) transparent;
 }
 
-.bs-list {
-  list-style: none;
+/* ── Listas ── */
+.bs-list, #slip-list, #slip-list-modal {
+  list-style: none !important;
   padding: 0;
   margin: 0;
 }
 
-/* ── Item bet slip ── */
+/* ── Estado vacío ── */
+.bs-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 32px 16px;
+  color: var(--texto-secundario);
+  font-size: 0.85rem;
+  text-align: center;
+  list-style: none;
+}
+.bs-empty span:first-child { font-size: 1.8rem; opacity: 0.4; }
+
+/* ── Items ── */
+.bs-item, .bs-item-sub, .bs-item-grupo-header {
+  list-style: none !important;
+  display: block;
+}
+.bs-item::marker, .bs-item-sub::marker, .bs-item-grupo-header::marker {
+  content: none;
+  display: none;
+}
+
 .bs-item {
   background: #0e0f14;
   border: 1px solid var(--borde);
@@ -614,7 +859,6 @@
   position: relative;
   transition: border-color 0.2s;
 }
-
 .bs-item:hover { border-color: #2d3147; }
 
 .bs-top {
@@ -632,7 +876,6 @@
   color: #d8d8d8;
   line-height: 1.3;
 }
-
 .bs-tipo-correlada { color: var(--amarillo) !important; }
 
 .bs-cuota {
@@ -645,6 +888,14 @@
   font-weight: 700;
   color: #7fb3ff;
   flex-shrink: 0;
+}
+
+.bs-cuota-sub {
+  font-size: 0.88rem;
+  background: transparent;
+  color: var(--texto-secundario);
+  text-decoration: line-through;
+  opacity: 0.7;
 }
 
 .bs-info {
@@ -671,15 +922,16 @@
 }
 .bs-remove:hover { color: #e53935; background: rgba(229,57,53,0.1); }
 
-/* ── Grupo bet slip ── */
+/* ── Grupos (mismo partido) ── */
 .bs-item-grupo-header {
-  background: #0e0f14;
-  border: 1px solid #2a2400;
+  background: linear-gradient(135deg, #0e0f14, #12141c);
+  border: 1px solid rgba(245,197,24,0.2);
   border-left: 3px solid var(--amarillo);
   border-radius: 10px 10px 4px 4px;
   margin-bottom: 2px;
+  margin-top: 12px;
 }
-.bs-item-grupo-header:not(:first-child) { margin-top: 16px; }
+.bs-item-grupo-header:first-child { margin-top: 0; }
 
 .bs-grupo-nombre {
   font-weight: 700;
@@ -690,7 +942,6 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-
 .bs-grupo-cuota {
   margin-right: 6px;
   background: rgba(245,197,24,0.12);
@@ -703,19 +954,44 @@
 }
 
 .bs-item-sub {
-  background: #0e0f14;
+  background: #0b0c10;
   border: 1px solid var(--borde);
   border-top: none;
   border-radius: 4px;
   margin-bottom: 2px;
-  padding: 8px 10px;
+  padding: 7px 10px 6px;
+  position: relative;
 }
-.bs-item-sub:last-child {
+.bs-item-sub:last-of-type {
   border-radius: 4px 4px 10px 10px;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
-/* ── Footer bet slip ── */
+/* ── Badges correlación ── */
+.bs-corr-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'Barlow', sans-serif;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 8px;
+  margin-top: 4px;
+  letter-spacing: 0.3px;
+}
+.bs-corr-reducida {
+  background: rgba(245,197,24,0.1);
+  border: 1px solid rgba(245,197,24,0.25);
+  color: var(--amarillo);
+}
+.bs-corr-incompatible {
+  background: rgba(230,48,48,0.1);
+  border: 1px solid rgba(230,48,48,0.25);
+  color: #ff8080;
+}
+
+/* ── Footer ── */
 .bs-footer {
   background: #111215;
   padding: 12px 12px 8px;
@@ -758,7 +1034,6 @@
   transition: border-color 0.2s;
 }
 .stake-input:focus-within { border-color: var(--rojo); }
-
 .stake-input input {
   width: 100%;
   padding: 6px 4px;
@@ -771,7 +1046,6 @@
   font-weight: 600;
   text-align: right;
 }
-
 .stake-input span {
   padding: 0 4px;
   color: var(--texto-secundario);
@@ -784,14 +1058,12 @@
   align-items: flex-end;
   gap: 2px;
 }
-
 .tot-label {
   color: var(--texto-secundario);
   font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.4px;
 }
-
 .tot-value {
   display: block;
   font-family: 'Barlow Condensed', sans-serif;
@@ -810,19 +1082,16 @@
   padding: 7px 10px;
   margin-bottom: 8px;
 }
-
 .pw-label {
   font-size: 0.75rem;
   color: var(--texto-secundario);
   white-space: nowrap;
 }
-
 .pw-divider {
   flex: 1;
   height: 1px;
   background: rgba(245,197,24,0.15);
 }
-
 .pw-value {
   font-family: 'Barlow Condensed', sans-serif;
   font-size: 1.15rem;
@@ -840,7 +1109,6 @@
   background: #0e0f14;
   border-top: 1px solid var(--borde);
 }
-
 .qs {
   flex: 1 1 50px;
   background: #16181d;
@@ -881,6 +1149,78 @@
   box-shadow: 0 4px 20px rgba(230,48,48,0.4);
   transform: translateY(-1px);
 }
+
+/* ═══════════════════════════════════════════════
+   APUESTAS DE SISTEMA
+   ═══════════════════════════════════════════════ */
+.sistema-vacio {
+  padding: 20px 14px;
+  color: var(--texto-secundario);
+  font-size: 0.82rem;
+  text-align: center;
+  line-height: 1.5;
+}
+.sistema-info {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--texto-secundario);
+  padding: 8px 4px 6px;
+}
+.sistema-opciones { display: flex; flex-direction: column; gap: 6px; }
+
+.sistema-opcion {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #0e0f14;
+  border: 1px solid var(--borde);
+  border-radius: 9px;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+.sistema-opcion:hover { border-color: rgba(59,130,246,0.4); background: #10111a; }
+.sistema-opcion:has(input:checked) {
+  border-color: #3b82f6;
+  background: rgba(59,130,246,0.06);
+}
+
+.sis-radio-wrap { display: flex; align-items: center; gap: 10px; flex: 1; }
+.sis-radio { accent-color: #3b82f6; width: 15px; height: 15px; flex-shrink: 0; cursor: pointer; }
+.sis-info { display: flex; flex-direction: column; gap: 1px; }
+.sis-titulo { font-size: 0.85rem; font-weight: 700; color: #e8e8ea; }
+.sis-detalle { font-size: 0.75rem; color: var(--texto-secundario); }
+.sis-detalle strong { color: #fff; }
+
+.sis-retorno {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #3b82f6;
+  background: rgba(59,130,246,0.1);
+  border: 1px solid rgba(59,130,246,0.2);
+  padding: 3px 9px;
+  border-radius: 7px;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+.sistema-footer {
+  margin-top: 8px;
+  background: #0e0f14;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.sis-detalle-apuesta { display: flex; justify-content: space-between; align-items: center; }
+.sis-label { font-size: 0.75rem; color: var(--texto-secundario); }
+.sis-valor { font-family: 'Barlow Condensed', sans-serif; font-size: 0.95rem; font-weight: 700; color: #fff; }
 
 /* ═══════════════════════════════════════════════
    TOAST
@@ -926,69 +1266,92 @@
 }
 
 /* ═══════════════════════════════════════════════
+   COLUMNAS PRINCIPALES
+   ═══════════════════════════════════════════════ */
+.main-columns {
+  display: flex;
+  gap: 24px;
+  margin-top: 20px;
+  align-items: flex-start;
+}
+.column { flex: 1; }
+.column-left   { max-width: 220px; }
+.column-center { max-width: 520px; flex: 1; }
+.column-right  { max-width: 310px; flex-shrink: 0; }
+
+/* ═══════════════════════════════════════════════
    BOTÓN MÓVIL CARRITO
    ═══════════════════════════════════════════════ */
-.mobile-menu-btn {
-  display: none;
-}
-
-.mobile-menu-btn img#cartIcon {
-  width: 22px;
-  height: 22px;
-}
+.mobile-menu-btn { display: none; }
 
 #totalOddsText {
   font-family: 'Barlow Condensed', sans-serif;
   font-weight: 700;
-  font-size: 1.1rem;
+  font-size: 1rem;
   color: var(--amarillo);
   display: none;
 }
 
 .bet-badge {
-  position: absolute;
-  top: -7px;
-  right: -7px;
-  background: var(--rojo);
-  color: #fff;
+  position: static;
+  background: #f5c518;
+  color: #000;
   font-family: 'Barlow', sans-serif;
-  font-size: 11px;
-  font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 50%;
-  display: none;
+  font-size: 0.7rem;
+  font-weight: 900;
+  padding: 2px 7px;
+  border-radius: 10px;
+  border: none;
   min-width: 18px;
   text-align: center;
-  border: 2px solid var(--negro);
+  display: none;
 }
 
 /* ═══════════════════════════════════════════════
    RESPONSIVE MÓVIL
    ═══════════════════════════════════════════════ */
+@media (max-width: 1100px) {
+  .column-left { display: none; }
+}
+
 @media (max-width: 768px) {
+  .main-columns { flex-direction: column; gap: 0; }
+  .column-right { max-width: 100%; }
+  .column-left  { display: none; }
+  .column-center { max-width: 100%; width: 100%; }
+
+  .partidos-tabs { padding: 10px 0 8px; }
+  .p-tab { padding: 7px 14px; font-size: 0.82rem; }
+
+  /* ── Botón flotante carrito ── */
   .mobile-menu-btn {
-    display: flex !important;
-    position: fixed;
-    bottom: 22px;
-    right: 18px;
-    background: var(--rojo-oscuro);
-    color: var(--amarillo);
-    border: 1px solid rgba(230,48,48,0.3);
-    padding: 11px 16px;
-    border-radius: 50px;
-    font-weight: 700;
-    font-size: 15px;
-    cursor: pointer;
-    z-index: 2001;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    display: inline-flex !important;
     align-items: center;
-    justify-content: center;
-    gap: 6px;
+    gap: 8px;
+    position: fixed;
+    bottom: calc(var(--bn-h, 64px) + 12px);
+    right: 18px;
+    background: linear-gradient(135deg, #e63030, #c02020);
+    color: #fff;
+    border: none;
+    border-radius: 50px;
+    padding: 13px 20px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(230,48,48,0.4);
+    z-index: 2001;
     transition: all 0.2s;
   }
-  .mobile-menu-btn:hover { background: var(--rojo); }
-  .bet-badge { background: var(--amarillo); color: #111; border-color: var(--negro); }
+  .mobile-menu-btn:hover { filter: brightness(1.1); }
+  .mobile-menu-btn img#cartIcon { display: none !important; }
 
+  .bet-badge { display: none; } /* se muestra por JS cuando hay apuestas */
+
+  /* ── Sidebar móvil ── */
   .column-right {
     display: block !important;
     position: fixed;
@@ -997,7 +1360,6 @@
     z-index: 1000;
     pointer-events: none;
   }
-
   .column-right .user-sidebar {
     position: fixed;
     top: 0; right: 0; left: 0; bottom: 0;
@@ -1012,682 +1374,5 @@
     overflow-y: auto;
     pointer-events: auto;
   }
-
-  .column-right .user-sidebar.open {
-    transform: translateX(0);
-  }
-
-  .partidos-tabs { padding: 10px 0 8px; }
-  .p-tab { padding: 7px 14px; font-size: 0.82rem; }
-}
-
-/* ═══════════════════════════════════════════════
-   COLUMNAS PRINCIPALES
-   ═══════════════════════════════════════════════ */
-.main-columns {
-  display: flex;
-  gap: 24px;
-  margin-top: 20px;
-  align-items: flex-start;
-}
-
-.column { flex: 1; }
-
-.column-left  { max-width: 220px; }
-.column-center { max-width: 520px; flex: 1; }
-.column-right  { max-width: 310px; flex-shrink: 0; }
-
-@media (max-width: 1100px) {
-  .column-left { display: none; }
-}
-
-@media (max-width: 768px) {
-  .main-columns { flex-direction: column; gap: 0; }
-  .column-right { max-width: 100%; }
-  .column-left  { display: none; }
-  .column-center { max-width: 100%; width: 100%; }
-}
-
-/* =============================================================
-   Añadir al FINAL de assets/css/partidos-view.css
-   Estilos para:
-   · Carrito mejorado (agrupación visual)
-   · Badges de correlación
-   · Apuestas de sistema
-   · Estado vacío del carrito
-   ============================================================= */
-
-/* ── Estado vacío del carrito ── */
-.bs-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  padding: 32px 16px;
-  color: var(--texto-dim, #8a8f9e);
-  font-size: 0.85rem;
-  text-align: center;
-  list-style: none;
-}
-.bs-empty span:first-child { font-size: 1.8rem; opacity: 0.4; }
-
-/* ── Grupo de apuestas del mismo partido ── */
-.bs-item-grupo-header {
-  background: linear-gradient(135deg, #0e0f14, #12141c);
-  border: 1px solid rgba(245,197,24,0.2);
-  border-left: 3px solid var(--amarillo);
-  border-radius: 10px 10px 4px 4px;
-  margin-bottom: 2px;
-  margin-top: 12px;
-}
-.bs-item-grupo-header:first-child { margin-top: 0; }
-
-.bs-grupo-nombre {
-  font-weight: 700;
-  font-size: 0.8rem;
-  color: #fff;
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.bs-grupo-cuota {
-  margin-right: 6px;
-  background: rgba(245,197,24,0.12);
-  padding: 3px 8px;
-  border-radius: 6px;
-  font-family: 'Barlow Condensed', sans-serif;
-  font-weight: 700;
-  font-size: 0.95rem;
-  color: var(--amarillo);
-}
-
-/* ── Sub-items del grupo ── */
-.bs-item-sub {
-  background: #0b0c10;
-  border: 1px solid var(--borde);
-  border-top: none;
-  border-radius: 4px;
-  margin-bottom: 2px;
-  padding: 7px 10px 6px;
-  position: relative;
-}
-.bs-item-sub:last-of-type {
-  border-radius: 4px 4px 10px 10px;
-  margin-bottom: 10px;
-}
-
-/* ── Cuota sub-item ── */
-.bs-cuota-sub {
-  font-size: 0.88rem;
-  background: transparent;
-  color: var(--texto-dim, #8a8f9e);
-  text-decoration: line-through;
-  opacity: 0.7;
-}
-
-/* ── Badges de correlación ── */
-.bs-corr-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-family: 'Barlow', sans-serif;
-  font-size: 0.68rem;
-  font-weight: 700;
-  padding: 2px 7px;
-  border-radius: 8px;
-  margin-top: 4px;
-  letter-spacing: 0.3px;
-}
-.bs-corr-reducida {
-  background: rgba(245,197,24,0.1);
-  border: 1px solid rgba(245,197,24,0.25);
-  color: var(--amarillo);
-}
-.bs-corr-incompatible {
-  background: rgba(230,48,48,0.1);
-  border: 1px solid rgba(230,48,48,0.25);
-  color: #ff8080;
-}
-
-/* ── Tooltip de correlación en el bs-tipo ── */
-.bs-tipo-correlada {
-  color: var(--amarillo) !important;
-  position: relative;
-}
-
-/* ── Aviso de cuota ajustada en el footer ── */
-.bs-cuota-ajustada-aviso {
-  font-size: 0.72rem;
-  color: var(--amarillo);
-  text-align: center;
-  padding: 4px 10px;
-  background: rgba(245,197,24,0.06);
-  border-top: 1px solid rgba(245,197,24,0.1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-}
-
-/* ═══════════════════════════════════════════════
-   APUESTAS DE SISTEMA
-   ═══════════════════════════════════════════════ */
-.sistema-vacio {
-  padding: 20px 14px;
-  color: var(--texto-dim, #8a8f9e);
-  font-size: 0.82rem;
-  text-align: center;
-  line-height: 1.5;
-}
-
-.sistema-info {
-  font-family: 'Barlow Condensed', sans-serif;
-  font-size: 0.8rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-  color: var(--texto-dim, #8a8f9e);
-  padding: 8px 4px 6px;
-}
-
-.sistema-opciones {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.sistema-opcion {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: #0e0f14;
-  border: 1px solid var(--borde);
-  border-radius: 9px;
-  padding: 10px 12px;
-  cursor: pointer;
-  transition: border-color 0.2s, background 0.2s;
-}
-.sistema-opcion:hover {
-  border-color: rgba(59,130,246,0.4);
-  background: #10111a;
-}
-.sistema-opcion:has(input:checked) {
-  border-color: #3b82f6;
-  background: rgba(59,130,246,0.06);
-}
-
-.sis-radio-wrap {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex: 1;
-}
-
-.sis-radio {
-  accent-color: #3b82f6;
-  width: 15px;
-  height: 15px;
-  flex-shrink: 0;
-  cursor: pointer;
-}
-
-.sis-info {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
-
-.sis-titulo {
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: #e8e8ea;
-}
-
-.sis-detalle {
-  font-size: 0.75rem;
-  color: var(--texto-dim, #8a8f9e);
-}
-.sis-detalle strong { color: #fff; }
-
-.sis-retorno {
-  font-family: 'Barlow Condensed', sans-serif;
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: #3b82f6;
-  background: rgba(59,130,246,0.1);
-  border: 1px solid rgba(59,130,246,0.2);
-  padding: 3px 9px;
-  border-radius: 7px;
-  flex-shrink: 0;
-  margin-left: 8px;
-}
-
-.sistema-footer {
-  margin-top: 8px;
-  background: #0e0f14;
-  border: 1px solid var(--borde);
-  border-radius: 8px;
-  padding: 10px 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.sis-detalle-apuesta {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.sis-label {
-  font-size: 0.75rem;
-  color: var(--texto-dim, #8a8f9e);
-}
-.sis-valor {
-  font-family: 'Barlow Condensed', sans-serif;
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: #fff;
-}
-
-/* ── Pestaña sistema activa ── */
-.bs-tab[data-target="sistema"].active {
-  background: rgba(59,130,246,0.15);
-  color: #93c5fd;
-}
-
-/* ── Reset de listas para el BetSlip ── */
-.bs-list, #slip-list, #slip-list-modal {
-  list-style: none !important; /* Elimina el punto/marcador */
-  padding: 0;
-  margin: 0;
-}
-
-.bs-item, .bs-item-sub, .bs-item-grupo-header {
-  list-style: none !important;
-  display: block; /* Asegura que no se comporte como list-item */
-}
-
-/* Forzado extra para navegadores modernos */
-.bs-item::marker, 
-.bs-item-sub::marker, 
-.bs-item-grupo-header::marker {
-  content: none;
-  display: none;
-}
-
-
-/* =============================================================
-   Añadir a assets/css/partidos-view.css
-   (o al final de style.css si prefieres un solo archivo)
-
-   Estilos para la agrupación por fecha en la vista Próximos
-   ============================================================= */
-
-/* ── Sección de fecha (wrapper externo) ── */
-.seccion-fecha {
-  margin-bottom: 8px;
-}
-
-/* ── Cabecera del día: "Hoy", "Mañana", "vie 6 mar" ── */
-.seccion-fecha-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 4px 6px;
-  position: sticky;
-  top: 60px; /* altura del header, ajusta si el tuyo es distinto */
-  z-index: 10;
-  background: var(--fondo, #111114); /* mismo fondo que la página */
-}
-
-.seccion-fecha-titulo {
-  font-family: 'Barlow Condensed', sans-serif;
-  font-size: 0.95rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 1.5px;
-  color: var(--rojo, #e63030);
-  white-space: nowrap;
-  padding: 3px 10px;
-  background: rgba(230, 48, 48, 0.10);
-  border: 1px solid rgba(230, 48, 48, 0.20);
-  border-radius: 6px;
-}
-
-/* Etiquetas especiales */
-.seccion-fecha-titulo[data-hoy="true"],
-.seccion-fecha-header:first-child .seccion-fecha-titulo {
-  color: var(--amarillo, #f5c518);
-  background: rgba(245, 197, 24, 0.10);
-  border-color: rgba(245, 197, 24, 0.20);
-}
-
-/* Línea decorativa al lado del título de fecha */
-.seccion-fecha-header::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: linear-gradient(90deg, var(--borde, #252830) 0%, transparent 100%);
-}
-
-/* ── Ligas dentro de una fecha: menos margen superior ── */
-.seccion-fecha .seccion-liga {
-  margin-top: 2px;
-}
-
-.seccion-fecha .seccion-liga:first-of-type {
-  margin-top: 0;
-}
-
-/* =============================================================
-   AÑADIR al final de assets/css/partidos-view.css
-   Estilos para: En Vivo, Historial, marcadores con ganador
-   ============================================================= */
-
-/* ── Dot pulsante rojo ──────────────────────────────────────── */
-.vivo-dot {
-  display: inline-block;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #e63030;
-  margin-right: 4px;
-  animation: pulse-vivo 1.2s ease-in-out infinite;
-  vertical-align: middle;
-}
-@keyframes pulse-vivo {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50%       { opacity: 0.35; transform: scale(0.65); }
-}
-
-/* ── Header global en vivo ──────────────────────────────────── */
-.envivo-header {
-  padding: 10px 0 14px;
-  display: flex;
-  align-items: center;
-}
-.envivo-titulo-global {
-  font-family: 'Barlow Condensed', sans-serif;
-  font-size: 0.85rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  color: #e63030;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-/* ── Marcador en vivo (números más grandes y vivos) ─────────── */
-.marcador-vivo {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-family: 'Barlow Condensed', sans-serif;
-  font-size: 1.6rem;
-  font-weight: 800;
-  line-height: 1;
-  color: #e8e8ea;
-}
-.marcador-sep {
-  color: #454960;
-  font-weight: 400;
-}
-.gol-ganador {
-  color: #22c55e;
-}
-
-/* Nombre equipo que va ganando */
-.equipo-ganando {
-  color: #22c55e;
-  font-weight: 700;
-}
-
-/* ── Marcador final historial ───────────────────────────────── */
-.resultado-ft {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-}
-.ft-label {
-  font-size: 0.62rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  color: #454960;
-}
-.marcador-final {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-family: 'Barlow Condensed', sans-serif;
-  font-size: 1.4rem;
-  font-weight: 800;
-  color: #e8e8ea;
-  line-height: 1;
-}
-.ft-hora {
-  font-size: 0.68rem;
-  color: #454960;
-}
-
-/* Ganador / perdedor en historial */
-.equipo-ganador-hist {
-  font-weight: 700;
-  color: #e8e8ea;
-}
-.equipo-perdedor-hist {
-  color: #454960;
-}
-
-/* ── Tarjeta terminada: sin hover agresivo ──────────────────── */
-.partido-card.terminado {
-  opacity: 0.85;
-}
-.partido-card.terminado:hover {
-  opacity: 1;
-}
-/* Sin cuotas en historial */
-.partido-card.terminado .cuotas {
-  display: none;
-}
-
-/* ── Estado vacío en vivo ───────────────────────────────────── */
-.envivo-vacio {
-  text-align: center;
-  padding: 60px 20px;
-  color: #7a7f92;
-}
-.envivo-vacio-icon {
-  font-size: 2.5rem;
-  margin-bottom: 14px;
-  opacity: 0.3;
-  animation: pulse-vivo 2s ease-in-out infinite;
-}
-.envivo-vacio-titulo {
-  font-family: 'Barlow Condensed', sans-serif;
-  font-size: 1.1rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  color: #454960;
-  margin-bottom: 6px;
-}
-.envivo-vacio-sub {
-  font-size: 0.82rem;
-  color: #454960;
-}
-
-/* ── Badge EN VIVO con minuto ───────────────────────────────── */
-.badge-vivo {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  background: rgba(230,48,48,0.12);
-  border: 1px solid rgba(230,48,48,0.25);
-  color: #e63030;
-  font-family: 'Barlow Condensed', sans-serif;
-  font-size: 0.72rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-  padding: 3px 8px;
-  border-radius: 5px;
-  white-space: nowrap;
-}
-
-/* ── Partido en vivo: borde izquierdo rojo ──────────────────── */
-.partido-card.en-vivo {
-  border-left: 3px solid #e63030;
-}
-
-/* =============================================================
-   AÑADIR AL FINAL de assets/css/partidos-view.css
-   Estilos para cuotas bloqueadas en partidos en vivo
-   ============================================================= */
-
-/* Cuotas en vivo — no clicables, apariencia bloqueada */
-.cuotas-bloqueadas {
-  pointer-events: none;
-  opacity: 0.45;
-  filter: grayscale(0.5);
-}
-
-.cuota-vivo-bloqueada {
-  cursor: not-allowed !important;
-  border-color: var(--borde) !important;
-  background: #0a0b0e !important;
-}
-
-.cuota-vivo-bloqueada:hover {
-  background: #0a0b0e !important;
-  border-color: var(--borde) !important;
-  transform: none !important;
-}
-
-.cuota-vivo-lock {
-  color: #555 !important;
-  font-size: 0.9rem !important;
-}
-
-/* Aviso textual bajo las cuotas bloqueadas */
-.cuotas-vivo-aviso {
-  text-align: center;
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: #454960;
-  padding: 6px 0 2px;
-  letter-spacing: 0.4px;
-}
-
-/* =============================================================
-   AÑADIR AL FINAL de assets/css/partidos-view.css
-   (o al final del bloque <style> de partido.html)
-   Estilos para mercados de partidos terminados (FT)
-   ============================================================= */
-
-/* ── Banner "partido finalizado" ── */
-.ft-mercados-banner {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  background: rgba(139, 92, 246, 0.08);
-  border: 1px solid rgba(139, 92, 246, 0.2);
-  border-radius: 10px;
-  padding: 10px 16px;
-  margin-bottom: 14px;
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: #a78bfa;
-  letter-spacing: 0.4px;
-  text-transform: uppercase;
-}
-
-/* ── Botón bloqueado (partido terminado) ── */
-.opcion-btn.ft-bloqueada {
-  cursor: default !important;
-  opacity: 0.55;
-}
-
-.opcion-btn.ft-bloqueada:hover {
-  border-color: var(--borde) !important;
-  background: #0e0f14 !important;
-  box-shadow: none !important;
-}
-
-/* ── Opción ganadora ── */
-.opcion-btn.ft-ganadora {
-  border-color: #22c55e !important;
-  background: rgba(34, 197, 94, 0.1) !important;
-  opacity: 1 !important;       /* override del ft-bloqueada */
-  cursor: default !important;
-  position: relative;
-}
-
-.opcion-btn.ft-ganadora .opcion-cuota {
-  color: #22c55e !important;
-}
-
-.opcion-btn.ft-ganadora .opcion-label {
-  color: #e8e8ea !important;
-}
-
-/* Badge "✓ Ganadora" dentro del botón */
-.ft-ganadora-badge {
-  font-size: 0.62rem;
-  font-weight: 800;
-  color: #22c55e;
-  background: rgba(34, 197, 94, 0.15);
-  border: 1px solid rgba(34, 197, 94, 0.3);
-  border-radius: 6px;
-  padding: 1px 6px;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  margin-top: 2px;
-  display: block;
-}
-
-/* Hover sobre ganadora: sutil glow verde (no confundir con seleccionable) */
-.opcion-btn.ft-ganadora:hover {
-  box-shadow: 0 0 12px rgba(34, 197, 94, 0.2) !important;
-  border-color: #22c55e !important;
-  background: rgba(34, 197, 94, 0.13) !important;
-}
-
-/* =============================================================
-   Botones de cuota (próximos) — reset de estilos nativos <button>
-   ============================================================= */
-.cuota-btn-wrap {
-  appearance: none;
-  -webkit-appearance: none;
-  background: none;
-  border: none;
-  padding: 0;
-  margin: 0;
-  font: inherit;
-  color: inherit;
-  cursor: pointer;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  outline: none;
-}
-
-.cuota-btn-wrap.sin-cuota {
-  opacity: 0.4;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
-.cuota-btn-wrap:focus-visible {
-  outline: 2px solid var(--rojo, #e63030);
-  outline-offset: 2px;
-  border-radius: 4px;
+  .column-right .user-sidebar.open { transform: translateX(0); }
 }

@@ -36,7 +36,7 @@
     #btn-admin-panel {
       display: none; /* oculto por defecto, JS lo muestra solo si es admin */
       position: fixed;
-      bottom: 24px;
+      bottom: 80px;
       left: 24px;
       z-index: 9999;
       align-items: center;
@@ -194,11 +194,12 @@
     </div>
   </div>
 
-  <!-- Botón móvil carrito -->
+  <!-- Botón móvil carrito — igual estilo que partido.html -->
   <button id="mobileMenuBtn" class="mobile-menu-btn">
-    <img src="carrito.png" alt="Carrito" id="cartIcon" />
-    <span id="totalOddsText" style="display:none;"></span>
+    <i class="fas fa-ticket-alt"></i>
+    Carrito
     <span id="betBadge" class="bet-badge" style="display:none;">0</span>
+    <span id="totalOddsText" style="display:none;"></span>
   </button>
 
 </main>
