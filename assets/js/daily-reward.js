@@ -610,7 +610,7 @@ window.DailyReward = (function () {
       holdTimer = setTimeout(() => {
         isHolding = true;
         fab.style.transform = 'scale(0.92)';
-        setTimeout(() => { window.location.href = '/rewards-page.html'; }, 120);
+        setTimeout(() => { window.location.href = 'rewards-page.html'; }, 120);
       }, 600);
     });
 
