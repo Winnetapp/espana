@@ -32,39 +32,6 @@
   <link rel="apple-touch-icon" href="icono-192.png">
 
   <style>
-    /* ── Botón Admin flotante ── */
-    #btn-admin-panel {
-      display: none;
-      position: fixed;
-      bottom: 80px;
-      left: 24px;
-      z-index: 9999;
-      align-items: center;
-      gap: 8px;
-      padding: 10px 16px;
-      background: #16181d;
-      border: 1px solid #252830;
-      border-radius: 12px;
-      color: #f5c518;
-      font-family: 'Barlow', sans-serif;
-      font-size: 0.82rem;
-      font-weight: 700;
-      text-decoration: none;
-      cursor: pointer;
-      transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-    }
-    #btn-admin-panel:hover {
-      border-color: #f5c518;
-      box-shadow: 0 6px 24px rgba(245,197,24,0.2);
-      transform: translateY(-2px);
-    }
-    #btn-admin-panel i { font-size: 0.9rem; opacity: 0.8; }
-    @media (max-width: 600px) {
-      #btn-admin-panel .btn-admin-label { display: none; }
-      #btn-admin-panel { padding: 10px 13px; bottom: 80px; }
-    }
-
     /* ══════════════════════════════════════════════
        MODAL CARRITO DESDE ABAJO — index.html
        Igual al de partido.html
@@ -332,12 +299,6 @@
   <div class="index-slip-bottom-pad"></div>
 </div>
 
-<!-- Botón Admin -->
-<a id="btn-admin-panel" href="adminpartidos.html">
-  <i class="fas fa-shield-alt"></i>
-  <span class="btn-admin-label">Panel Admin</span>
-</a>
-
 <footer class="footer">
   <div class="footer-content">
     <div class="footer-logo">
@@ -419,18 +380,6 @@
 
     /* Exponer para que betslip-core pueda cerrar tras apostar */
     window._closeIndexModal = closeModal;
-  })();
-
-  /* ── Botón admin ── */
-  (function() {
-    const btn = document.getElementById('btn-admin-panel');
-    firebase.auth().onAuthStateChanged(async function(user) {
-      if (!user) return;
-      try {
-        const doc = await firebase.firestore().collection('usuarios').doc(user.uid).get();
-        if (doc.exists && doc.data()?.rol === 'admin') btn.style.display = 'flex';
-      } catch (e) {}
-    });
   })();
 </script>
 
