@@ -1325,7 +1325,7 @@
 
   /* ── Botón flotante carrito ── */
   .mobile-menu-btn {
-    display: inline-flex !important;
+    display: inline-flex;
     align-items: center;
     gap: 8px;
     position: fixed;

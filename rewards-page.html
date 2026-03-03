@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Recompensas Diarias — Winnet</title>
+
+  <!-- Fuentes -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700;800&family=Barlow+Condensed:wght@500;700;800;900&display=swap" rel="stylesheet">
+
+  <!-- Estilos del proyecto -->
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <link rel="stylesheet" href="assets/css/footer.css" />
+  <link rel="stylesheet" href="assets/css/header-unified.css" />
+  <link rel="stylesheet" href="assets/css/bottom-nav.css" />
+  <link rel="stylesheet" href="assets/css/rewards-page.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0a0a0c">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="icono-192.png">
+</head>
+
+<body class="rewards-page">
+
+<!-- ── Header (igual que index.html) ── -->
+<header>
+  <div class="header-left" id="header-left"></div>
+  <div class="header-center">
+    <a href="index.html">
+      <img src="logohead.png" alt="Winnet" class="logo" id="logo-scroll" />
+    </a>
+  </div>
+  <div class="header-right" id="header-right"></div>
+</header>
+
+<!-- ── Contenido principal ── -->
+<main id="main-content">
+
+  <div class="rw-page">
+
+    <!-- Header de la página -->
+    <div class="rw-header">
+      <div>
+        <h1 class="rw-titulo" style="margin-top:10px;">Recompensas<br><span>diarias</span></h1>
+        <div class="rw-fire-badge" id="fire-badge">🔥 Racha de fuego × 2</div>
+      </div>
+      <div class="rw-saldo-wrap">
+        <div class="rw-saldo-label">Saldo</div>
+        <div class="rw-saldo-val" id="saldo-display">—</div>
+      </div>
+    </div>
+
+    <!-- Loading -->
+    <div class="rw-loading" id="state-loading">
+      <div class="rw-spinner"></div>
+      Cargando tu progreso...
+    </div>
+
+    <!-- Contenido (oculto hasta cargar) -->
+    <div id="state-content" style="display:none;">
+
+      <!-- Stats -->
+      <div class="rw-stats-row rw-anim rw-anim-1">
+        <div class="rw-stat-card">
+          <span class="rw-stat-val amarillo" id="stat-racha">—</span>
+          <span class="rw-stat-lbl">Racha actual</span>
+        </div>
+        <div class="rw-stat-card">
+          <span class="rw-stat-val" id="stat-semana">—</span>
+          <span class="rw-stat-lbl">Semana</span>
+        </div>
+        <div class="rw-stat-card">
+          <span class="rw-stat-val" id="stat-record">—</span>
+          <span class="rw-stat-lbl">Récord</span>
+        </div>
+      </div>
+
+      <!-- Progreso racha de fuego -->
+      <div class="rw-mes-card rw-anim rw-anim-2">
+        <div class="rw-mes-header">
+          <div class="rw-mes-titulo">Progreso hacia racha de fuego</div>
+          <div class="rw-mes-pct" id="mes-pct">0%</div>
+        </div>
+        <div class="rw-mes-track">
+          <div class="rw-mes-fill" id="mes-fill" style="width:0%"></div>
+        </div>
+        <div class="rw-mes-sub" id="mes-sub">
+          Completa <strong>28 días seguidos</strong> para activar el multiplicador ×2
+        </div>
+      </div>
+
+      <!-- Semana actual -->
+      <div class="rw-week-strip rw-anim rw-anim-3">
+        <div class="rw-week-header">
+          <div class="rw-week-label" id="week-label-txt">Semana 1</div>
+          <div class="rw-week-prize" id="week-prize-txt">Día 7 → 1€ 🎁</div>
+        </div>
+        <div class="rw-days-row" id="days-row"></div>
+      </div>
+
+      <!-- Próxima recompensa -->
+      <div class="rw-prox-card rw-anim rw-anim-3">
+        <div class="rw-prox-icon" id="prox-icon">🎁</div>
+        <div class="rw-prox-body">
+          <div class="rw-prox-label" id="prox-ya-label">Próxima recompensa</div>
+          <div class="rw-prox-amt" id="prox-amt">—</div>
+          <div class="rw-prox-sub" id="prox-sub">Vuelve mañana</div>
+        </div>
+      </div>
+
+      <!-- Piezas -->
+      <div class="rw-piezas-card rw-anim rw-anim-4">
+        <div class="rw-piezas-header">
+          <div class="rw-piezas-titulo">🧩 Tus piezas</div>
+          <div class="rw-piezas-info">3 piezas = <strong>5€</strong></div>
+        </div>
+        <div class="rw-piezas-row" id="piezas-row"></div>
+        <button class="rw-canjear-btn locked" id="canjear-btn" onclick="canjear()">
+          Canjear 3 piezas por 5€
+        </button>
+      </div>
+
+      <!-- Racha de fuego info -->
+      <div class="rw-fuego-card rw-anim rw-anim-5">
+        <div class="rw-fuego-titulo">🔥 Racha de fuego</div>
+        <div class="rw-fuego-desc">
+          Completa <strong>28 días seguidos</strong> (4 semanas completas) para activar
+          el multiplicador <strong>× 2</strong> en todas tus recompensas diarias.<br><br>
+          Si rompes la racha un solo día, pierdes el multiplicador y tendrás que
+          completar otro mes seguido para recuperarlo.
+        </div>
+      </div>
+
+      <!-- Cómo funciona -->
+      <div class="rw-howto rw-anim rw-anim-6">
+        <div class="rw-howto-titulo">Cómo funciona</div>
+
+        <div class="rw-howto-item">
+          <div class="rw-howto-ico">📅</div>
+          <div class="rw-howto-text">
+            <strong>Entra cada día</strong>
+            Reclama tu recompensa diaria. Los días 1-6 van creciendo semana a semana. El día 7 es el grande.
+          </div>
+        </div>
+
+        <div class="rw-howto-item">
+          <div class="rw-howto-ico">🎁</div>
+          <div class="rw-howto-text">
+            <strong>Día 7 — Cofre o Ruleta</strong>
+            Las semanas impares abres un cofre, las pares giras la ruleta.
+            La recompensa equivale al número de semana en euros (semana 3 = 3€, semana 10 = 10€…).
+          </div>
+        </div>
+
+        <div class="rw-howto-item">
+          <div class="rw-howto-ico">🧩</div>
+          <div class="rw-howto-text">
+            <strong>Piezas cada semana</strong>
+            Al completar cada semana recibes 1 pieza. Con 3 piezas canjeas <strong>5€</strong> de golpe.
+          </div>
+        </div>
+
+        <div class="rw-howto-item">
+          <div class="rw-howto-ico">🔥</div>
+          <div class="rw-howto-text">
+            <strong>Racha de fuego × 2</strong>
+            Completa 28 días consecutivos y todas tus recompensas (días 1–6) se doblan
+            mientras mantengas la racha viva.
+          </div>
+        </div>
+
+      </div>
+
+    </div><!-- /state-content -->
+
+  </div><!-- /rw-page -->
+
+</main>
+
+<!-- ── Footer (igual que index.html) ── -->
+<footer class="footer">
+  <div class="footer-content">
+    <div class="footer-logo">
+      <h2>Win<span style="color:var(--hf-rojo, #e63030)">net</span></h2>
+      <p>Apuestas deportivas con dinero ficticio.<br>Solo para entretenimiento.</p>
+      <div style="display:inline-flex;align-items:center;gap:6px;margin-top:12px;padding:6px 10px;background:rgba(245,197,24,0.06);border:1px solid rgba(245,197,24,0.18);border-radius:6px;font-size:0.7rem;color:#f5c518;font-weight:700;letter-spacing:0.4px;">
+        <i class="fas fa-shield-alt" style="font-size:0.75rem;"></i>
+        JUEGO RESPONSABLE · +18
+      </div>
+    </div>
+    <div class="footer-contacto">
+      <h2>Navegación</h2>
+      <p><a href="index.html"><i class="fas fa-futbol"></i> Partidos</a></p>
+      <p><a href="apuestas.html"><i class="fas fa-ticket-alt"></i> Mis Apuestas</a></p>
+      <p><a href="https://winnetapp.github.io/soporte/" target="_blank" rel="noopener"><i class="fas fa-life-ring"></i> Soporte &amp; errores</a></p>
+      <p><a href="mailto:winnetaplicacion@gmail.com"><i class="fas fa-envelope"></i> winnetaplicacion@gmail.com</a></p>
+    </div>
+    <div class="footer-redes">
+      <h2>Síguenos</h2>
+      <div class="redes-iconos">
+        <a href="https://youtube.com" target="_blank" rel="noopener" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
+        <a href="https://www.instagram.com/winnetapp?igsh=MXBvazY2anFqN3Nsdw==" target="_blank" rel="noopener" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+        <a href="https://www.tiktok.com/@winnetapp?_t=ZN-8xTDcL9VuTu&_r=1" target="_blank" rel="noopener" aria-label="TikTok"><i class="fab fa-tiktok"></i></a>
+        <a href="https://winnetapp.github.io/donaciones/" target="_blank" rel="noopener" aria-label="PayPal"><i class="fab fa-paypal"></i></a>
+        <a href="mailto:winnetaplicacion@gmail.com" aria-label="Email"><i class="fas fa-envelope"></i></a>
+      </div>
+    </div>
+  </div>
+  <div class="footer-bar" style="border-top:1px solid #252830;padding:14px 24px;max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+    <span class="footer-bar-copy">&copy; 2025 Winnet · Todos los derechos reservados.</span>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+      <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;background:#1a1d24;border:1px solid #252830;border-radius:20px;font-size:0.68rem;font-weight:700;color:#555b6e;text-transform:uppercase;letter-spacing:0.5px;">
+        <i class="fas fa-lock" style="font-size:0.65rem;"></i> Dinero ficticio
+      </span>
+      <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);border-radius:20px;font-size:0.68rem;font-weight:700;color:#22c55e;text-transform:uppercase;letter-spacing:0.5px;">
+        <i class="fas fa-check-circle" style="font-size:0.65rem;"></i> Solo entretenimiento
+      </span>
+    </div>
+  </div>
+</footer>
+
+<!-- Toast -->
+<div id="rw-toast"></div>
+
+<!-- JS — mismo orden que index.html -->
+<script src="assets/js/firebase-init.js"></script>
+<script src="assets/js/header.js"></script>
+<script src="assets/js/daily-reward.js"></script>
+<script src="assets/js/bottom-nav.js"></script>
+
+<script>
+/* ══════════════════════════════════════
+   PÁGINA DE RECOMPENSAS
+   Reemplaza el bloque <script> inline de rewards-page.html
+══════════════════════════════════════ */
+
+const DIA_INFO = [
+  { emoji: '🌱', label: 'Día 1' },
+  { emoji: '🔥', label: 'Día 2' },
+  { emoji: '⚡', label: 'Día 3' },
+  { emoji: '💎', label: 'Día 4' },
+  { emoji: '🚀', label: 'Día 5' },
+  { emoji: '👑', label: 'Día 6' },
+  { emoji: '🎁', label: 'Día 7' },
+];
+
+/* ─── Fórmula única, igual que daily-reward.js ─── */
+function recompensaDia(dia, semana) {
+  if (dia === 7) return semana;
+  return parseFloat(((semana - 1) + dia * 0.15).toFixed(2));
+}
+
+function fmt(n) {
+  /* Siempre en euros con coma decimal, sin centavos raros */
+  return n.toFixed(2).replace('.', ',') + '€';
+}
+
+function showToast(msg, color) {
+  const t = document.getElementById('rw-toast');
+  t.textContent = msg;
+  t.style.borderColor = color || 'var(--borde)';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+function hoyES() {
+  return new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Madrid' });
+}
+
+function renderPage(ud) {
+  const racha      = ud.rachaActual   || 0;
+  const semana     = ud.semanaTotal   || 1;
+  const rachaMax   = ud.rachaMaxima   || 0;
+  const rachaFuego = ud.rachaFuego    || false;
+  const piezas     = ud.piezas        || 0;
+  const saldo      = parseFloat(ud.saldo || 0);
+  const yaCobro    = ud.ultimaRecompensa === hoyES();
+
+  // Saldo
+  document.getElementById('saldo-display').textContent = saldo.toFixed(2) + '€';
+
+  // Badge fuego
+  document.getElementById('fire-badge').classList.toggle('visible', rachaFuego);
+
+  // Stats
+  document.getElementById('stat-racha').textContent  = racha + ' 🔥';
+  document.getElementById('stat-semana').textContent = 'S' + semana;
+  document.getElementById('stat-record').textContent = rachaMax;
+
+  // Progreso racha de fuego
+  // Ciclo de 28 días: calculamos cuántos días llevamos en el ciclo actual
+  const diasEnCiclo = ((semana - 1) % 4) * 7 + racha;
+  const pct = Math.min(Math.round((diasEnCiclo / 28) * 100), 100);
+  document.getElementById('mes-pct').textContent  = pct + '%';
+  document.getElementById('mes-fill').style.width = pct + '%';
+  document.getElementById('mes-sub').innerHTML    = rachaFuego
+    ? '🔥 <strong>Racha de fuego activa</strong> — ¡no la pierdas!'
+    : `Llevas <strong>${diasEnCiclo} de 28 días</strong> hacia el multiplicador ×2`;
+
+  // Cabecera semana
+  document.getElementById('week-label-txt').textContent = `Semana ${semana}`;
+  document.getElementById('week-prize-txt').textContent =
+    `Día 7 → ${fmt(semana)} ${semana % 2 !== 0 ? '🎁' : '🎰'}`;
+
+  // Chips de días
+  const daysRow = document.getElementById('days-row');
+  daysRow.innerHTML = '';
+  for (let d = 1; d <= 7; d++) {
+    const done   = yaCobro ? d <= racha : d < racha;
+    const active = !yaCobro && d === racha;
+    const amt    = fmt(recompensaDia(d, semana));
+
+    const chip = document.createElement('div');
+    chip.className = ['rw-day-chip',
+      done   ? 'done'   : '',
+      active ? 'active' : '',
+      d === 7 ? 'day7'  : '',
+    ].filter(Boolean).join(' ');
+
+    chip.innerHTML = `
+      <span class="chip-icon">${done ? '✅' : d === 7 ? (semana % 2 !== 0 ? '🎁' : '🎰') : DIA_INFO[d-1].emoji}</span>
+      <span class="chip-label">${DIA_INFO[d-1].label}</span>
+      <span class="chip-amt">${amt}</span>
+    `;
+    daysRow.appendChild(chip);
+  }
+
+  // Próxima recompensa
+  const proxDia    = yaCobro ? (racha >= 7 ? 1 : racha + 1) : (racha || 1);
+  const proxSemana = yaCobro ? (racha >= 7 ? semana + 1 : semana) : semana;
+
+  document.getElementById('prox-ya-label').textContent =
+    yaCobro ? 'Ya reclamaste hoy · Vuelve mañana' : '¡Puedes reclamar ahora!';
+  document.getElementById('prox-icon').textContent = DIA_INFO[proxDia - 1].emoji;
+  document.getElementById('prox-amt').textContent  = fmt(recompensaDia(proxDia, proxSemana));
+  document.getElementById('prox-sub').textContent  =
+    `Día ${proxDia} · Semana ${proxSemana}${rachaFuego && proxDia < 7 ? ' · 🔥 ×2' : ''}`;
+
+  // Piezas
+  const piezasRow = document.getElementById('piezas-row');
+  piezasRow.innerHTML = '';
+  for (let i = 0; i < 3; i++) {
+    const slot = document.createElement('div');
+    slot.className = `rw-pieza-slot ${i < piezas ? 'filled' : 'empty'}`;
+    slot.style.animationDelay = (i * 0.08) + 's';
+    slot.textContent = i < piezas ? '🧩' : '⬜';
+    piezasRow.appendChild(slot);
+  }
+
+  const btn = document.getElementById('canjear-btn');
+  btn.className   = piezas >= 3 ? 'rw-canjear-btn ready' : 'rw-canjear-btn locked';
+  btn.textContent = piezas >= 3
+    ? '🎉 Canjear 3 piezas por 5€'
+    : `Canjear 3 piezas por 5€ (${piezas}/3)`;
+}
+
+async function canjear() {
+  if (!window._uid) return;
+  try {
+    const res = await window.DailyReward.canjearPiezas(window._uid);
+    showToast(
+      res.ok ? '🎉 ¡10€ añadidos a tu saldo!' : res.msg,
+      res.ok ? 'rgba(34,197,94,.5)' : 'rgba(230,48,48,.5)'
+    );
+  } catch (e) {
+    showToast('Error al canjear', 'rgba(230,48,48,.5)');
+  }
+}
+
+function initPage() {
+  firebase.auth().onAuthStateChanged(async user => {
+    if (!user) { window.location.href = 'index.html'; return; }
+    window._uid = user.uid;
+
+    try {
+      const snap = await db.collection('usuarios').doc(user.uid).get();
+      document.getElementById('state-loading').style.display = 'none';
+      document.getElementById('state-content').style.display = 'block';
+
+      renderPage(snap.data() || {});
+
+      // Tiempo real
+      db.collection('usuarios').doc(user.uid).onSnapshot(doc => {
+        if (doc.exists) renderPage(doc.data());
+      });
+
+    } catch (e) {
+      console.error('[RewardsPage]', e);
+      document.getElementById('state-loading').innerHTML =
+        '<p style="color:var(--rojo)">Error cargando datos. Recarga la página.</p>';
+    }
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  if (typeof firebase !== 'undefined') initPage();
+  else window.addEventListener('load', initPage);
+});
+</script>
+
+</body>
+</html>

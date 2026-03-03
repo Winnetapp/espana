@@ -34,7 +34,7 @@
   <style>
     /* ── Botón Admin flotante ── */
     #btn-admin-panel {
-      display: none; /* oculto por defecto, JS lo muestra solo si es admin */
+      display: none;
       position: fixed;
       bottom: 80px;
       left: 24px;
@@ -59,36 +59,103 @@
       box-shadow: 0 6px 24px rgba(245,197,24,0.2);
       transform: translateY(-2px);
     }
-    #btn-admin-panel i {
-      font-size: 0.9rem;
-      opacity: 0.8;
-    }
-    /* En móvil solo muestra el icono */
+    #btn-admin-panel i { font-size: 0.9rem; opacity: 0.8; }
     @media (max-width: 600px) {
-      #btn-admin-panel .btn-admin-label {
-        display: none;
-      }
-      #btn-admin-panel {
-        padding: 10px 13px;
-        bottom: 80px; /* sube para no tapar el botón del carrito */
-      }
+      #btn-admin-panel .btn-admin-label { display: none; }
+      #btn-admin-panel { padding: 10px 13px; bottom: 80px; }
+    }
+
+    /* ══════════════════════════════════════════════
+       MODAL CARRITO DESDE ABAJO — index.html
+       Igual al de partido.html
+    ══════════════════════════════════════════════ */
+
+    /* Overlay oscuro */
+    #index-slip-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 200;
+      backdrop-filter: blur(4px);
+    }
+    #index-slip-overlay.active { display: block; }
+
+    /* Modal que sube desde abajo */
+    #index-slip-modal {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: #16181d;
+      border-top: 1px solid #252830;
+      border-radius: 20px 20px 0 0;
+      padding: 20px 20px 0;
+      z-index: 201;
+      transform: translateY(100%);
+      transition: transform 0.32s cubic-bezier(.4,0,.2,1);
+      /* Alto máximo: deja espacio para la barra de nav abajo */
+      max-height: calc(100vh - var(--bn-h, 64px) - 12px);
+      overflow-y: auto;
+      /* Scrollbar invisible */
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+    #index-slip-modal::-webkit-scrollbar { display: none; }
+    #index-slip-modal.open { transform: translateY(0); }
+
+    /* Handle de arrastre */
+    .index-slip-handle {
+      width: 40px;
+      height: 4px;
+      background: #2e3242;
+      border-radius: 2px;
+      margin: 0 auto 16px;
+    }
+
+    /* Cabecera del modal */
+    .index-slip-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 0 14px;
+      border-bottom: 1px solid #252830;
+    }
+    .index-slip-title {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 1.05rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #fff;
+    }
+    .index-slip-close {
+      background: none;
+      border: none;
+      color: #8a8f9e;
+      cursor: pointer;
+      font-size: 1rem;
+      padding: 4px 8px;
+      border-radius: 6px;
+      transition: color 0.2s, background 0.2s;
+    }
+    .index-slip-close:hover { color: #e63030; background: rgba(230,48,48,0.1); }
+
+    /* Padding inferior para que el botón "Realizar apuesta"
+       no quede pegado a la barra de navegación */
+    .index-slip-bottom-pad {
+      height: calc(var(--bn-h, 64px) + 16px);
+      flex-shrink: 0;
     }
   </style>
 </head>
 <body>
 
 <header>
-  <!-- Saldo / botón Registrarse -->
   <div class="header-left" id="header-left"></div>
-
-  <!-- Logo centrado -->
   <div class="header-center">
     <a href="index.html">
       <img src="logohead.png" alt="Winnet" class="logo" id="logo-scroll" />
     </a>
   </div>
-
-  <!-- Usuario / Iniciar sesión -->
   <div class="header-right" id="header-right"></div>
 </header>
 
@@ -96,13 +163,12 @@
   <h1>Partidos</h1>
 
   <div class="main-columns">
-    <!-- Columna izquierda (publicidad / info futura) -->
+    <!-- Columna izquierda -->
     <div class="column column-left"></div>
 
     <!-- Columna central: partidos -->
     <div class="column column-center">
 
-      <!-- Tabs -->
       <div class="partidos-tabs">
         <button class="p-tab active" data-tab="proximos">Próximos</button>
         <button class="p-tab" data-tab="envivo">En Vivo</button>
@@ -113,7 +179,6 @@
         <button class="p-tab" data-tab="historial">Historial</button>
       </div>
 
-      <!-- Filtro ligas -->
       <div class="ligas-filter">
         <button class="liga-btn active" data-liga="todas">Todas</button>
         <button class="liga-btn" data-liga="Premier League">Premier</button>
@@ -123,7 +188,6 @@
         <button class="liga-btn" data-liga="Ligue 1">Ligue 1</button>
       </div>
 
-      <!-- Contenedor de partidos -->
       <div id="partidos-container">
         <div class="partidos-loading">
           <div class="partidos-spinner"></div>
@@ -133,7 +197,7 @@
 
     </div>
 
-    <!-- Columna derecha: Bet Slip -->
+    <!-- Columna derecha: Bet Slip desktop -->
     <div class="column column-right">
       <div class="user-sidebar" id="userSidebar">
 
@@ -194,7 +258,7 @@
     </div>
   </div>
 
-  <!-- Botón móvil carrito — igual estilo que partido.html -->
+  <!-- Botón móvil carrito -->
   <button id="mobileMenuBtn" class="mobile-menu-btn">
     <i class="fas fa-shopping-cart"></i>
     Carrito
@@ -204,127 +268,168 @@
 
 </main>
 
-<!-- ── Botón Admin (solo visible para admins, inyectado por JS) ── -->
+<!-- ════════════════════════════════════════════
+     MODAL CARRITO MÓVIL (bottom sheet)
+     Mismo patrón que partido.html
+════════════════════════════════════════════ -->
+<div id="index-slip-overlay"></div>
+<div id="index-slip-modal">
+  <div class="index-slip-handle"></div>
+
+  <div class="index-slip-header">
+    <span class="index-slip-title">🎯 Carrito</span>
+    <button class="index-slip-close bs-clear" id="index-slip-clear-btn" title="Vaciar">&#128465;</button>
+  </div>
+
+  <!-- Pestañas -->
+  <div class="bs-tabs" style="margin: 12px 0 0;">
+    <button class="bs-tab js-tab" data-target="simple">Simple</button>
+    <button class="bs-tab js-tab" data-target="combi">Combinada (0)</button>
+    <button class="bs-tab js-tab" data-target="sistema">Sistema</button>
+  </div>
+  <div class="bs-content" style="padding: 4px 0 0;">
+    <div data-content="simple" style="display:block;"></div>
+    <div data-content="combi"  style="display:none;"></div>
+    <div data-content="sistema" style="display:none;"></div>
+  </div>
+
+  <!-- Lista de apuestas -->
+  <ul class="bs-list" id="index-bet-list-modal"></ul>
+
+  <!-- Footer: stake + cuota + ganancias -->
+  <div class="bs-footer" style="border:none; background:transparent; padding: 14px 0 0;">
+    <div class="stake-row">
+      <div class="stake-group">
+        <label class="stake">Importe</label>
+        <div class="stake-input">
+          <input type="number" id="index-stake-modal" value="5" min="0" />
+          <span>€</span>
+        </div>
+      </div>
+      <div class="total-odds">
+        <span class="tot-label">Cuota total</span>
+        <span class="tot-value" id="index-total-odds-modal">0,00</span>
+      </div>
+    </div>
+    <div class="potential-winnings">
+      <span class="pw-label">Ganancias potenciales</span>
+      <span class="pw-divider"></span>
+      <span class="pw-value" id="index-ganancias-modal">0,00 €</span>
+    </div>
+  </div>
+
+  <div class="quick-stakes">
+    <button class="qs">2 €</button>
+    <button class="qs">5 €</button>
+    <button class="qs">10 €</button>
+    <button class="qs">20 €</button>
+    <button class="qs all-in">ALL-IN</button>
+  </div>
+
+  <button class="accept-btn" id="index-btn-apostar-modal">Realizar apuesta</button>
+
+  <!-- Espaciado para no chocar con la barra de navegación -->
+  <div class="index-slip-bottom-pad"></div>
+</div>
+
+<!-- Botón Admin -->
 <a id="btn-admin-panel" href="adminpartidos.html">
   <i class="fas fa-shield-alt"></i>
   <span class="btn-admin-label">Panel Admin</span>
 </a>
 
 <footer class="footer">
-
-  <!-- Cuerpo: marca + columnas de links + redes -->
   <div class="footer-content">
-
-    <!-- Marca -->
     <div class="footer-logo">
       <h2>Win<span style="color:var(--hf-rojo, #e63030)">net</span></h2>
       <p>Apuestas deportivas con dinero ficticio.<br>Solo para entretenimiento.</p>
-      <div style="
-        display:inline-flex;align-items:center;gap:6px;
-        margin-top:12px;padding:6px 10px;
-        background:rgba(245,197,24,0.06);
-        border:1px solid rgba(245,197,24,0.18);
-        border-radius:6px;font-size:0.7rem;
-        color:#f5c518;font-weight:700;letter-spacing:0.4px;">
+      <div style="display:inline-flex;align-items:center;gap:6px;margin-top:12px;padding:6px 10px;background:rgba(245,197,24,0.06);border:1px solid rgba(245,197,24,0.18);border-radius:6px;font-size:0.7rem;color:#f5c518;font-weight:700;letter-spacing:0.4px;">
         <i class="fas fa-shield-alt" style="font-size:0.75rem;"></i>
         JUEGO RESPONSABLE · +18
       </div>
     </div>
-
-    <!-- Contacto & navegación -->
     <div class="footer-contacto">
       <h2>Navegación</h2>
       <p><a href="index.html"><i class="fas fa-futbol"></i> Partidos</a></p>
       <p><a href="apuestas.html"><i class="fas fa-ticket-alt"></i> Mis Apuestas</a></p>
-      <p><a href="https://winnetapp.github.io/soporte/" target="_blank" rel="noopener">
-        <i class="fas fa-life-ring"></i> Soporte &amp; errores</a></p>
-      <p><a href="mailto:winnetaplicacion@gmail.com">
-        <i class="fas fa-envelope"></i> winnetaplicacion@gmail.com</a></p>
+      <p><a href="https://winnetapp.github.io/soporte/" target="_blank" rel="noopener"><i class="fas fa-life-ring"></i> Soporte &amp; errores</a></p>
+      <p><a href="mailto:winnetaplicacion@gmail.com"><i class="fas fa-envelope"></i> winnetaplicacion@gmail.com</a></p>
     </div>
-
-    <!-- Redes sociales -->
     <div class="footer-redes">
       <h2>Síguenos</h2>
       <div class="redes-iconos">
-        <a href="https://youtube.com" target="_blank" rel="noopener" aria-label="YouTube">
-          <i class="fab fa-youtube"></i>
-        </a>
-        <a href="https://www.instagram.com/winnetapp?igsh=MXBvazY2anFqN3Nsdw==" target="_blank" rel="noopener" aria-label="Instagram">
-          <i class="fab fa-instagram"></i>
-        </a>
-        <a href="https://www.tiktok.com/@winnetapp?_t=ZN-8xTDcL9VuTu&_r=1" target="_blank" rel="noopener" aria-label="TikTok">
-          <i class="fab fa-tiktok"></i>
-        </a>
-        <a href="https://winnetapp.github.io/donaciones/" target="_blank" rel="noopener" aria-label="PayPal">
-          <i class="fab fa-paypal"></i>
-        </a>
-        <a href="mailto:winnetaplicacion@gmail.com" aria-label="Email">
-          <i class="fas fa-envelope"></i>
-        </a>
+        <a href="https://youtube.com" target="_blank" rel="noopener" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
+        <a href="https://www.instagram.com/winnetapp?igsh=MXBvazY2anFqN3Nsdw==" target="_blank" rel="noopener" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+        <a href="https://www.tiktok.com/@winnetapp?_t=ZN-8xTDcL9VuTu&_r=1" target="_blank" rel="noopener" aria-label="TikTok"><i class="fab fa-tiktok"></i></a>
+        <a href="https://winnetapp.github.io/donaciones/" target="_blank" rel="noopener" aria-label="PayPal"><i class="fab fa-paypal"></i></a>
+        <a href="mailto:winnetaplicacion@gmail.com" aria-label="Email"><i class="fas fa-envelope"></i></a>
       </div>
     </div>
-
-  </div><!-- /.footer-content -->
-
-  <!-- Barra inferior -->
-  <div class="footer-bar" style="
-    border-top:1px solid #252830;padding:14px 24px;
-    max-width:1200px;margin:0 auto;
-    display:flex;align-items:center;justify-content:space-between;
-    flex-wrap:wrap;gap:12px;">
+  </div>
+  <div class="footer-bar" style="border-top:1px solid #252830;padding:14px 24px;max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
     <span class="footer-bar-copy">&copy; 2025 Winnet · Todos los derechos reservados.</span>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-      <span style="
-        display:inline-flex;align-items:center;gap:5px;
-        padding:3px 10px;background:#1a1d24;
-        border:1px solid #252830;border-radius:20px;
-        font-size:0.68rem;font-weight:700;
-        color:#555b6e;text-transform:uppercase;letter-spacing:0.5px;">
+      <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;background:#1a1d24;border:1px solid #252830;border-radius:20px;font-size:0.68rem;font-weight:700;color:#555b6e;text-transform:uppercase;letter-spacing:0.5px;">
         <i class="fas fa-lock" style="font-size:0.65rem;"></i> Dinero ficticio
       </span>
-      <span style="
-        display:inline-flex;align-items:center;gap:5px;
-        padding:3px 10px;background:rgba(34,197,94,0.08);
-        border:1px solid rgba(34,197,94,0.2);border-radius:20px;
-        font-size:0.68rem;font-weight:700;
-        color:#22c55e;text-transform:uppercase;letter-spacing:0.5px;">
+      <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);border-radius:20px;font-size:0.68rem;font-weight:700;color:#22c55e;text-transform:uppercase;letter-spacing:0.5px;">
         <i class="fas fa-check-circle" style="font-size:0.65rem;"></i> Solo entretenimiento
       </span>
     </div>
   </div>
-
 </footer>
 
 <!-- JS principal -->
 <script src="assets/js/firebase-init.js"></script>
 <script src="assets/js/header.js"></script>
-<script src="assets/js/push-notifications.js"></script> 
+<script src="assets/js/daily-reward.js"></script>
+<script src="assets/js/push-notifications.js"></script>
 <script src="assets/js/favoritos.js"></script>
 <script src="assets/js/betslip-core.js"></script>
 <script src="assets/js/main.js"></script>
 <script src="assets/js/bottom-nav.js"></script>
 
 <script>
-  // ── Botón admin: aparece solo si el usuario tiene rol = 'admin' en Firestore ──
-  // Se ejecuta después de firebase-init.js, que ya inicializa firebase
+  /* ── Lógica del modal bottom sheet (index.html) ── */
+  (function () {
+    const overlay = document.getElementById('index-slip-overlay');
+    const modal   = document.getElementById('index-slip-modal');
+    const openBtn = document.getElementById('mobileMenuBtn');
+
+    function openModal() {
+      overlay.classList.add('active');
+      modal.classList.add('open');
+      document.body.style.overflow = 'hidden';
+      // Ocultar el botón para que quede por debajo del modal
+      openBtn.style.display = 'none';
+    }
+    function closeModal() {
+      overlay.classList.remove('active');
+      modal.classList.remove('open');
+      document.body.style.overflow = '';
+      // Restaurar el botón flotante
+      openBtn.style.display = '';
+    }
+
+    openBtn?.addEventListener('click', openModal);
+    overlay?.addEventListener('click', closeModal);
+
+    /* El botón vaciar del modal cierra también */
+    document.getElementById('index-slip-clear-btn')?.addEventListener('click', closeModal);
+
+    /* Exponer para que betslip-core pueda cerrar tras apostar */
+    window._closeIndexModal = closeModal;
+  })();
+
+  /* ── Botón admin ── */
   (function() {
     const btn = document.getElementById('btn-admin-panel');
-
     firebase.auth().onAuthStateChanged(async function(user) {
-      if (!user) return; // no logueado → botón permanece oculto
-
+      if (!user) return;
       try {
-        const doc = await firebase.firestore()
-          .collection('usuarios')
-          .doc(user.uid)
-          .get();
-
-        if (doc.exists && doc.data()?.rol === 'admin') {
-          btn.style.display = 'flex'; // solo admin lo ve
-        }
-      } catch (e) {
-        // sin permisos o error → no mostramos nada, silencioso
-      }
+        const doc = await firebase.firestore().collection('usuarios').doc(user.uid).get();
+        if (doc.exists && doc.data()?.rol === 'admin') btn.style.display = 'flex';
+      } catch (e) {}
     });
   })();
 </script>

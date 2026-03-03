@@ -1,12 +1,6 @@
 /* =============================================================
    assets/js/header.js
    Header unificado para index.html, partido.html, apuestas.html
-   
-   Uso: incluir DESPUÉS de firebase-init.js en todas las páginas.
-   El HTML de la página solo necesita:
-     <div class="header-left"  id="header-left"></div>
-     <div class="header-center" id="header-center"></div>
-     <div class="header-right" id="header-right"></div>
    ============================================================= */
 
 (function () {
@@ -106,7 +100,11 @@
         const btnAdmin = document.getElementById('btn-admin-panel');
         if (btnAdmin && ud.rol === 'admin') btnAdmin.style.display = 'flex';
 
-        /* ── Avisar a push-notifications.js que el header está listo ── */
+        /* ── Avisar a push-notifications.js que el header está listo ──
+           Guardamos también en window por si push-notifications.js
+           carga después de que este evento ya se haya disparado.       ── */
+        window._headerReadyFired = true;
+        window._headerReadyUid   = user.uid;
         window.dispatchEvent(new CustomEvent('header-ready', { detail: { uid: user.uid } }));
 
       } catch (err) {
@@ -129,6 +127,8 @@
           </a>
         </div>`;
 
+      window._headerReadyFired = true;
+      window._headerReadyUid   = null;
       window.dispatchEvent(new CustomEvent('header-ready', { detail: { uid: null } }));
     }
   });
