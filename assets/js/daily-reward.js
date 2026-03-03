@@ -1,6 +1,6 @@
 /* =============================================================
    assets/js/daily-reward.js
-   Sistema de recompensa diaria — Winnet
+   Sistema de recompensa diaria — Winnetapp
 
    Firestore — campos en usuarios/{uid}:
      rachaActual      : number  — día actual dentro de la semana (1-7)
