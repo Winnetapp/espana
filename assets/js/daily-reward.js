@@ -24,7 +24,7 @@
 
    Piezas:
      · +1 pieza al completar cada semana (día 7)
-     · 4 piezas = 10 € canjeables en cualquier momento
+     · 3 piezas = 5 € canjeables en cualquier momento
    ============================================================= */
 
 window.DailyReward = (function () {
@@ -324,7 +324,7 @@ window.DailyReward = (function () {
   ${piezaTag}
 
   <div style="display:flex;gap:8px;margin-bottom:16px;">
-    ${[['🔥', racha + ' días', 'Racha'], ['🏆', rachaMax, 'Récord'], ['🧩', piezas + '/4', 'Piezas']].map(([ic, val, lbl]) => `
+    ${[['🔥', racha + ' días', 'Racha'], ['🏆', rachaMax, 'Récord'], ['🧩', piezas + '/3', 'Piezas']].map(([ic, val, lbl]) => `
       <div style="flex:1;background:#0e0f14;border:1px solid #1e2530;border-radius:10px;padding:10px 6px;text-align:center;">
         <span style="font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;font-weight:800;color:#e8edf5;display:block;">${ic} ${val}</span>
         <span style="font-size:0.6rem;color:#5a6580;text-transform:uppercase;letter-spacing:.4px;">${lbl}</span>
@@ -565,8 +565,8 @@ window.DailyReward = (function () {
   </div>
   <div style="background:#0e0f14;border:1px solid #1e2530;border-radius:10px;padding:10px;margin-bottom:16px;">
     <span style="font-size:0.7rem;color:#5a6580;">Piezas: </span>
-    ${'🧩'.repeat(Math.min(piezas, 4))}${'⬜'.repeat(Math.max(0, 4 - piezas))}
-    <span style="font-size:0.7rem;color:#f5c518;margin-left:6px;">${piezas}/4</span>
+    ${'🧩'.repeat(Math.min(piezas, 3))}${'⬜'.repeat(Math.max(0, 3 - piezas))}
+    <span style="font-size:0.7rem;color:#f5c518;margin-left:6px;">${piezas}/3</span>
   </div>
   <button onclick="this.closest('#_dr-modal').remove()" style="width:100%;padding:12px;background:#1e2530;color:#e8edf5;border:none;border-radius:10px;font-family:'Barlow Condensed',sans-serif;font-size:0.95rem;font-weight:700;letter-spacing:.8px;text-transform:uppercase;cursor:pointer;">Cerrar</button>
 </div>`;
