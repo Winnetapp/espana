@@ -1,5 +1,19 @@
+// ── Firebase Messaging (necesario para generar endpoints FCM v1) ──
+importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js');
+
+firebase.initializeApp({
+  apiKey: "AIzaSyDgdI3UcnHuRlcynH-pCHcGORcGBAD3FSU",
+  authDomain: "winnet-708db.firebaseapp.com",
+  projectId: "winnet-708db",
+  messagingSenderId: "869401097323",
+  appId: "1:869401097323:web:fddb5e44af9d27a7cfed2e"
+});
+
+const messaging = firebase.messaging();
+
 // Cambia CACHE_NAME cada vez que actualices archivos
-const CACHE_NAME = "winnet-cache-v5";
+const CACHE_NAME = "winnet-cache-v6";
 
 const STATIC_ASSETS = [
   "./index.html",
@@ -51,13 +65,14 @@ self.addEventListener("install", event => {
 // ── Activación: borrar caches antiguos ──
 self.addEventListener("activate", event => {
   event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(
-        keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
+    caches.keys()
+      .then(keys =>
+        Promise.all(
+          keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
+        )
       )
-    )
+      .then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
 // ── Fetch: red primero, cache como fallback ──
@@ -93,13 +108,9 @@ self.addEventListener("fetch", event => {
 // ════════════════════════════════════════════════════════════
 //  PUSH NOTIFICATIONS
 //
-//  El worker de Cloudflare envía mensajes FCM v1 con dos partes:
-//    · notification: { title, body }  → FCM lo muestra directamente (bypass SW)
-//    · webpush.data: { url, tipo }    → datos adicionales para el click
-//
-//  Para que el SW controle la notificación y pueda manejar el click
-//  correctamente, necesitamos interceptar el evento push y mostrar
-//  la notificación nosotros mismos usando los datos de webpush.data.
+//  El worker de Cloudflare envía mensajes FCM v1 usando solo
+//  webpush.data (sin campo notification) para que el SW
+//  intercepte siempre el evento push y controle la notificación.
 // ════════════════════════════════════════════════════════════
 
 self.addEventListener("push", event => {
@@ -112,10 +123,6 @@ self.addEventListener("push", event => {
     payload = { title: "Winnet", body: event.data.text() };
   }
 
-  // FCM v1 puede enviar los datos en distintos sitios según la configuración:
-  // · payload.title / payload.body          → directo (nuestro worker antiguo)
-  // · payload.notification.title/body       → FCM estándar
-  // · payload.data.title/body               → data-only (forzado por SW)
   const title = payload.title
     || payload.notification?.title
     || payload.data?.title
