@@ -1,13 +1,13 @@
 /* =============================================================
-   assets/js/betslip-core.js
+   assets/js/betslip-core.js  —  v2.0
    Módulo compartido de carrito entre index.html y partido.html
 
-   MODALES MÓVIL:
-   · index.html   → #index-slip-overlay / #index-slip-modal   (bottom sheet)
-   · partido.html → #slip-overlay / #slip-modal               (bottom sheet)
-   Ambos usan el mismo patrón: sube desde abajo, sin ocupar
-   toda la pantalla, con padding inferior para no chocar con
-   la barra de navegación.
+   NUEVO v2.0:
+   · formatTipo() ampliado con todos los mercados extras:
+     btts, ambosmarcan, dnb, descanso, segunda,
+     totalsHT, teamTotalHome, teamTotalAway,
+     cornersTotal, bookingsTotal, ehResult.
+   · evaluarBet / resolverApuesta sin cambios funcionales.
    ============================================================= */
 
 (function () {
@@ -74,14 +74,20 @@
   function factorCorrelacion(a, b) {
     const mA = normM(a.mercado), mB = normM(b.mercado);
     const tA = (a.tipo || '').toLowerCase(), tB = (b.tipo || '').toLowerCase();
-    const esRes   = m => m === 'resultado' || m === 'dobleoportunidad';
-    const esAmbos = m => m === 'ambosmarcan';
-    const esImpar = m => m === 'golesimparpar';
-    const esCorn  = m => m === 'corners';
-    const esTarj  = m => m === 'tarjetas';
-    const esGoles = m => m === 'totalgoles';
-    const esDNB   = m => m === 'dnb';
+    const esRes      = m => m === 'resultado' || m === 'dobleoportunidad';
+    const esAmbos    = m => m === 'ambosmarcan' || m === 'btts';
+    const esImpar    = m => m === 'golesimparpar';
+    const esCorn     = m => m === 'corners' || m === 'cornerstotal';
+    const esTarj     = m => m === 'tarjetas' || m === 'bookingstotal';
+    const esGoles    = m => m === 'totalgoles';
+    const esDNB      = m => m === 'dnb';
+    const esHTResult = m => m === 'descanso' || m === 'htresult';
+    const esTotalHT  = m => m === 'totalsht';
+    const esTTHome   = m => m === 'teamtotalhome';
+    const esTTAway   = m => m === 'teamtotalaway';
+    const esEH       = m => m === 'ehresult';
 
+    // BTTS + resultado → correlación media
     if (esAmbos(mA) && esAmbos(mB)) {
       const [segA, segB] = [segmento(tA), segmento(tB)];
       const [opA,  opB]  = [opcionSiNo(tA), opcionSiNo(tB)];
@@ -96,6 +102,8 @@
         (esAmbos(mB) && esRes(mA) && opcionSiNo(tB) === 'si')) return 0.5;
     if (esAmbos(mA) && esGoles(mB) && opcionSiNo(tA) === 'si' && direccion(tB) === 'mas') return 0.5;
     if (esAmbos(mB) && esGoles(mA) && opcionSiNo(tB) === 'si' && direccion(tA) === 'mas') return 0.5;
+
+    // Total goles entre sí
     if (esGoles(mA) && esGoles(mB)) {
       const [dA, dB] = [direccion(tA), direccion(tB)];
       const [nA, nB] = [valorNum(tA), valorNum(tB)];
@@ -103,8 +111,12 @@
       if (dA === 'mas'   && dB === 'menos' && nA !== null && nB !== null && nA === nB) return 0;
       if (dA === 'menos' && dB === 'mas'   && nA !== null && nB !== null && nA === nB) return 0;
     }
+
+    // DNB + resultado
     if (esDNB(mA) && esRes(mB)) return 0.5;
     if (esDNB(mB) && esRes(mA)) return 0.5;
+
+    // Córners
     if (esCorn(mA) && esCorn(mB)) {
       const [dA, dB] = [direccion(tA), direccion(tB)];
       const [nA, nB] = [valorNum(tA), valorNum(tB)];
@@ -114,6 +126,8 @@
       }
       return 0.5;
     }
+
+    // Tarjetas
     if (esTarj(mA) && esTarj(mB)) {
       const [dA, dB] = [direccion(tA), direccion(tB)];
       const [nA, nB] = [valorNum(tA), valorNum(tB)];
@@ -123,29 +137,67 @@
       }
       return 0.5;
     }
+
+    // Impar/par
     if (esImpar(mA) && esImpar(mB)) {
       if ((segmento(tA) !== 'encuentro') && segmento(tB) === 'encuentro') return 0;
       if ((segmento(tB) !== 'encuentro') && segmento(tA) === 'encuentro') return 0;
       return 0.5;
     }
     if ((esRes(mA) && esImpar(mB)) || (esRes(mB) && esImpar(mA))) return 0.5;
+
+    // HT result + totals HT → correlación media
+    if (esHTResult(mA) && esTotalHT(mB)) return 0.5;
+    if (esHTResult(mB) && esTotalHT(mA)) return 0.5;
+
+    // Team totals entre sí (over/under mismo equipo)
+    if (esTTHome(mA) && esTTHome(mB)) {
+      const [dA, dB] = [direccion(tA), direccion(tB)];
+      const [nA, nB] = [valorNum(tA), valorNum(tB)];
+      if (dA === 'mas' && dB === 'menos' && nA === nB) return 0;
+      if (dA === 'menos' && dB === 'mas' && nA === nB) return 0;
+      if (dA === dB) return 0.7;
+    }
+    if (esTTAway(mA) && esTTAway(mB)) {
+      const [dA, dB] = [direccion(tA), direccion(tB)];
+      const [nA, nB] = [valorNum(tA), valorNum(tB)];
+      if (dA === 'mas' && dB === 'menos' && nA === nB) return 0;
+      if (dA === 'menos' && dB === 'mas' && nA === nB) return 0;
+      if (dA === dB) return 0.7;
+    }
+
+    // EH + resultado → correlación media
+    if (esEH(mA) && esRes(mB)) return 0.5;
+    if (esEH(mB) && esRes(mA)) return 0.5;
+
     return 1;
   }
 
   function claveExclusion(mercado, tipo) {
     const m = normM(mercado);
     if (m === 'resultado' || m === 'dobleoportunidad') return 'resultado_o_doble';
-    if (m === 'ambosmarcan')   return `ambosmarcan|${segmento(tipo)}`;
-    if (m === 'golesimparpar') return `golesimparpar|${segmento(tipo)}`;
-    if (m === 'dnb')     return 'dnb';
-    if (m === 'descanso') return 'descanso';
-    if (m === 'segunda')  return 'segunda';
-    if (m === 'corners') {
+    if (m === 'ambosmarcan' || m === 'btts')  return `ambosmarcan|${segmento(tipo)}`;
+    if (m === 'golesimparpar')                return `golesimparpar|${segmento(tipo)}`;
+    if (m === 'dnb')            return 'dnb';
+    if (m === 'descanso')       return 'descanso';
+    if (m === 'htresult')       return 'descanso'; // alias
+    if (m === 'segunda')        return 'segunda';
+    if (m === 'totalsht')       return 'totalsHT';
+    if (m === 'ehresult')       return 'ehResult';
+    if (m === 'teamtotalhome') {
+      const n = valorNum(tipo);
+      return `ttHome|${n ?? 'x'}`;
+    }
+    if (m === 'teamtotalaway') {
+      const n = valorNum(tipo);
+      return `ttAway|${n ?? 'x'}`;
+    }
+    if (m === 'corners' || m === 'cornerstotal') {
       const t = (tipo || '').toLowerCase();
       const eq = t.includes('local') ? 'local' : t.includes('visitante') ? 'visitante' : 'ambos';
       return `corners|${segmento(tipo)}|${eq}`;
     }
-    if (m === 'tarjetas') {
+    if (m === 'tarjetas' || m === 'bookingstotal') {
       const t = (tipo || '').toLowerCase();
       const eq = t.includes('local') ? 'local' : t.includes('visitante') ? 'visitante' : 'ambos';
       return `tarjetas|${segmento(tipo)}|${eq}`;
@@ -352,14 +404,12 @@
     document.querySelectorAll('#potential-winnings, .pw-value').forEach(el =>
       el.textContent = win > 0 ? `${win.toFixed(2).replace('.', ',')} €` : '0,00 €'
     );
-    // partido.html específicos
     document.querySelectorAll('#slip-total-odds, #slip-total-odds-modal').forEach(el =>
       el.textContent = bets.length ? cuota.toFixed(2) : '—'
     );
     document.querySelectorAll('#slip-ganancias, #slip-ganancias-modal').forEach(el =>
       el.textContent = win > 0 ? `${win.toFixed(2).replace('.', ',')} €` : '0,00 €'
     );
-    // index.html específicos
     document.querySelectorAll('#index-total-odds-modal').forEach(el =>
       el.textContent = bets.length ? cuota.toFixed(2).replace('.', ',') : '0,00'
     );
@@ -414,12 +464,10 @@
     });
   }
 
-  /* ── Cerrar ambos modales móvil ── */
+  /* ── Cerrar modales móvil ── */
   function cerrarModalesMobil() {
-    // partido.html
     document.getElementById('slip-overlay')?.classList.remove('active');
     document.getElementById('slip-modal')?.classList.remove('open');
-    // index.html
     document.getElementById('index-slip-overlay')?.classList.remove('active');
     document.getElementById('index-slip-modal')?.classList.remove('open');
     document.body.style.overflow = '';
@@ -547,8 +595,6 @@
     mobileBetBtn?.addEventListener('click', () => { slipOverlay?.classList.add('active'); slipModal?.classList.add('open'); document.body.style.overflow = 'hidden'; });
     slipOverlay?.addEventListener('click',  () => { slipOverlay.classList.remove('active'); slipModal?.classList.remove('open'); document.body.style.overflow = ''; });
 
-    /* Modal index.html — apertura gestionada por inline script de index.html */
-
     render();
   }
 
@@ -563,16 +609,70 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 
+  /* ── formatTipo ──────────────────────────────────────────────
+     Convierte (tipo, mercado) en texto legible para el carrito.
+  ─────────────────────────────────────────────────────────────── */
   function formatTipo(tipo, mercado) {
     const m = normM(mercado);
+
+    // Mercados principales existentes
     if (m === 'resultado')        return tipo.toLowerCase() === 'empate' ? 'Empate' : `Gana ${tipo}`;
+    if (m === 'dobleoportunidad') return tipo;
     if (m === 'goleadores')       return `Gol de ${tipo}`;
     if (m === 'totalgoles')       return tipo;
-    if (m === 'ambosmarcan')      return `Ambos marcan: ${tipo}`;
-    if (m === 'dnb')              return tipo;
-    if (m === 'dobleoportunidad') return tipo;
     if (m === 'descanso')         return tipo;
     if (m === 'segunda')          return tipo;
+
+    // DNB
+    if (m === 'dnb') {
+      // Quitar prefijo "DNB: " si lo tiene
+      return tipo.replace(/^DNB:\s*/i, 'Sin empate: ');
+    }
+
+    // Ambos marcan / BTTS
+    if (m === 'ambosmarcan' || m === 'btts') {
+      const v = tipo.toLowerCase();
+      if (v === 'sí' || v === 'si' || v === 'yes') return 'Ambos marcan: Sí';
+      if (v === 'no')                               return 'Ambos marcan: No';
+      return `Ambos marcan: ${tipo}`;
+    }
+
+    // HT result (alias del descanso para los nuevos campos)
+    if (m === 'htresult') return `1ª mitad: ${tipo}`;
+
+    // Over/Under 1ª mitad
+    if (m === 'totalsht') {
+      // tipo ej. "Más de 1.5 (1ª parte)" → limpiar paréntesis
+      return tipo.replace(/\s*\(1ª parte\)/i, ' · 1ª parte');
+    }
+
+    // Total goles local
+    if (m === 'teamtotalhome') {
+      // tipo ej. "Arsenal más de 1.5"
+      return `🏠 ${tipo}`;
+    }
+
+    // Total goles visitante
+    if (m === 'teamtotalaway') {
+      return `✈️ ${tipo}`;
+    }
+
+    // Córners
+    if (m === 'cornerstotal' || m === 'corners') {
+      return `📐 ${tipo}`;
+    }
+
+    // Tarjetas
+    if (m === 'bookingstotal' || m === 'tarjetas') {
+      return `🟨 ${tipo}`;
+    }
+
+    // Hándicap europeo
+    if (m === 'ehresult') {
+      return tipo.replace(/^EH:\s*/i, 'Hándicap: ');
+    }
+
+    // Fallback
     return tipo;
   }
 
