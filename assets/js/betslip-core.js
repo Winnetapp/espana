@@ -342,7 +342,7 @@
 
   function renderFooter() {
     const cuota   = calcularCuotaCombinada(bets);
-    const stakeEl = document.querySelector('.stake-input input, #slip-stake, #slip-stake-modal, #index-stake-modal');
+    const stakeEl = document.querySelector('#index-stake-modal, #slip-stake-modal, #slip-stake, .stake-input input');
     const stake   = parseFloat(stakeEl?.value || 5) || 0;
     const win     = stake * cuota;
 
@@ -444,7 +444,8 @@
     }
 
     const tabActual = document.querySelector('.bs-tab.active')?.dataset.target || 'simple';
-    const stakeEl   = document.querySelector('.stake-input input, #slip-stake, #index-stake-modal');
+    const stakeEl = [...document.querySelectorAll('.stake-input input, #slip-stake, #slip-stake-modal, #index-stake-modal')]
+      .find(el => el && el.value !== '') || document.querySelector('.stake-input input');
     const stake     = parseFloat(stakeEl?.value || 5) || 0;
     if (stake <= 0) { toast('El importe debe ser mayor que 0', 'error'); return; }
 
@@ -512,14 +513,16 @@
     );
 
     document.querySelectorAll(
-      '.stake-input input, #slip-stake, #slip-stake-modal, #index-stake-modal'
-    ).forEach(el => {
-      el.addEventListener('input', () => {
-        const val = el.value;
-        document.querySelectorAll('#slip-stake, #slip-stake-modal, #index-stake-modal').forEach(o => { if (o !== el) o.value = val; });
-        renderFooter();
+        '.stake-input input, #slip-stake, #slip-stake-modal, #index-stake-modal'
+      ).forEach(el => {
+        el.addEventListener('input', () => {
+          const val = el.value;
+          document.querySelectorAll('.stake-input input, #slip-stake, #slip-stake-modal, #index-stake-modal').forEach(o => {
+            if (o !== el) o.value = val;
+          });
+          renderFooter();
+        });
       });
-    });
 
     document.querySelectorAll('.qs').forEach(btn => {
       btn.addEventListener('click', () => {

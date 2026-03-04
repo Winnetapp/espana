@@ -74,9 +74,11 @@ async function cargarPerfilPublico(uid) {
     const esAdmin  = ud.rol === 'admin';
     const inicial  = username.charAt(0).toUpperCase();
 
-    /* 2. Apuestas para stats y logros
-         Solo leemos si el visitante está autenticado (las reglas lo requieren).
-         Si no hay sesión, mostramos stats vacías sin romper la página. */
+    /* ── Racha ── */
+    const racha      = ud.rachaActual || 0;
+    const rachaFuego = ud.rachaFuego  || false;
+
+    /* 2. Apuestas para stats y logros */
     let apuestas = [];
     if (miUid) {
       try {
@@ -100,10 +102,10 @@ async function cargarPerfilPublico(uid) {
 
     /* 3. Racha máxima */
     const ordenadas = [...apuestas].sort((a, b) => (a.fecha?.seconds || 0) - (b.fecha?.seconds || 0));
-    let rachaMax = 0, rachaActual = 0;
+    let rachaMax = 0, rachaActualVal = 0;
     for (const a of ordenadas) {
-      if (a.estado === 'ganada') { rachaActual++; rachaMax = Math.max(rachaMax, rachaActual); }
-      else if (a.estado === 'perdida') rachaActual = 0;
+      if (a.estado === 'ganada') { rachaActualVal++; rachaMax = Math.max(rachaMax, rachaActualVal); }
+      else if (a.estado === 'perdida') rachaActualVal = 0;
     }
 
     /* 4. All-in ganado */
@@ -121,7 +123,7 @@ async function cargarPerfilPublico(uid) {
 
     const statsLogros = { total: apuestas.length, totalCobrado, combinadasGanadas, rachaMax, allInGanado, saldo, enTopRanking };
 
-    /* 7. Seguidores: cuántos le siguen + cuántos sigue */
+    /* 7. Seguidores */
     const [snapSeguidores, snapSiguiendo] = await Promise.all([
       db.collection('seguidores').where('siguiendoA', '==', uid).get(),
       db.collection('seguidores').where('seguidor', '==', uid).get(),
@@ -140,8 +142,8 @@ async function cargarPerfilPublico(uid) {
     }
 
     /* 9. Logros desbloqueados */
-    const logrosOk  = LOGROS_DEF.filter(l => l.check(statsLogros));
-    const logroPct  = Math.round((logrosOk.length / LOGROS_DEF.length) * 100);
+    const logrosOk = LOGROS_DEF.filter(l => l.check(statsLogros));
+    const logroPct = Math.round((logrosOk.length / LOGROS_DEF.length) * 100);
 
     /* ── Render ── */
     document.title = `${username} — Winnet`;
@@ -152,11 +154,16 @@ async function cargarPerfilPublico(uid) {
       <div class="perfil-hero">
         <div class="perfil-hero-inner">
           <div class="perfil-identity">
-            <div class="perfil-avatar-wrap">
+            <div class="perfil-avatar-wrap ${racha > 0 ? 'con-racha' : ''}">
               <div class="perfil-avatar">${inicial}</div>
               ${esAdmin
                 ? `<div class="perfil-avatar-badge" style="background:#f5c518;"><i class="fas fa-star" style="font-size:0.4rem;color:#000;"></i></div>`
                 : `<div class="perfil-avatar-badge"><i class="fas fa-check" style="font-size:0.5rem;"></i></div>`}
+              ${racha > 0 ? `
+                <div class="perfil-racha-badge ${rachaFuego ? 'fuego-activo' : ''}" data-racha="${racha}">
+                  <span class="rb-fuego">🔥</span>
+                  <span class="rb-num">${racha}</span>
+                </div>` : ''}
             </div>
             <div class="perfil-info">
               <div class="perfil-nombre">
@@ -166,12 +173,12 @@ async function cargarPerfilPublico(uid) {
 
               <!-- Contadores sociales + botón seguir -->
               <div class="usuario-social-row">
-                <div class="perfil-social-stat" style="cursor:default;">
+                <div class="perfil-social-stat" id="btn-ver-seguidores" style="cursor:pointer;" title="Ver seguidores">
                   <span class="perfil-social-num" id="num-seguidores">${numSeguidores}</span>
                   <span class="perfil-social-label">Seguidores</span>
                 </div>
                 <div class="perfil-social-sep"></div>
-                <div class="perfil-social-stat" style="cursor:default;">
+                <div class="perfil-social-stat" id="btn-ver-siguiendo" style="cursor:pointer;" title="Ver siguiendo">
                   <span class="perfil-social-num">${numSiguiendo}</span>
                   <span class="perfil-social-label">Siguiendo</span>
                 </div>
@@ -291,6 +298,12 @@ async function cargarPerfilPublico(uid) {
         : `Cerrar <i class="fas fa-chevron-up" style="font-size:0.6rem;"></i>`;
     });
 
+    /* ── Contadores sociales clicables ── */
+    document.getElementById('btn-ver-seguidores')?.addEventListener('click', () =>
+      abrirModalLista(uid, 'seguidores', username));
+    document.getElementById('btn-ver-siguiendo')?.addEventListener('click', () =>
+      abrirModalLista(uid, 'siguiendo', username));
+
     /* ── Seguir / Dejar de seguir ── */
     document.getElementById('btn-seguir')?.addEventListener('click', () =>
       toggleSeguir(uid, yoLeSigo, numSeguidores, (nuevoEstado, nuevoNum) => {
@@ -310,6 +323,107 @@ async function cargarPerfilPublico(uid) {
 }
 
 /* ════════════════════════════════
+   MODAL LISTA — seguidores / siguiendo
+════════════════════════════════ */
+async function abrirModalLista(uid, tipo, usernameOwner) {
+  document.getElementById('usr-lista-modal')?.remove();
+
+  const titulo = tipo === 'seguidores'
+    ? `Seguidores de ${usernameOwner}`
+    : `${usernameOwner} sigue a`;
+
+  const modal = document.createElement('div');
+  modal.id = 'usr-lista-modal';
+  modal.innerHTML = `
+    <div class="plm-overlay" id="usr-plm-overlay">
+      <div class="plm-box" id="usr-plm-box">
+        <div class="plm-header">
+          <span class="plm-title">${titulo}</span>
+          <button class="plm-close" id="usr-plm-close"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="plm-body" id="usr-plm-body">
+          <div style="display:flex;justify-content:center;padding:40px;">
+            <div class="spinner-ring"></div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+
+  document.getElementById('usr-plm-overlay').addEventListener('click', e => {
+    if (e.target.id === 'usr-plm-overlay') cerrarModalLista();
+  });
+  document.getElementById('usr-plm-close').addEventListener('click', cerrarModalLista);
+  document.addEventListener('keydown', function esc(e) {
+    if (e.key === 'Escape') { cerrarModalLista(); document.removeEventListener('keydown', esc); }
+  });
+
+  requestAnimationFrame(() => document.getElementById('usr-plm-box').classList.add('open'));
+
+  try {
+    let uids = [];
+    if (tipo === 'seguidores') {
+      const snap = await db.collection('seguidores')
+        .where('seguidor', '==', uid)
+        .limit(100).get();
+      uids = snap.docs.map(d => d.data().seguidor);
+    } else {
+      const snap = await db.collection('seguidores')
+        .where('seguidor', '==', uid)
+        .limit(100).get();
+      uids = snap.docs.map(d => d.data().siguiendoA);
+    }
+
+    if (!uids.length) {
+      document.getElementById('usr-plm-body').innerHTML = `
+        <div style="text-align:center;padding:40px;color:var(--texto-dim);font-size:0.85rem;">
+          ${tipo === 'seguidores' ? 'Este usuario aún no tiene seguidores' : 'Este usuario aún no sigue a nadie'}
+        </div>`;
+      return;
+    }
+
+    const usuarios = await Promise.all(
+      uids.map(u => db.collection('usuarios').doc(u).get())
+    );
+
+    const html = usuarios.map(snap => {
+      if (!snap.exists) return '';
+      const d      = snap.data();
+      const nombre = d.username || 'Usuario';
+      const esYo   = snap.id === miUid;
+      const href   = esYo ? 'perfil.html' : `usuario.html?uid=${snap.id}`;
+      return `
+        <a href="${href}" class="plm-row">
+          <div class="plm-avatar">${nombre.charAt(0).toUpperCase()}</div>
+          <div class="plm-nombre">
+            ${nombre}
+            ${esYo ? '<span style="font-size:0.65rem;color:var(--rojo);font-weight:700;margin-left:6px;">Tú</span>' : ''}
+          </div>
+          <i class="fas fa-chevron-right" style="color:var(--texto-sutil,#555a70);font-size:0.7rem;"></i>
+        </a>`;
+    }).filter(Boolean).join('');
+
+    document.getElementById('usr-plm-body').innerHTML = html
+      ? `<div class="plm-lista">${html}</div>`
+      : `<div style="text-align:center;padding:40px;color:var(--texto-dim);font-size:0.85rem;">Sin usuarios que mostrar</div>`;
+
+  } catch (e) {
+    console.error('[modal-lista-usuario]', e);
+    document.getElementById('usr-plm-body').innerHTML = `
+      <div style="text-align:center;padding:40px;color:var(--texto-dim);">Error al cargar</div>`;
+  }
+}
+
+function cerrarModalLista() {
+  const modal = document.getElementById('usr-lista-modal');
+  if (!modal) return;
+  const box = document.getElementById('usr-plm-box');
+  box.classList.remove('open');
+  box.classList.add('closing');
+  setTimeout(() => modal.remove(), 220);
+}
+
+/* ════════════════════════════════
    SEGUIR / DEJAR DE SEGUIR
 ════════════════════════════════ */
 async function toggleSeguir(uid, yoLeSigo, numActual, cb) {
@@ -323,7 +437,6 @@ async function toggleSeguir(uid, yoLeSigo, numActual, cb) {
     const segRef = db.collection('seguidores');
 
     if (yoLeSigo) {
-      /* Dejar de seguir */
       const snap = await segRef
         .where('seguidor', '==', miUid)
         .where('siguiendoA', '==', uid)
@@ -337,7 +450,6 @@ async function toggleSeguir(uid, yoLeSigo, numActual, cb) {
       cb(false, nuevoNum);
       showToast('Has dejado de seguir a este usuario', 'ok');
     } else {
-      /* Seguir */
       await segRef.add({
         seguidor:   miUid,
         siguiendoA: uid,
@@ -351,7 +463,6 @@ async function toggleSeguir(uid, yoLeSigo, numActual, cb) {
       cb(true, nuevoNum);
       showToast('¡Ahora sigues a este usuario!', 'ok');
 
-      // Notificar al usuario seguido
       _notificarNuevoSeguidor(uid).catch(() => {});
     }
   } catch (err) {

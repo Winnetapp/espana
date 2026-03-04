@@ -591,6 +591,10 @@ window.DailyReward = (function () {
       border:none;border-radius:50%;font-size:1.4rem;cursor:pointer;
       box-shadow:0 4px 18px rgba(245,197,24,.45);
       transition:transform .18s,box-shadow .18s,opacity .18s;
+      -webkit-user-select:none;user-select:none;
+      -webkit-touch-callout:none;
+      -webkit-tap-highlight-color:transparent;
+      touch-action:manipulation;
       display:flex;align-items:center;justify-content:center;
     `;
 
@@ -605,7 +609,8 @@ window.DailyReward = (function () {
     let holdTimer = null;
     let isHolding = false;
 
-    fab.addEventListener('pointerdown', () => {
+    fab.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
       isHolding = false;
       holdTimer = setTimeout(() => {
         isHolding = true;
@@ -613,6 +618,8 @@ window.DailyReward = (function () {
         setTimeout(() => { window.location.href = 'rewards-page.html'; }, 120);
       }, 600);
     });
+
+    fab.addEventListener('contextmenu', e => e.preventDefault());
 
     const cancelHold = () => {
       clearTimeout(holdTimer);

@@ -361,15 +361,20 @@
       overlay.classList.add('active');
       modal.classList.add('open');
       document.body.style.overflow = 'hidden';
-      // Ocultar el botón para que quede por debajo del modal
       openBtn.style.display = 'none';
+      // Ocultar FAB de recompensas
+      const fab = document.getElementById('_dr-fab');
+      if (fab) fab.style.display = 'none';
     }
+
     function closeModal() {
       overlay.classList.remove('active');
       modal.classList.remove('open');
       document.body.style.overflow = '';
-      // Restaurar el botón flotante
       openBtn.style.display = '';
+      // Restaurar FAB de recompensas
+      const fab = document.getElementById('_dr-fab');
+      if (fab) fab.style.display = '';
     }
 
     openBtn?.addEventListener('click', openModal);

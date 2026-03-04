@@ -293,12 +293,12 @@ async function cargarPerfil(user) {
         <div class="perfil-email">${email}</div>
         ${miembro ? `<div class="perfil-miembro"><i class="far fa-calendar-alt"></i>${miembro}</div>` : ''}
         <div class="perfil-social-row">
-          <div class="perfil-social-stat" id="btn-mis-seguidores" style="cursor:pointer;">
+          <div class="perfil-social-stat" id="btn-mis-seguidores" style="cursor:pointer;" title="Ver seguidores">
             <span class="perfil-social-num" id="num-seguidores-hero">${numSeguidores}</span>
             <span class="perfil-social-label">Seguidores</span>
           </div>
           <div class="perfil-social-sep"></div>
-          <div class="perfil-social-stat" id="btn-mis-siguiendo" style="cursor:pointer;">
+          <div class="perfil-social-stat" id="btn-mis-siguiendo" style="cursor:pointer;" title="Ver siguiendo">
             <span class="perfil-social-num" id="num-siguiendo-hero">${numSiguiendo}</span>
             <span class="perfil-social-label">Siguiendo</span>
           </div>
@@ -621,13 +621,11 @@ async function abrirModalLista(uid, tipo) {
     if (tipo === 'seguidores') {
       const snap = await db.collection('seguidores')
         .where('siguiendoA', '==', uid)
-        .orderBy('fecha', 'desc')
         .limit(100).get();
       uids = snap.docs.map(d => d.data().seguidor);
     } else {
       const snap = await db.collection('seguidores')
-        .where('seguidor', '==', uid)
-        .orderBy('fecha', 'desc')
+        .where('siguiendoA', '==', uid)
         .limit(100).get();
       uids = snap.docs.map(d => d.data().siguiendoA);
     }
@@ -648,15 +646,19 @@ async function abrirModalLista(uid, tipo) {
       if (!snap.exists) return '';
       const d      = snap.data();
       const nombre = d.username || 'Usuario';
+      const esYo   = snap.id === uid;
       return `
-        <a href="usuario.html?uid=${snap.id}" class="plm-row">
+        <a href="${esYo ? 'perfil.html' : `usuario.html?uid=${snap.id}`}" class="plm-row">
           <div class="plm-avatar">${nombre.charAt(0).toUpperCase()}</div>
           <div class="plm-nombre">${nombre}</div>
           <i class="fas fa-chevron-right" style="color:var(--texto-sutil);font-size:0.7rem;"></i>
         </a>`;
-    }).join('');
+    }).filter(Boolean).join('');
 
-    document.getElementById('plm-body').innerHTML = `<div class="plm-lista">${html}</div>`;
+    document.getElementById('plm-body').innerHTML = html
+      ? `<div class="plm-lista">${html}</div>`
+      : `<div style="text-align:center;padding:40px;color:var(--texto-dim);font-size:0.85rem;">Sin usuarios que mostrar</div>`;
+
   } catch (e) {
     console.error('[modal-lista]', e);
     document.getElementById('plm-body').innerHTML = `
@@ -740,21 +742,16 @@ function mostrarAdvertencia18(onConfirm) {
 
 /* ════════════════════════════════
    ANUNCIO RECOMPENSADO — ADSTERRA
-   Contador guardado en Firestore:
-   usuarios/{uid}.adReward = { fecha: string, count: number }
-   Para resetear manualmente desde Firebase Console:
-   → editar el campo adReward y poner { fecha: "", count: 0 }
 ════════════════════════════════ */
 function initRewardedAd() {
   const LINK     = 'https://www.effectivegatecpm.com/bsmthv3q?key=820931ad944a3b1fc949fb17d4ea5729';
-  const REWARD   = 0.05;  // € ficticios por anuncio
-  const DURACION = 30;    // segundos mínimos
-  const MAX_DIA  = 3;     // límite diario de anuncios
+  const REWARD   = 0.05;
+  const DURACION = 30;
+  const MAX_DIA  = 3;
 
   const btn = document.getElementById('btn-ver-anuncio');
   if (!btn) return;
 
-  /* ── Leer estado desde Firestore ── */
   async function getEstadoHoy() {
     const hoy = new Date().toDateString();
     try {
@@ -766,7 +763,6 @@ function initRewardedAd() {
     }
   }
 
-  /* ── Actualizar botón según límite diario ── */
   async function actualizarBoton() {
     const estado = await getEstadoHoy();
     if (estado.count >= MAX_DIA) {
@@ -781,7 +777,6 @@ function initRewardedAd() {
 
   let corriendo = false;
 
-  /* ── Lógica principal tras confirmar advertencia ── */
   async function lanzarAnuncio() {
     if (corriendo) return;
 
@@ -794,7 +789,6 @@ function initRewardedAd() {
     corriendo = true;
     window.open(LINK, '_blank');
 
-    /* Contador visual */
     let segs = DURACION;
     btn.disabled    = true;
     btn.textContent = `⏳ Espera ${segs}s...`;
@@ -804,7 +798,6 @@ function initRewardedAd() {
       if (segs <= 0) clearInterval(intervalo);
     }, 1000);
 
-    /* Dar recompensa tras DURACION segundos */
     setTimeout(async () => {
       try {
         if (_uid) {
@@ -812,17 +805,14 @@ function initRewardedAd() {
           const saldoRedondeado = Math.round((saldoActual + REWARD) * 100) / 100;
           const nuevoEstado     = { fecha: new Date().toDateString(), count: estado.count + 1 };
 
-          /* Actualizar saldo Y contador en una sola escritura a Firestore */
           await db.collection('usuarios').doc(_uid).update({
             saldo:    saldoRedondeado,
             adReward: nuevoEstado,
           });
 
-          /* Sincronizar _userData local */
           _userData.saldo    = saldoRedondeado;
           _userData.adReward = nuevoEstado;
 
-          /* Actualizar todos los displays de saldo */
           const fmt          = saldoRedondeado.toFixed(2) + ' €';
           const saldoDisplay = document.getElementById('saldo-display');
           const heroSaldo    = document.getElementById('hero-saldo-val');
@@ -843,7 +833,6 @@ function initRewardedAd() {
     }, DURACION * 1000);
   }
 
-  /* ── Click: mostrar advertencia +18 primero ── */
   btn.addEventListener('click', async () => {
     if (corriendo) return;
     const estado = await getEstadoHoy();
@@ -857,10 +846,6 @@ function initRewardedAd() {
 
 /* ════════════════════════════════
    DONACIONES — PayPal x100
-   Flujo manual:
-   1. Usuario elige cantidad y dona en PayPal
-   2. Notifica por email o Instagram con su comprobante
-   3. Tú aplicas el saldo manualmente en Firebase Console
 ════════════════════════════════ */
 function initDonaciones() {
   const PAYPAL_URL = 'https://www.paypal.com/paypalme/Winnetapp/';
@@ -878,54 +863,38 @@ function initDonaciones() {
 
   if (!opciones.length || !acciones) return;
 
-  /* euros y saldo seleccionados actualmente */
   let eurosActual = null;
   let saldoActual = null;
 
-  /* ── Función compartida: actualizar UI con una cantidad ── */
   function aplicarSeleccion(euros, saldo) {
     eurosActual = euros;
     saldoActual = saldo;
-
-    /* Texto resumen */
     selTxt.textContent = `${euros} € → +${Number(saldo).toLocaleString('es-ES')} € ficticios`;
-
-    /* PayPal con cantidad prellenada */
     btnPaypal.href = `${PAYPAL_URL}${euros}EUR`;
-
-    /* Ocultar notificaciones hasta que pulsen PayPal */
     if (notifWrap) notifWrap.style.display = 'none';
-
-    /* Mostrar bloque de acciones */
     acciones.style.display = 'flex';
   }
 
-  /* ── Opciones predefinidas ── */
   opciones.forEach(btn => {
     btn.addEventListener('click', () => {
       opciones.forEach(b => b.classList.remove('activo'));
       btn.classList.add('activo');
       if (inputCustomEl) inputCustomEl.value = '';
-      const euros = btn.dataset.euros;
-      const saldo = parseInt(btn.dataset.saldo);
-      aplicarSeleccion(euros, saldo);
+      aplicarSeleccion(btn.dataset.euros, parseInt(btn.dataset.saldo));
     });
   });
 
-  /* ── Input personalizado ── */
   if (inputCustomEl) {
     inputCustomEl.addEventListener('input', () => {
       const val = parseFloat(inputCustomEl.value);
       if (!val || val <= 0) return;
-      /* Deseleccionar opciones predefinidas */
       opciones.forEach(b => b.classList.remove('activo'));
       const euros = val % 1 === 0 ? String(val) : val.toFixed(2);
-      const saldo = Math.round(val * 100); /* x100 */
+      const saldo = Math.round(val * 100);
       aplicarSeleccion(euros, saldo);
     });
   }
 
-  /* ── Al pulsar PayPal: abrir link Y mostrar botones de notificación ── */
   btnPaypal.addEventListener('click', () => {
     if (!eurosActual) return;
 
@@ -934,7 +903,6 @@ function initDonaciones() {
     const euros    = eurosActual;
     const saldo    = saldoActual;
 
-    /* Email prerrellenado */
     const asunto = encodeURIComponent(`Donación Winnet – ${euros}€`);
     const cuerpo = encodeURIComponent(
       `Hola,\n\nAcabo de hacer una donación de ${euros}€ a través de PayPal.\n\n` +
@@ -946,7 +914,6 @@ function initDonaciones() {
     );
     btnEmail.href = `mailto:${EMAIL}?subject=${asunto}&body=${cuerpo}`;
 
-    /* Instagram — abre el perfil y copia el mensaje al portapapeles */
     const igMsg =
       `Hola @${IG_USER}! Acabo de donar ${euros}€ en PayPal. ` +
       `Mi usuario es ${username} (UID: ${uid}). ` +
@@ -960,7 +927,6 @@ function initDonaciones() {
       }).catch(() => {});
     };
 
-    /* Mostrar botones de notificación */
     if (notifWrap) notifWrap.style.display = 'flex';
   });
 }
