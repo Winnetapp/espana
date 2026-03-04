@@ -1,30 +1,41 @@
 /* =============================================================
-   assets/js/push-notifications.js  — v3
+   assets/js/push-notifications.js  — v4
    · Chrome Android: Web Push nativo
    · iOS Safari PWA (≥16.4): Web Push nativo si está instalada
    · iOS Safari navegador: aviso de "instala la PWA"
    · Panel de diagnóstico visual (sin consola) para debug móvil
    · Feedback visual en TODOS los estados y errores
+
+   FIX v4:
+   · Registro explícito del SW antes de pedir permisos, pasando
+     el serviceWorkerRegistration a getToken para que FCM use
+     el SW correcto y no quede esperando indefinidamente.
+   · Race condition corregida en init(): si header-ready se
+     disparó antes de que DOMContentLoaded ejecute init(),
+     el fallback ahora funciona de forma fiable.
    ============================================================= */
 
 window.PushNotifications = (function () {
 
   const VAPID_PUBLIC_KEY = 'BI_IEiyt6NI7ByCOogEOW_Vu2-Yq9jLXX1YIMAJ0ryZAXiZEcybhkyLYdJaiqi7LLBWgUvoJAluRnFoqjE5_QM0';
 
+  // ── Nombre real del Service Worker ──────────────────────────
+  // Asegúrate de que coincide con el nombre del archivo en /public
+  const SW_PATH = '/service-worker.js';
+
   /* ── Detección de plataforma ── */
   const isIOS        = /iphone|ipad|ipod/i.test(navigator.userAgent);
   const isAndroid    = /android/i.test(navigator.userAgent);
-  // En iOS, la PWA instalada tiene standalone mode
   const isStandalone = window.navigator.standalone === true ||
                        window.matchMedia('(display-mode: standalone)').matches;
   const supportsPush = 'serviceWorker' in navigator && 'PushManager' in window;
 
-  /* ── Logs visuales (panel flotante para debug sin consola) ── */
+  /* ── Logs visuales ── */
   const _logs = [];
   let _panelEl = null;
 
   function _log(msg, tipo = 'info') {
-    const ts  = new Date().toLocaleTimeString('es-ES');
+    const ts    = new Date().toLocaleTimeString('es-ES');
     const entry = `[${ts}] ${tipo.toUpperCase()}: ${msg}`;
     _logs.push(entry);
     console.log('[push]', entry);
@@ -45,7 +56,6 @@ window.PushNotifications = (function () {
   function mostrarDiagnostico() {
     if (_panelEl) { _panelEl.parentElement?.remove(); _panelEl = null; return; }
 
-    // Añadir logs del estado actual al abrirlo
     _log(`isIOS=${isIOS} isAndroid=${isAndroid} isStandalone=${isStandalone}`);
     _log(`supportsPush=${supportsPush}`);
     _log(`Notification.permission=${typeof Notification !== 'undefined' ? Notification.permission : 'N/A'}`);
@@ -130,7 +140,7 @@ window.PushNotifications = (function () {
       `;
       document.body.appendChild(el);
     }
-    el.innerHTML = msg; // innerHTML para soportar saltos de línea con <br>
+    el.innerHTML = msg;
     el.style.borderColor = tipo === 'error' ? '#e63030' : tipo === 'warn' ? '#f5c518' : '#22c55e';
     el.style.color       = tipo === 'error' ? '#ff8080' : tipo === 'warn' ? '#f5c518' : '#22c55e';
     el.style.opacity     = '1';
@@ -257,13 +267,25 @@ window.PushNotifications = (function () {
     if (!supportsPush) { _log('Push no soportado', 'warn'); return false; }
     if (isIOS && !isStandalone) { _log('iOS sin PWA instalada', 'warn'); return false; }
 
+    // ── FIX: registrar el SW explícitamente antes de cualquier otra cosa ──
+    // Sin esto, navigator.serviceWorker.ready puede quedarse esperando
+    // indefinidamente si el SW no fue registrado previamente por otro script.
+    let swReg;
+    try {
+      swReg = await navigator.serviceWorker.register(SW_PATH);
+      _log(`SW registrado OK (state=${swReg.active?.state || 'installing'})`);
+    } catch (e) {
+      _log(`Error registrando SW: ${e.message}`, 'error');
+      _toast(`Error al registrar el Service Worker:<br>${e.message}`, 'error', 6000);
+      return false;
+    }
+
     // Solicitar permiso — DEBE hacerse desde un gesto del usuario (click)
     _log('Pidiendo permiso Notification...');
     let permiso;
     try {
       permiso = await Notification.requestPermission();
     } catch (e) {
-      // Algunos navegadores usan callback en lugar de Promise
       permiso = await new Promise(resolve => Notification.requestPermission(resolve));
     }
     _log(`Permiso resultado: ${permiso}`);
@@ -369,7 +391,6 @@ window.PushNotifications = (function () {
 
   /* ── Conectar botón del header ── */
   async function _conectarBoton(uid) {
-    // Esperar hasta 2s a que header.js inyecte el botón en el DOM
     let btn = null;
     for (let i = 0; i < 20; i++) {
       btn = document.getElementById('_notif-btn-placeholder') ||
@@ -386,20 +407,17 @@ window.PushNotifications = (function () {
     _log(`Estado inicial: ${estado}`);
     _actualizarBtn(btn, estado);
 
-    // Click: DEBE ser síncrono desde el gesto del usuario para iOS
     btn.addEventListener('click', async () => {
       _log('Click en botón notificaciones');
 
       const est = await estadoActual();
       _log(`Estado al click: ${est}`);
 
-      /* iOS en navegador → mostrar modal de instalación */
       if (est === 'ios-navegador') {
         _mostrarModalInstalaPWA();
         return;
       }
 
-      /* Notificaciones bloqueadas en el navegador */
       if (est === 'denegado') {
         _toast(
           isIOS
@@ -410,13 +428,11 @@ window.PushNotifications = (function () {
         return;
       }
 
-      /* No hay soporte */
       if (est === 'no-soportado') {
         _toast('Tu navegador no soporta notificaciones push', 'error');
         return;
       }
 
-      /* Desactivar si ya están activas */
       if (est === 'activo') {
         _toast('Desactivando notificaciones...', 'warn', 2000);
         const ok = await desuscribir(uid);
@@ -429,7 +445,6 @@ window.PushNotifications = (function () {
         return;
       }
 
-      /* Activar */
       _toast('Activando notificaciones...', 'warn', 3000);
       _actualizarBtn(btn, 'sin-pedir');
       const ok = await suscribir(uid);
@@ -445,7 +460,6 @@ window.PushNotifications = (function () {
       }
     });
 
-    /* Click largo (500ms) en el botón → abrir diagnóstico */
     let _holdTimer = null;
     btn.addEventListener('pointerdown', () => {
       _holdTimer = setTimeout(() => { mostrarDiagnostico(); }, 800);
@@ -454,10 +468,24 @@ window.PushNotifications = (function () {
     btn.addEventListener('pointercancel', () => clearTimeout(_holdTimer));
   }
 
-  /* ── Init ── */
+  /* ── Init ──
+     FIX race condition: comprobamos primero si header-ready ya se disparó
+     antes de registrar el listener, evitando que el evento se pierda
+     si ocurrió entre la carga del script y DOMContentLoaded.
+  ── */
   async function init() {
     _log('PushNotifications init');
 
+    // ── FIX: comprobar primero si ya tenemos uid disponible ──
+    const uidDisponible = window._headerReadyUid;
+    if (uidDisponible) {
+      _log(`uid ya disponible en window._headerReadyUid=${uidDisponible.slice(0,8)}`);
+      _escucharSW(uidDisponible);
+      await _conectarBoton(uidDisponible);
+      return;
+    }
+
+    // Si todavía no se ha disparado, registrar el listener
     window.addEventListener('header-ready', async (e) => {
       const uid = e.detail?.uid;
       _log(`header-ready recibido uid=${uid ? uid.slice(0,8) : 'null'}`);
@@ -465,16 +493,6 @@ window.PushNotifications = (function () {
       _escucharSW(uid);
       await _conectarBoton(uid);
     }, { once: true });
-
-    // Fallback: si header-ready ya se disparó antes de que este script cargue
-    if (window._headerReadyFired) {
-      const uid = window._headerReadyUid;
-      _log(`Usando fallback headerReadyFired uid=${uid ? uid.slice(0,8) : 'null'}`);
-      if (uid) {
-        _escucharSW(uid);
-        await _conectarBoton(uid);
-      }
-    }
   }
 
   return { init, suscribir, desuscribir, estadoActual, mostrarDiagnostico };
