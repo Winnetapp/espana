@@ -272,7 +272,9 @@ window.PushNotifications = (function () {
     // indefinidamente si el SW no fue registrado previamente por otro script.
     let swReg;
     try {
-      swReg = await navigator.serviceWorker.register(SW_PATH);
+      swReg = await navigator.serviceWorker.register(SW_PATH, {
+        scope: '/espana/'
+      });
       _log(`SW registrado OK (state=${swReg.active?.state || 'installing'})`);
     } catch (e) {
       _log(`Error registrando SW: ${e.message}`, 'error');
