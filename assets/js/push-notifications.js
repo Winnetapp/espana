@@ -21,7 +21,7 @@ window.PushNotifications = (function () {
 
   // ── Nombre real del Service Worker ──────────────────────────
   // Asegúrate de que coincide con el nombre del archivo en /public
-  const SW_PATH = '/service-worker.js';
+  const SW_PATH = '/espana/service-worker.js';
 
   /* ── Detección de plataforma ── */
   const isIOS        = /iphone|ipad|ipod/i.test(navigator.userAgent);
