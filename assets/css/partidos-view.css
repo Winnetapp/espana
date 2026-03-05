@@ -1376,3 +1376,192 @@
   }
   .column-right .user-sidebar.open { transform: translateX(0); }
 }
+/* =============================================================
+   goles-unificado.css  —  Bloque de goles unificado tipo Bet365
+   Añadir a partidos-view.css (o importar desde él)
+   ============================================================= */
+
+/* ── Wrapper del mercado-body para el bloque custom ── */
+.gu-mercado-body {
+  padding: 0 !important;
+}
+
+/* ── Selector de tipo (select estilizado) ── */
+.gu-selector-wrap {
+  position: relative;
+  padding: 10px 12px 8px;
+  border-bottom: 1px solid var(--borde, #252830);
+  background: #111215;
+}
+
+.gu-select {
+  width: 100%;
+  appearance: none;
+  -webkit-appearance: none;
+  background: #0e0f14;
+  border: 1px solid var(--borde, #252830);
+  border-radius: 8px;
+  color: #e8e8ea;
+  font-family: 'Barlow', sans-serif;
+  font-size: 0.88rem;
+  font-weight: 600;
+  padding: 9px 36px 9px 12px;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.2s, background 0.2s;
+  letter-spacing: 0.3px;
+}
+.gu-select:hover {
+  border-color: rgba(230,48,48,0.4);
+  background: #121318;
+}
+.gu-select:focus {
+  border-color: var(--rojo, #e63030);
+  background: #121318;
+  box-shadow: 0 0 0 2px rgba(230,48,48,0.12);
+}
+.gu-select option {
+  background: #16181d;
+  color: #e8e8ea;
+  font-family: 'Barlow', sans-serif;
+  font-weight: 600;
+}
+
+.gu-select-arrow {
+  position: absolute;
+  right: 22px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--texto-secundario, #8a8f9e);
+  font-size: 0.7rem;
+  pointer-events: none;
+  transition: color 0.2s;
+}
+.gu-selector-wrap:hover .gu-select-arrow,
+.gu-selector-wrap:focus-within .gu-select-arrow {
+  color: var(--rojo, #e63030);
+}
+
+/* ── Cuerpo: cuadrícula de líneas ── */
+.gu-cuerpo {
+  padding: 6px 0 4px;
+}
+
+.gu-linea {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 4px 12px;
+  border-bottom: 1px solid var(--borde, #252830);
+  transition: background 0.1s;
+}
+.gu-linea:last-child { border-bottom: none; }
+.gu-linea:hover { background: var(--fondo-card-hover, #1c1f26); }
+
+/* Valor numérico de la línea */
+.gu-linea-val {
+  width: 38px;
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: #8a8f9e;
+  text-align: left;
+}
+
+/* Par de botones Over/Under */
+.gu-linea-par {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+/* Botón individual */
+.gu-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 7px 10px;
+  background: #0e0f14;
+  border: 1px solid var(--borde, #252830);
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, transform 0.08s;
+  min-width: 0;
+}
+.gu-btn:hover:not(.sin-cuota):not(.ft-bloqueada) {
+  background: #16181d;
+  border-color: rgba(230,48,48,0.3);
+  transform: translateY(-1px);
+}
+.gu-btn:active:not(.sin-cuota):not(.ft-bloqueada) {
+  transform: translateY(0);
+}
+
+/* Flecha over/under */
+.gu-btn-dir {
+  font-size: 10px;
+  flex-shrink: 0;
+}
+.gu-btn-dir.over  { color: #22c55e; }
+.gu-btn-dir.under { color: #e63030; }
+
+/* Label de texto */
+.gu-btn-label {
+  flex: 1;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--texto-secundario, #8a8f9e);
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Cuota */
+.gu-btn-cuota {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--amarillo, #f5c518);
+  flex-shrink: 0;
+}
+
+/* Sin cuota */
+.gu-btn.sin-cuota {
+  opacity: 0.35;
+  cursor: default;
+}
+.gu-btn.sin-cuota .gu-btn-cuota { color: var(--texto-secundario, #8a8f9e); }
+
+/* Partido terminado */
+.gu-btn.ft-bloqueada {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Ganadora */
+.gu-btn.ft-ganadora {
+  background: rgba(34,197,94,0.1);
+  border-color: #22c55e;
+}
+.gu-btn.ft-ganadora .gu-btn-cuota { color: #22c55e; }
+
+/* Estado seleccionado (añadido por actualizarBotones) */
+.gu-btn.selected,
+.gu-btn.en-apuesta {
+  background: rgba(245,197,24,0.12);
+  border-color: var(--amarillo, #f5c518);
+}
+.gu-btn.selected .gu-btn-cuota,
+.gu-btn.en-apuesta .gu-btn-cuota {
+  color: #fff;
+}
+
+/* Empty state */
+.gu-empty {
+  padding: 18px 14px;
+  color: var(--texto-secundario, #8a8f9e);
+  font-size: 12px;
+  text-align: center;
+}

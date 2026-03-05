@@ -33,85 +33,148 @@
 
   <style>
     /* ══════════════════════════════════════════════
-       MODAL CARRITO DESDE ABAJO — index.html
-       Igual al de partido.html
+       MODAL CARRITO DESDE ABAJO
     ══════════════════════════════════════════════ */
-
-    /* Overlay oscuro */
     #index-slip-overlay {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.7);
-      z-index: 200;
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7); z-index: 200;
       backdrop-filter: blur(4px);
     }
     #index-slip-overlay.active { display: block; }
-
-    /* Modal que sube desde abajo */
     #index-slip-modal {
-      position: fixed;
-      bottom: 0; left: 0; right: 0;
-      background: #16181d;
-      border-top: 1px solid #252830;
-      border-radius: 20px 20px 0 0;
-      padding: 20px 20px 0;
-      z-index: 201;
-      transform: translateY(100%);
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: #16181d; border-top: 1px solid #252830;
+      border-radius: 20px 20px 0 0; padding: 20px 20px 0;
+      z-index: 201; transform: translateY(100%);
       transition: transform 0.32s cubic-bezier(.4,0,.2,1);
-      /* Alto máximo: deja espacio para la barra de nav abajo */
       max-height: calc(100vh - var(--bn-h, 64px) - 12px);
-      overflow-y: auto;
-      /* Scrollbar invisible */
-      scrollbar-width: none;
-      -ms-overflow-style: none;
+      overflow-y: auto; scrollbar-width: none; -ms-overflow-style: none;
     }
     #index-slip-modal::-webkit-scrollbar { display: none; }
     #index-slip-modal.open { transform: translateY(0); }
-
-    /* Handle de arrastre */
     .index-slip-handle {
-      width: 40px;
-      height: 4px;
-      background: #2e3242;
-      border-radius: 2px;
-      margin: 0 auto 16px;
+      width: 40px; height: 4px; background: #2e3242;
+      border-radius: 2px; margin: 0 auto 16px;
     }
-
-    /* Cabecera del modal */
     .index-slip-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 0 14px;
-      border-bottom: 1px solid #252830;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 0 14px; border-bottom: 1px solid #252830;
     }
     .index-slip-title {
       font-family: 'Barlow Condensed', sans-serif;
-      font-size: 1.05rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.8px;
-      color: #fff;
+      font-size: 1.05rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.8px; color: #fff;
     }
     .index-slip-close {
-      background: none;
-      border: none;
-      color: #8a8f9e;
-      cursor: pointer;
-      font-size: 1rem;
-      padding: 4px 8px;
-      border-radius: 6px;
-      transition: color 0.2s, background 0.2s;
+      background: none; border: none; color: #8a8f9e;
+      cursor: pointer; font-size: 1rem; padding: 4px 8px;
+      border-radius: 6px; transition: color 0.2s, background 0.2s;
     }
     .index-slip-close:hover { color: #e63030; background: rgba(230,48,48,0.1); }
+    .index-slip-bottom-pad { height: calc(var(--bn-h, 64px) + 16px); flex-shrink: 0; }
 
-    /* Padding inferior para que el botón "Realizar apuesta"
-       no quede pegado a la barra de navegación */
-    .index-slip-bottom-pad {
-      height: calc(var(--bn-h, 64px) + 16px);
-      flex-shrink: 0;
+    /* ══════════════════════════════════════════════
+       COLUMNA IZQUIERDA — Ads + Widget
+    ══════════════════════════════════════════════ */
+    .ad-label {
+      display: block;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.62rem; font-weight: 700;
+      letter-spacing: 1.2px; text-transform: uppercase;
+      color: #3a3f52; text-align: center; padding: 6px 0 4px;
     }
+    .ad-block {
+      width: 100%; border-radius: 10px; overflow: hidden;
+      background: #12141a; border: 1px solid #1e2130;
+      display: flex; justify-content: center;
+    }
+    .sidebar-sticky {
+      position: sticky; top: 80px;
+      display: flex; flex-direction: column; gap: 18px;
+    }
+    .ad-mobile { display: none; margin: 10px 0 4px; }
+    @media (max-width: 900px) { .ad-mobile { display: block; } }
+    @media (min-width: 901px) { .ad-mobile { display: none; } }
+
+    /* ══════════════════════════════════════════════
+       WIDGET TIPS DE APUESTAS
+    ══════════════════════════════════════════════ */
+    .tips-widget {
+      background: #12141a;
+      border: 1px solid #1e2130;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .tips-widget-header {
+      display: flex; align-items: center; gap: 8px;
+      padding: 12px 14px 10px; border-bottom: 1px solid #1e2130;
+    }
+    .tips-widget-icon {
+      width: 28px; height: 28px;
+      background: rgba(230,48,48,0.12); border-radius: 7px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.85rem; flex-shrink: 0;
+    }
+    .tips-widget-title {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.82rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.8px; color: #c8cdd8;
+    }
+    .tips-widget-badge {
+      margin-left: auto;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.6rem; font-weight: 700;
+      letter-spacing: 0.8px; text-transform: uppercase;
+      color: #e63030; background: rgba(230,48,48,0.1);
+      border: 1px solid rgba(230,48,48,0.2);
+      border-radius: 20px; padding: 2px 7px;
+    }
+    .tip-card {
+      padding: 12px 14px; border-bottom: 1px solid #1a1d26;
+      transition: background 0.18s;
+    }
+    .tip-card:last-child { border-bottom: none; }
+    .tip-card:hover { background: #15171f; }
+    .tip-card-top {
+      display: flex; align-items: flex-start;
+      gap: 10px; margin-bottom: 6px;
+    }
+    .tip-emoji { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
+    .tip-text {
+      font-size: 0.78rem; line-height: 1.45;
+      color: #c0c5d4; font-weight: 500;
+    }
+    .tip-text strong { color: #e8ecf5; font-weight: 700; }
+    .tip-category {
+      display: inline-block;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.58rem; font-weight: 700;
+      letter-spacing: 0.9px; text-transform: uppercase;
+      padding: 2px 7px; border-radius: 20px; margin-left: 34px;
+    }
+    .tip-category.verde  { color: #22c55e; background: rgba(34,197,94,0.08);  border: 1px solid rgba(34,197,94,0.18); }
+    .tip-category.azul   { color: #60a5fa; background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.18); }
+    .tip-category.rojo   { color: #e63030; background: rgba(230,48,48,0.08);  border: 1px solid rgba(230,48,48,0.18); }
+    .tip-category.oro    { color: #f5c518; background: rgba(245,197,24,0.08); border: 1px solid rgba(245,197,24,0.18); }
+    .tip-category.lila   { color: #a78bfa; background: rgba(167,139,250,0.08);border: 1px solid rgba(167,139,250,0.18); }
+    .tips-widget-nav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 9px 14px; border-top: 1px solid #1e2130; background: #0f1117;
+    }
+    .tips-nav-btn {
+      background: none; border: none; color: #555b6e; cursor: pointer;
+      font-size: 0.75rem; padding: 4px 8px; border-radius: 6px;
+      transition: color 0.2s, background 0.2s;
+      display: flex; align-items: center; gap: 4px;
+    }
+    .tips-nav-btn:hover { color: #c0c5d4; background: #1a1d26; }
+    .tips-nav-dots { display: flex; gap: 5px; align-items: center; }
+    .tips-nav-dot {
+      width: 5px; height: 5px; border-radius: 50%;
+      background: #2a2f40; cursor: pointer;
+      transition: background 0.2s, transform 0.2s;
+    }
+    .tips-nav-dot.active { background: #e63030; transform: scale(1.3); }
   </style>
 </head>
 <body>
@@ -130,10 +193,69 @@
   <h1>Partidos</h1>
 
   <div class="main-columns">
-    <!-- Columna izquierda -->
-    <div class="column column-left"></div>
 
-    <!-- Columna central: partidos -->
+    <!-- ══════════════════════════════════════════
+         COLUMNA IZQUIERDA
+         1. Native Ad (Adsterra)
+         2. Banner 300x250 (Adsterra)
+         3. Widget Tips de Apuestas
+    ══════════════════════════════════════════ -->
+    <div class="column column-left">
+      <div class="sidebar-sticky">
+
+        <!-- 1 · Native Ad -->
+        <div>
+          <span class="ad-label">Publicidad</span>
+          <div class="ad-block">
+            <script async="async" data-cfasync="false"
+              src="https://pl28851328.effectivegatecpm.com/4a33511adbf3c3aff8bfede6873f7e14/invoke.js">
+            </script>
+            <div id="container-4a33511adbf3c3aff8bfede6873f7e14"></div>
+          </div>
+        </div>
+
+        <!-- 2 · Banner 300x250 -->
+        <div>
+          <span class="ad-label">Publicidad</span>
+          <div class="ad-block">
+            <script>
+              atOptions = {
+                'key'    : 'f3e6a6e35c548b930b129bee0331b250',
+                'format' : 'iframe',
+                'height' : 250,
+                'width'  : 300,
+                'params' : {}
+              };
+            </script>
+            <script src="https://www.highperformanceformat.com/f3e6a6e35c548b930b129bee0331b250/invoke.js"></script>
+          </div>
+        </div>
+
+        <!-- 3 · Widget Tips de Apuestas -->
+        <div class="tips-widget" id="tips-widget">
+          <div class="tips-widget-header">
+            <div class="tips-widget-icon">💡</div>
+            <span class="tips-widget-title">Tips de apuestas</span>
+            <span class="tips-widget-badge">Consejo</span>
+          </div>
+          <div id="tips-pages"></div>
+          <div class="tips-widget-nav">
+            <button class="tips-nav-btn" id="tips-prev">
+              <i class="fas fa-chevron-left"></i> Anterior
+            </button>
+            <div class="tips-nav-dots" id="tips-dots"></div>
+            <button class="tips-nav-btn" id="tips-next">
+              Siguiente <i class="fas fa-chevron-right"></i>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         COLUMNA CENTRAL — Partidos
+    ══════════════════════════════════════════ -->
     <div class="column column-center">
 
       <div class="partidos-tabs">
@@ -155,6 +277,14 @@
         <button class="liga-btn" data-liga="Ligue 1">Ligue 1</button>
       </div>
 
+      <!-- Anuncio móvil: entre filtros y partidos -->
+      <div class="ad-mobile">
+        <span class="ad-label">Publicidad</span>
+        <div class="ad-block">
+          <div id="container-4a33511adbf3c3aff8bfede6873f7e14-mobile"></div>
+        </div>
+      </div>
+
       <div id="partidos-container">
         <div class="partidos-loading">
           <div class="partidos-spinner"></div>
@@ -164,32 +294,29 @@
 
     </div>
 
-    <!-- Columna derecha: Bet Slip desktop -->
+    <!-- ══════════════════════════════════════════
+         COLUMNA DERECHA — Bet Slip desktop
+    ══════════════════════════════════════════ -->
     <div class="column column-right">
       <div class="user-sidebar" id="userSidebar">
-
         <div class="bs-header">
           <button class="bs-toggle js-toggle">&#9660;</button>
           <span class="bs-title">Carrito</span>
           <button class="bs-clear" id="clear-bets" title="Vaciar">&#128465;</button>
         </div>
-
         <div class="bs-tabs">
           <button class="bs-tab active js-tab" data-target="simple">Simple</button>
           <button class="bs-tab js-tab" data-target="combi">Combinada (0)</button>
           <button class="bs-tab js-tab" data-target="sistema">Sistema</button>
         </div>
-
         <div class="bs-content">
           <div data-content="simple" style="display:block;"></div>
-          <div data-content="combi" style="display:none;"></div>
+          <div data-content="combi"  style="display:none;"></div>
           <div data-content="sistema" style="display:none;"></div>
         </div>
-
         <div class="bs-body">
           <ul id="bet-list" class="bs-list"></ul>
         </div>
-
         <div class="bs-footer">
           <div class="stake-row">
             <div class="stake-group">
@@ -210,7 +337,6 @@
             <span class="pw-value" id="potential-winnings">0,00 €</span>
           </div>
         </div>
-
         <div class="quick-stakes">
           <button class="qs">2 €</button>
           <button class="qs">5 €</button>
@@ -218,11 +344,10 @@
           <button class="qs">20 €</button>
           <button class="qs all-in">ALL-IN</button>
         </div>
-
         <button class="accept-btn">Realizar apuesta</button>
-
       </div>
     </div>
+
   </div>
 
   <!-- Botón móvil carrito -->
@@ -236,19 +361,15 @@
 </main>
 
 <!-- ════════════════════════════════════════════
-     MODAL CARRITO MÓVIL (bottom sheet)
-     Mismo patrón que partido.html
+     MODAL CARRITO MÓVIL
 ════════════════════════════════════════════ -->
 <div id="index-slip-overlay"></div>
 <div id="index-slip-modal">
   <div class="index-slip-handle"></div>
-
   <div class="index-slip-header">
     <span class="index-slip-title">🎯 Carrito</span>
     <button class="index-slip-close bs-clear" id="index-slip-clear-btn" title="Vaciar">&#128465;</button>
   </div>
-
-  <!-- Pestañas -->
   <div class="bs-tabs" style="margin: 12px 0 0;">
     <button class="bs-tab js-tab" data-target="simple">Simple</button>
     <button class="bs-tab js-tab" data-target="combi">Combinada (0)</button>
@@ -259,11 +380,7 @@
     <div data-content="combi"  style="display:none;"></div>
     <div data-content="sistema" style="display:none;"></div>
   </div>
-
-  <!-- Lista de apuestas -->
   <ul class="bs-list" id="index-bet-list-modal"></ul>
-
-  <!-- Footer: stake + cuota + ganancias -->
   <div class="bs-footer" style="border:none; background:transparent; padding: 14px 0 0;">
     <div class="stake-row">
       <div class="stake-group">
@@ -284,7 +401,6 @@
       <span class="pw-value" id="index-ganancias-modal">0,00 €</span>
     </div>
   </div>
-
   <div class="quick-stakes">
     <button class="qs">2 €</button>
     <button class="qs">5 €</button>
@@ -292,10 +408,7 @@
     <button class="qs">20 €</button>
     <button class="qs all-in">ALL-IN</button>
   </div>
-
   <button class="accept-btn" id="index-btn-apostar-modal">Realizar apuesta</button>
-
-  <!-- Espaciado para no chocar con la barra de navegación -->
   <div class="index-slip-bottom-pad"></div>
 </div>
 
@@ -351,41 +464,134 @@
 <script src="assets/js/bottom-nav.js"></script>
 
 <script>
-  /* ── Lógica del modal bottom sheet (index.html) ── */
-  (function () {
-    const overlay = document.getElementById('index-slip-overlay');
-    const modal   = document.getElementById('index-slip-modal');
-    const openBtn = document.getElementById('mobileMenuBtn');
+/* ════════════════════════════════════════════════════
+   WIDGET TIPS DE APUESTAS
+   · 12 tips en páginas de 3 (4 páginas)
+   · Navegación manual + auto-avance cada 18s
+════════════════════════════════════════════════════ */
+(function () {
+  const TIPS = [
+    { emoji: '📊', categoria: 'Estadísticas', color: 'azul',
+      texto: '<strong>Analiza las últimas 5 jornadas</strong> del equipo local antes de apostar. El factor campo puede marcar una diferencia del 15-20% en los resultados.' },
+    { emoji: '💰', categoria: 'Gestión', color: 'verde',
+      texto: 'Nunca apuestes más del <strong>5% de tu saldo</strong> en una sola apuesta. La gestión del bankroll es más importante que acertar picks.' },
+    { emoji: '⚽', categoria: 'Mercados', color: 'oro',
+      texto: 'El mercado <strong>Ambos Marcan (BTTS)</strong> suele ofrecer mejor valor que el 1X2 en partidos entre equipos del medio de la tabla.' },
+    { emoji: '🔍', categoria: 'Investigación', color: 'lila',
+      texto: 'Revisa las <strong>bajas y convocatorias</strong> antes de cada partido. Un delantero titular ausente puede cambiar completamente las cuotas.' },
+    { emoji: '📈', categoria: 'Value Bet', color: 'verde',
+      texto: 'Una <strong>value bet</strong> es cuando la probabilidad real supera la que implica la cuota. Busca esas oportunidades sistemáticamente.' },
+    { emoji: '🧠', categoria: 'Psicología', color: 'lila',
+      texto: 'Evita apostar tras una racha de pérdidas para "recuperar". El <strong>tilt</strong> es el mayor enemigo de un apostante racional.' },
+    { emoji: '⏱️', categoria: 'Timing', color: 'azul',
+      texto: 'Las cuotas suelen ser más altas <strong>72 horas antes</strong> del partido. Conforme se acerca el kick-off el mercado se ajusta y bajan.' },
+    { emoji: '🏆', categoria: 'Ligas', color: 'oro',
+      texto: 'Las ligas con más datos históricos (<strong>Premier, La Liga, Bundesliga</strong>) permiten análisis más fiables que competiciones menores.' },
+    { emoji: '🔄', categoria: 'Sistemas', color: 'verde',
+      texto: 'Las apuestas de <strong>sistema 2/3</strong> reducen el riesgo frente a las combinadas: puedes fallar una selección y seguir ganando.' },
+    { emoji: '📉', categoria: 'Errores', color: 'rojo',
+      texto: 'Apostar con el corazón en tu equipo favorito es el <strong>error más común</strong>. El sesgo emocional distorsiona el análisis objetivo.' },
+    { emoji: '🎯', categoria: 'Especialización', color: 'azul',
+      texto: 'Mejor dominar <strong>2-3 ligas</strong> en profundidad que apostar en 10 sin conocimiento. La especialización mejora los resultados.' },
+    { emoji: '📋', categoria: 'Registro', color: 'oro',
+      texto: 'Lleva un <strong>registro de todas tus apuestas</strong>: mercado, cuota, resultado y razonamiento. Solo midiendo puedes mejorar.' },
+  ];
 
-    function openModal() {
-      overlay.classList.add('active');
-      modal.classList.add('open');
-      document.body.style.overflow = 'hidden';
-      openBtn.style.display = 'none';
-      // Ocultar FAB de recompensas
-      const fab = document.getElementById('_dr-fab');
-      if (fab) fab.style.display = 'none';
-    }
+  const POR_PAGINA   = 3;
+  const totalPaginas = Math.ceil(TIPS.length / POR_PAGINA);
+  let paginaActual   = 0;
+  let autoTimer      = null;
 
-    function closeModal() {
-      overlay.classList.remove('active');
-      modal.classList.remove('open');
-      document.body.style.overflow = '';
-      openBtn.style.display = '';
-      // Restaurar FAB de recompensas
-      const fab = document.getElementById('_dr-fab');
-      if (fab) fab.style.display = '';
-    }
+  const pagesEl = document.getElementById('tips-pages');
+  const dotsEl  = document.getElementById('tips-dots');
+  const prevBtn = document.getElementById('tips-prev');
+  const nextBtn = document.getElementById('tips-next');
+  if (!pagesEl) return;
 
-    openBtn?.addEventListener('click', openModal);
-    overlay?.addEventListener('click', closeModal);
+  for (let i = 0; i < totalPaginas; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'tips-nav-dot' + (i === 0 ? ' active' : '');
+    dot.addEventListener('click', () => irA(i));
+    dotsEl.appendChild(dot);
+  }
 
-    /* El botón vaciar del modal cierra también */
-    document.getElementById('index-slip-clear-btn')?.addEventListener('click', closeModal);
+  function renderPagina(idx) {
+    const pageTips = TIPS.slice(idx * POR_PAGINA, idx * POR_PAGINA + POR_PAGINA);
+    pagesEl.innerHTML = pageTips.map(t => `
+      <div class="tip-card">
+        <div class="tip-card-top">
+          <span class="tip-emoji">${t.emoji}</span>
+          <span class="tip-text">${t.texto}</span>
+        </div>
+        <span class="tip-category ${t.color}">${t.categoria}</span>
+      </div>`).join('');
+    dotsEl.querySelectorAll('.tips-nav-dot').forEach((d, i) =>
+      d.classList.toggle('active', i === idx));
+    prevBtn.style.opacity = idx === 0 ? '0.3' : '1';
+    nextBtn.style.opacity = idx === totalPaginas - 1 ? '0.3' : '1';
+  }
 
-    /* Exponer para que betslip-core pueda cerrar tras apostar */
-    window._closeIndexModal = closeModal;
-  })();
+  function irA(idx) {
+    paginaActual = (idx + totalPaginas) % totalPaginas;
+    renderPagina(paginaActual);
+    reiniciarAuto();
+  }
+
+  function reiniciarAuto() {
+    if (autoTimer) clearInterval(autoTimer);
+    autoTimer = setInterval(() => irA(paginaActual + 1), 18000);
+  }
+
+  prevBtn.addEventListener('click', () => irA(paginaActual - 1));
+  nextBtn.addEventListener('click', () => irA(paginaActual + 1));
+
+  const widget = document.getElementById('tips-widget');
+  widget?.addEventListener('mouseenter', () => { if (autoTimer) clearInterval(autoTimer); });
+  widget?.addEventListener('mouseleave', reiniciarAuto);
+
+  renderPagina(0);
+  reiniciarAuto();
+})();
+
+/* ════════════════════════════════════════════════════
+   ADSTERRA — Clonar native al contenedor móvil
+════════════════════════════════════════════════════ */
+(function () {
+  function sincronizar() {
+    const src  = document.getElementById('container-4a33511adbf3c3aff8bfede6873f7e14');
+    const dest = document.getElementById('container-4a33511adbf3c3aff8bfede6873f7e14-mobile');
+    if (!src || !dest) return;
+    if (src.children.length === 0) { setTimeout(sincronizar, 800); return; }
+    dest.innerHTML = src.innerHTML;
+  }
+  window.addEventListener('load', () => setTimeout(sincronizar, 1200));
+})();
+
+/* ════════════════════════════════════════════════════
+   MODAL BOTTOM SHEET
+════════════════════════════════════════════════════ */
+(function () {
+  const overlay = document.getElementById('index-slip-overlay');
+  const modal   = document.getElementById('index-slip-modal');
+  const openBtn = document.getElementById('mobileMenuBtn');
+
+  function openModal() {
+    overlay.classList.add('active'); modal.classList.add('open');
+    document.body.style.overflow = 'hidden'; openBtn.style.display = 'none';
+    const fab = document.getElementById('_dr-fab');
+    if (fab) fab.style.display = 'none';
+  }
+  function closeModal() {
+    overlay.classList.remove('active'); modal.classList.remove('open');
+    document.body.style.overflow = ''; openBtn.style.display = '';
+    const fab = document.getElementById('_dr-fab');
+    if (fab) fab.style.display = '';
+  }
+  openBtn?.addEventListener('click', openModal);
+  overlay?.addEventListener('click', closeModal);
+  document.getElementById('index-slip-clear-btn')?.addEventListener('click', closeModal);
+  window._closeIndexModal = closeModal;
+})();
 </script>
 
 </body>

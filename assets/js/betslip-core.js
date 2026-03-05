@@ -1,19 +1,38 @@
 /* =============================================================
-   assets/js/betslip-core.js  —  v2.0
+   betslip-core.js  —  v3.2
    Módulo compartido de carrito entre index.html y partido.html
 
-   NUEVO v2.0:
-   · formatTipo() ampliado con todos los mercados extras:
-     btts, ambosmarcan, dnb, descanso, segunda,
-     totalsHT, teamTotalHome, teamTotalAway,
-     cornersTotal, bookingsTotal, ehResult.
-   · evaluarBet / resolverApuesta sin cambios funcionales.
+   FIXES v3.2 (sobre v3.1):
+   · formatTipo(): añadido handler para tipos "+2.5" / "-2.5"
+     generados por el bloque Goles Unificado de mercados v3.2.
+     Sin este fix aparecían como "+2.5" en lugar de "Más de 2.5".
+
+   FIXES v3.1:
+   · claveExclusion(): corregidos todos los mercados con
+     mayúsculas mixtas (cleanSheetHome/Away, firstScore,
+     nextGoal, winNil, cornersHT, asianTotals, htft,
+     correctScore, asianHandicap) para que normM() no
+     los rompa al comparar.
+   · formatTipo(): corregido case 'cleansheethome' duplicado
+     y alias unificados.
+   · parseLineKey() expuesto como helper interno para que
+     claveExclusion use el mismo valor numérico que mercados.js.
+
+   FIX v3.2:
+   · formatTipo(): añadido handler para tipos "+2.5" / "-2.5"
+     generados por el bloque Goles Unificado de mercados v3.2.
+     Sin este fix aparecían como "+2.5" en el carrito en lugar
+     de "Más de 2.5" / "Menos de 2.5".
    ============================================================= */
 
 (function () {
   'use strict';
 
   const ESTADOS_VIVO = ['1H', 'HT', '2H', 'ET', 'P'];
+
+  // normM: lowercase + quita espacios y guiones
+  // IMPORTANTE: también quita mayúsculas, por eso todas las
+  // comparaciones de mercado deben usar normM() en AMBOS lados.
   const normM = m => (m || '').toLowerCase().replace(/[\s-]/g, '');
 
   /* ── Toast ── */
@@ -48,12 +67,28 @@
     } catch { return true; }
   }
 
-  /* ── Correlaciones ── */
+  /* ── parseLineKey: igual que en mercados.js ── */
+  function parseLineKey(raw) {
+    if (!raw) return null;
+    if (raw.startsWith('m')) {
+      const v = parseLineKey(raw.slice(1));
+      return v !== null ? -v : null;
+    }
+    const len = raw.length;
+    if (len === 1) return parseFloat(raw);                          // "1"   → 1
+    if (len === 2) return parseFloat(raw[0] + '.' + raw[1]);       // "25"  → 2.5
+    if (len === 3 && raw[0] === '0')
+      return parseFloat('0.' + raw[1] + raw[2]);                   // "025" → 0.25
+    if (len === 3)
+      return parseFloat(raw[0] + '.' + raw[1] + raw[2]);           // "275" → 2.75
+    return null;
+  }
+
+  /* ── Helpers de correlación ── */
   function segmento(tipo) {
     const t = (tipo || '').toLowerCase();
-    if (/encuentro/.test(t))        return 'encuentro';
-    if (/1ª mitad|primera/.test(t)) return 'primera';
-    if (/2ª mitad|segunda/.test(t)) return 'segunda';
+    if (/1ª mitad|primera|1ª|ht/.test(t)) return 'primera';
+    if (/2ª mitad|segunda|2ª/.test(t))    return 'segunda';
     return 'encuentro';
   }
   function direccion(tipo) {
@@ -71,86 +106,185 @@
     return /sí$|si$/.test(t) ? 'si' : /no$/.test(t) ? 'no' : null;
   }
 
+  /* ── claveExclusion ──────────────────────────────────────────
+     TODAS las comparaciones usan normM() para ser consistentes
+     con el normM que aplica addBet al guardar el mercado.
+  ─────────────────────────────────────────────────────────────*/
+  function claveExclusion(mercado, tipo) {
+    const m = normM(mercado); // ya en minúsculas sin espacios/guiones
+
+    // ── Resultado / Doble oportunidad ────────────────────────
+    if (m === 'resultado' || m === 'dobleoportunidad') return 'resultado_o_doble';
+
+    // ── BTTS ─────────────────────────────────────────────────
+    if (m === 'ambosmarcan' || m === 'btts')
+      return `ambosmarcan|${segmento(tipo)}`;
+
+    // ── Impar/Par ─────────────────────────────────────────────
+    if (m === 'golesimparpar' || m === 'imparpar') return 'imparpar|encuentro';
+    if (m === 'htimparpar')                        return 'imparpar|primera';
+
+    // ── DNB ───────────────────────────────────────────────────
+    if (m === 'dnb') return 'dnb';
+
+    // ── Resultado mitades ─────────────────────────────────────
+    if (m === 'descanso' || m === 'htresult') return 'descanso';
+    if (m === 'segunda')                      return 'segunda';
+
+    // ── Totals HT ─────────────────────────────────────────────
+    if (m === 'totalsht') return `totalsHT|${valorNum(tipo) ?? 'x'}`;
+
+    // ── Asian Totals ──────────────────────────────────────────
+    if (m === 'asiantotals') return `asianTotals|${valorNum(tipo) ?? 'x'}`;
+
+    // ── EH / AH ───────────────────────────────────────────────
+    if (m === 'ehresult') return 'ehResult';
+    if (m === 'asianhandicap') return `asianHandicap|${tipo}`;
+
+    // ── HT/FT ─────────────────────────────────────────────────
+    if (m === 'htft') return 'htft';
+
+    // ── Correct Score ─────────────────────────────────────────
+    if (m === 'correctscore') return 'correctScore';
+
+    // ── Clean Sheet ───────────────────────────────────────────
+    if (m === 'cleansheethome') return 'cleanSheetHome';
+    if (m === 'cleansheetaway') return 'cleanSheetAway';
+
+    // ── First Score / Next Goal / Win to Nil ──────────────────
+    if (m === 'firstscore') return 'firstScore';
+    if (m === 'nextgoal')   return 'nextGoal';
+    if (m === 'winnil')     return 'winNil';
+
+    // ── Team Totals ───────────────────────────────────────────
+    if (m === 'teamtotalhome') {
+      const n = valorNum(tipo);
+      return `ttHome|${n ?? 'x'}`;
+    }
+    if (m === 'teamtotalaway') {
+      const n = valorNum(tipo);
+      return `ttAway|${n ?? 'x'}`;
+    }
+
+    // ── HT Team Totals ────────────────────────────────────────
+    if (m === 'httotalhome') {
+      const n = valorNum(tipo);
+      return `htTtHome|${n ?? 'x'}`;
+    }
+    if (m === 'httotalaway') {
+      const n = valorNum(tipo);
+      return `htTtAway|${n ?? 'x'}`;
+    }
+
+    // ── Corners ───────────────────────────────────────────────
+    if (m === 'corners' || m === 'cornerstotal') {
+      const t = (tipo || '').toLowerCase();
+      const eq = t.includes('local') ? 'local' : t.includes('visitante') ? 'visitante' : 'ambos';
+      return `corners|encuentro|${eq}`;
+    }
+    if (m === 'cornersht') return `corners|primera|ambos`;
+
+    // ── Tarjetas / Bookings ───────────────────────────────────
+    if (m === 'tarjetas' || m === 'bookingstotal') {
+      const t = (tipo || '').toLowerCase();
+      const eq = t.includes('local') ? 'local' : t.includes('visitante') ? 'visitante' : 'ambos';
+      return `tarjetas|${segmento(tipo)}|${eq}`;
+    }
+
+    // ── Total goles ───────────────────────────────────────────
+    if (m === 'totalgoles') return `totalgoles|${valorNum(tipo) ?? 'x'}|${direccion(tipo) ?? 'x'}`;
+
+    return m;
+  }
+
+  /* ── factorCorrelacion ── */
   function factorCorrelacion(a, b) {
     const mA = normM(a.mercado), mB = normM(b.mercado);
     const tA = (a.tipo || '').toLowerCase(), tB = (b.tipo || '').toLowerCase();
+
     const esRes      = m => m === 'resultado' || m === 'dobleoportunidad';
     const esAmbos    = m => m === 'ambosmarcan' || m === 'btts';
-    const esImpar    = m => m === 'golesimparpar';
+    const esImpar    = m => m === 'golesimparpar' || m === 'imparpar';
+    const esHTImpar  = m => m === 'htimparpar';
     const esCorn     = m => m === 'corners' || m === 'cornerstotal';
+    const esCornHT   = m => m === 'cornersht';
     const esTarj     = m => m === 'tarjetas' || m === 'bookingstotal';
     const esGoles    = m => m === 'totalgoles';
+    const esAsian    = m => m === 'asiantotals';
     const esDNB      = m => m === 'dnb';
     const esHTResult = m => m === 'descanso' || m === 'htresult';
     const esTotalHT  = m => m === 'totalsht';
     const esTTHome   = m => m === 'teamtotalhome';
     const esTTAway   = m => m === 'teamtotalaway';
+    const esHTTHome  = m => m === 'httotalhome';
+    const esHTTAway  = m => m === 'httotalaway';
     const esEH       = m => m === 'ehresult';
+    const esAH       = m => m === 'asianhandicap';
+    const esHTFT     = m => m === 'htft';
+    const esCS       = m => m === 'correctscore';
+    const esCSHome   = m => m === 'cleansheethome';
+    const esCSAway   = m => m === 'cleansheetaway';
+    const esWinNil   = m => m === 'winnil';
+    const esFirst    = m => m === 'firstscore';
+    const esNext     = m => m === 'nextgoal';
 
-    // BTTS + resultado → correlación media
+    if (esRes(mA) && esRes(mB)) return 0.5;
+
     if (esAmbos(mA) && esAmbos(mB)) {
-      const [segA, segB] = [segmento(tA), segmento(tB)];
-      const [opA,  opB]  = [opcionSiNo(tA), opcionSiNo(tB)];
-      if (opA === opB) {
-        if ((segA !== 'encuentro') && segB === 'encuentro') return 0;
-        if ((segB !== 'encuentro') && segA === 'encuentro') return 0;
-        if (opA === 'no') return 0.5;
-      }
+      const [opA, opB] = [opcionSiNo(tA), opcionSiNo(tB)];
+      if (opA === opB && opA === 'no') return 0.5;
       return 1;
     }
     if ((esAmbos(mA) && esRes(mB) && opcionSiNo(tA) === 'si') ||
         (esAmbos(mB) && esRes(mA) && opcionSiNo(tB) === 'si')) return 0.5;
-    if (esAmbos(mA) && esGoles(mB) && opcionSiNo(tA) === 'si' && direccion(tB) === 'mas') return 0.5;
-    if (esAmbos(mB) && esGoles(mA) && opcionSiNo(tB) === 'si' && direccion(tA) === 'mas') return 0.5;
 
-    // Total goles entre sí
     if (esGoles(mA) && esGoles(mB)) {
       const [dA, dB] = [direccion(tA), direccion(tB)];
       const [nA, nB] = [valorNum(tA), valorNum(tB)];
-      if (dA === dB && dA === 'mas' && nA !== null && nB !== null && (nA >= nB || nB >= nA)) return 0.7;
-      if (dA === 'mas'   && dB === 'menos' && nA !== null && nB !== null && nA === nB) return 0;
-      if (dA === 'menos' && dB === 'mas'   && nA !== null && nB !== null && nA === nB) return 0;
+      if (dA === 'mas' && dB === 'menos' && nA === nB) return 0;
+      if (dA === 'menos' && dB === 'mas' && nA === nB) return 0;
+      if (dA === dB && dA === 'mas' && nA !== null && nB !== null) return 0.7;
     }
 
-    // DNB + resultado
+    if (esAsian(mA) && esAsian(mB)) {
+      const [dA, dB] = [direccion(tA), direccion(tB)];
+      const [nA, nB] = [valorNum(tA), valorNum(tB)];
+      if (dA === 'mas' && dB === 'menos' && nA === nB) return 0;
+      if (dA === 'menos' && dB === 'mas' && nA === nB) return 0;
+      if (dA === dB) return 0.7;
+    }
+
+    if ((esGoles(mA) && esAsian(mB)) || (esGoles(mB) && esAsian(mA))) return 0.7;
+
     if (esDNB(mA) && esRes(mB)) return 0.5;
     if (esDNB(mB) && esRes(mA)) return 0.5;
 
-    // Córners
-    if (esCorn(mA) && esCorn(mB)) {
-      const [dA, dB] = [direccion(tA), direccion(tB)];
-      const [nA, nB] = [valorNum(tA), valorNum(tB)];
-      if (dA === dB && nA !== null && nB !== null) {
-        if (dA === 'mas'   && (segmento(tA) !== 'encuentro') && segmento(tB) === 'encuentro' && nA >= nB) return 0;
-        if (dA === 'menos' && segmento(tA) === 'encuentro'   && (segmento(tB) !== 'encuentro') && nA <= nB) return 0;
-      }
-      return 0.5;
-    }
+    if (esCS(mA) && esRes(mB)) return 0.3;
+    if (esCS(mB) && esRes(mA)) return 0.3;
+    if (esCS(mA) && esCS(mB))  return 0;
 
-    // Tarjetas
-    if (esTarj(mA) && esTarj(mB)) {
-      const [dA, dB] = [direccion(tA), direccion(tB)];
-      const [nA, nB] = [valorNum(tA), valorNum(tB)];
-      if (dA === dB && nA !== null && nB !== null) {
-        if (dA === 'mas'   && (segmento(tA) !== 'encuentro') && segmento(tB) === 'encuentro' && nA >= nB) return 0;
-        if (dA === 'menos' && segmento(tA) === 'encuentro'   && (segmento(tB) !== 'encuentro') && nA <= nB) return 0;
-      }
-      return 0.5;
-    }
+    if (esHTFT(mA) && esRes(mB)) return 0.4;
+    if (esHTFT(mB) && esRes(mA)) return 0.4;
 
-    // Impar/par
-    if (esImpar(mA) && esImpar(mB)) {
-      if ((segmento(tA) !== 'encuentro') && segmento(tB) === 'encuentro') return 0;
-      if ((segmento(tB) !== 'encuentro') && segmento(tA) === 'encuentro') return 0;
-      return 0.5;
-    }
-    if ((esRes(mA) && esImpar(mB)) || (esRes(mB) && esImpar(mA))) return 0.5;
+    if ((esCSHome(mA) || esCSAway(mA) || esWinNil(mA)) && esRes(mB)) return 0.5;
+    if ((esCSHome(mB) || esCSAway(mB) || esWinNil(mB)) && esRes(mA)) return 0.5;
+    if (esWinNil(mA) && (esCSHome(mB) || esCSAway(mB))) return 0.5;
+    if (esWinNil(mB) && (esCSHome(mA) || esCSAway(mA))) return 0.5;
 
-    // HT result + totals HT → correlación media
+    if ((esFirst(mA) || esNext(mA)) && esRes(mB)) return 0.5;
+    if ((esFirst(mB) || esNext(mB)) && esRes(mA)) return 0.5;
+    if (esFirst(mA) && esNext(mB)) return 0.6;
+    if (esFirst(mB) && esNext(mA)) return 0.6;
+
     if (esHTResult(mA) && esTotalHT(mB)) return 0.5;
     if (esHTResult(mB) && esTotalHT(mA)) return 0.5;
 
-    // Team totals entre sí (over/under mismo equipo)
+    if (esImpar(mA) && esGoles(mB)) return 0.5;
+    if (esImpar(mB) && esGoles(mA)) return 0.5;
+    if (esHTImpar(mA) && esTotalHT(mB)) return 0.5;
+    if (esHTImpar(mB) && esTotalHT(mA)) return 0.5;
+    if (esImpar(mA) && esImpar(mB)) return 0;
+
     if (esTTHome(mA) && esTTHome(mB)) {
       const [dA, dB] = [direccion(tA), direccion(tB)];
       const [nA, nB] = [valorNum(tA), valorNum(tB)];
@@ -166,43 +300,22 @@
       if (dA === dB) return 0.7;
     }
 
-    // EH + resultado → correlación media
+    if (esHTTHome(mA) && esHTTHome(mB)) return 0.7;
+    if (esHTTAway(mA) && esHTTAway(mB)) return 0.7;
+
+    if (esCorn(mA) && esCorn(mB)) return 0.5;
+    if (esCornHT(mA) && esCornHT(mB)) return 0.5;
+    if (esCorn(mA) && esCornHT(mB)) return 0.5;
+    if (esCorn(mB) && esCornHT(mA)) return 0.5;
+
+    if (esTarj(mA) && esTarj(mB)) return 0.5;
+
     if (esEH(mA) && esRes(mB)) return 0.5;
     if (esEH(mB) && esRes(mA)) return 0.5;
+    if (esAH(mA) && esRes(mB)) return 0.5;
+    if (esAH(mB) && esRes(mA)) return 0.5;
 
     return 1;
-  }
-
-  function claveExclusion(mercado, tipo) {
-    const m = normM(mercado);
-    if (m === 'resultado' || m === 'dobleoportunidad') return 'resultado_o_doble';
-    if (m === 'ambosmarcan' || m === 'btts')  return `ambosmarcan|${segmento(tipo)}`;
-    if (m === 'golesimparpar')                return `golesimparpar|${segmento(tipo)}`;
-    if (m === 'dnb')            return 'dnb';
-    if (m === 'descanso')       return 'descanso';
-    if (m === 'htresult')       return 'descanso'; // alias
-    if (m === 'segunda')        return 'segunda';
-    if (m === 'totalsht')       return 'totalsHT';
-    if (m === 'ehresult')       return 'ehResult';
-    if (m === 'teamtotalhome') {
-      const n = valorNum(tipo);
-      return `ttHome|${n ?? 'x'}`;
-    }
-    if (m === 'teamtotalaway') {
-      const n = valorNum(tipo);
-      return `ttAway|${n ?? 'x'}`;
-    }
-    if (m === 'corners' || m === 'cornerstotal') {
-      const t = (tipo || '').toLowerCase();
-      const eq = t.includes('local') ? 'local' : t.includes('visitante') ? 'visitante' : 'ambos';
-      return `corners|${segmento(tipo)}|${eq}`;
-    }
-    if (m === 'tarjetas' || m === 'bookingstotal') {
-      const t = (tipo || '').toLowerCase();
-      const eq = t.includes('local') ? 'local' : t.includes('visitante') ? 'visitante' : 'ambos';
-      return `tarjetas|${segmento(tipo)}|${eq}`;
-    }
-    return m;
   }
 
   function calcularCuotaCombinada(bets) {
@@ -275,14 +388,17 @@
   const STORAGE_KEY = 'carritoApuestas';
   let bets = [];
   function cargar() {
-    try { const raw = localStorage.getItem(STORAGE_KEY); if (raw) { const arr = JSON.parse(raw); if (Array.isArray(arr)) bets = arr; } } catch {}
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) { const arr = JSON.parse(raw); if (Array.isArray(arr)) bets = arr; }
+    } catch {}
   }
   function guardar() { localStorage.setItem(STORAGE_KEY, JSON.stringify(bets)); }
 
   /* ── addBet ── */
   async function addBet({ partido, tipo, cuota, partidoId, mercado }) {
     const pid   = (partidoId || '').toString().trim();
-    const mNorm = normM(mercado);
+    const mNorm = normM(mercado); // guardamos siempre en normM
     const cStr  = (cuota || '').toString().trim();
     const clave = claveExclusion(mNorm, tipo);
 
@@ -339,8 +455,12 @@
           e.stopPropagation();
           const idx  = parseInt(btn.dataset.idx, 10);
           const item = btn.closest('.bs-item, li');
-          if (item) { item.classList.add('bs-item-removing'); setTimeout(() => { bets.splice(idx, 1); guardar(); render(); }, 280); }
-          else       { bets.splice(idx, 1); guardar(); render(); }
+          if (item) {
+            item.classList.add('bs-item-removing');
+            setTimeout(() => { bets.splice(idx, 1); guardar(); render(); }, 280);
+          } else {
+            bets.splice(idx, 1); guardar(); render();
+          }
         })
       );
     });
@@ -373,19 +493,28 @@
   function renderSistema() {
     const wrap = document.querySelector('[data-content="sistema"]');
     if (!wrap) return;
-    if (bets.length < 3) { wrap.innerHTML = `<div class="sistema-vacio">Necesitas al menos 3 selecciones de partidos diferentes para crear una apuesta de sistema.</div>`; return; }
+    if (bets.length < 3) {
+      wrap.innerHTML = `<div class="sistema-vacio">Necesitas al menos 3 selecciones de partidos diferentes para crear una apuesta de sistema.</div>`;
+      return;
+    }
     const porPartido = {};
-    bets.forEach(b => { const pid = (b.partidoId || b.partido || '').toString().trim(); if (!porPartido[pid]) porPartido[pid] = b; });
+    bets.forEach(b => {
+      const pid = (b.partidoId || b.partido || '').toString().trim();
+      if (!porPartido[pid]) porPartido[pid] = b;
+    });
     const selecciones = Object.values(porPartido), n = selecciones.length;
-    if (n < 3) { wrap.innerHTML = `<div class="sistema-vacio">Las selecciones deben ser de al menos 3 partidos distintos.</div>`; return; }
+    if (n < 3) {
+      wrap.innerHTML = `<div class="sistema-vacio">Las selecciones deben ser de al menos 3 partidos distintos.</div>`;
+      return;
+    }
     let html = `<div class="sistema-info">Sistema de ${n} selecciones</div><div class="sistema-opciones">`;
     for (let k = 2; k < n; k++) {
       const { combos, cuotaMedia, retornoTotal } = calcularSistema(selecciones, k);
       html += `<label class="sistema-opcion" for="sis-${k}"><div class="sis-radio-wrap"><input type="radio" name="sistema-tipo" id="sis-${k}" value="${k}" class="sis-radio" ${k === 2 ? 'checked' : ''}><div class="sis-info"><span class="sis-titulo">${k}/${n} — ${combos} combinaciones</span><span class="sis-detalle">Cuota media <strong>${cuotaMedia.toFixed(2)}</strong></span></div></div><span class="sis-retorno">×${retornoTotal.toFixed(1)}</span></label>`;
     }
     html += `</div>`;
-    const stakeVal      = parseFloat(document.querySelector('.stake-input input')?.value || 5) || 5;
-    const kSel          = parseInt(wrap.querySelector('input[name="sistema-tipo"]:checked')?.value || 2);
+    const stakeVal = parseFloat(document.querySelector('.stake-input input')?.value || 5) || 5;
+    const kSel     = parseInt(wrap.querySelector('input[name="sistema-tipo"]:checked')?.value || 2);
     const { combos: ca } = calcularSistema(selecciones, kSel);
     html += `<div class="sistema-footer"><div class="sis-detalle-apuesta"><span class="sis-label">Importe por combinación</span><span class="sis-valor">${stakeVal.toFixed(2)} €</span></div><div class="sis-detalle-apuesta"><span class="sis-label">Total apostado</span><span class="sis-valor">${(stakeVal * ca).toFixed(2)} €</span></div></div>`;
     wrap.innerHTML = html;
@@ -422,14 +551,26 @@
     const badge     = document.getElementById('betBadge');
     const totalText = document.getElementById('totalOddsText');
     const cartIcon  = document.getElementById('cartIcon');
-    if (badge) { badge.style.display = bets.length ? 'inline-block' : 'none'; badge.textContent = bets.length; }
+    if (badge) {
+      badge.style.display = bets.length ? 'inline-block' : 'none';
+      badge.textContent = bets.length;
+    }
     if (totalText && cartIcon) {
       const cuota = calcularCuotaCombinada(bets);
-      if (bets.length) { cartIcon.style.display = 'none'; totalText.style.display = 'inline'; totalText.textContent = cuota.toFixed(2).replace('.', ','); }
-      else             { cartIcon.style.display = 'inline'; totalText.style.display = 'none'; }
+      if (bets.length) {
+        cartIcon.style.display = 'none';
+        totalText.style.display = 'inline';
+        totalText.textContent = cuota.toFixed(2).replace('.', ',');
+      } else {
+        cartIcon.style.display = 'inline';
+        totalText.style.display = 'none';
+      }
     }
     const badgePartido = document.getElementById('mobile-bet-badge');
-    if (badgePartido) { badgePartido.textContent = bets.length; badgePartido.classList.toggle('visible', bets.length > 0); }
+    if (badgePartido) {
+      badgePartido.textContent = bets.length;
+      badgePartido.classList.toggle('visible', bets.length > 0);
+    }
   }
 
   function actualizarPestanas() {
@@ -441,8 +582,12 @@
   }
 
   function cambiarPestana(target) {
-    document.querySelectorAll('.bs-tab').forEach(t => t.classList.toggle('active', t.dataset.target === target));
-    document.querySelectorAll('[data-content]').forEach(s => s.style.display = s.dataset.content === target ? 'block' : 'none');
+    document.querySelectorAll('.bs-tab').forEach(t =>
+      t.classList.toggle('active', t.dataset.target === target)
+    );
+    document.querySelectorAll('[data-content]').forEach(s =>
+      s.style.display = s.dataset.content === target ? 'block' : 'none'
+    );
   }
 
   function actualizarBotones() {
@@ -464,7 +609,6 @@
     });
   }
 
-  /* ── Cerrar modales móvil ── */
   function cerrarModalesMobil() {
     document.getElementById('slip-overlay')?.classList.remove('active');
     document.getElementById('slip-modal')?.classList.remove('open');
@@ -483,18 +627,28 @@
 
     const pidsBloqueados = [];
     const idsUnicos = [...new Set(bets.map(b => (b.partidoId || '').toString().trim()).filter(Boolean))];
-    for (const pid of idsUnicos) { if (await partidoEnVivo(pid)) { const nombre = bets.find(b => b.partidoId === pid)?.partido || pid; pidsBloqueados.push(nombre); } }
+    for (const pid of idsUnicos) {
+      if (await partidoEnVivo(pid)) {
+        const nombre = bets.find(b => b.partidoId === pid)?.partido || pid;
+        pidsBloqueados.push(nombre);
+      }
+    }
     if (pidsBloqueados.length) {
       bets = bets.filter(b => !pidsBloqueados.some(nombre => b.partido === nombre));
       guardar(); render();
-      toast(pidsBloqueados.length === 1 ? `⚠ "${pidsBloqueados[0]}" ya está en vivo y se ha eliminado del carrito` : `⚠ ${pidsBloqueados.length} partidos están en vivo y se han eliminado del carrito`, 'error');
+      toast(
+        pidsBloqueados.length === 1
+          ? `⚠ "${pidsBloqueados[0]}" ya está en vivo y se ha eliminado del carrito`
+          : `⚠ ${pidsBloqueados.length} partidos están en vivo y se han eliminado del carrito`,
+        'error'
+      );
       return;
     }
 
     const tabActual = document.querySelector('.bs-tab.active')?.dataset.target || 'simple';
     const stakeEl = [...document.querySelectorAll('.stake-input input, #slip-stake, #slip-stake-modal, #index-stake-modal')]
       .find(el => el && el.value !== '') || document.querySelector('.stake-input input');
-    const stake     = parseFloat(stakeEl?.value || 5) || 0;
+    const stake = parseFloat(stakeEl?.value || 5) || 0;
     if (stake <= 0) { toast('El importe debe ser mayor que 0', 'error'); return; }
 
     const userRef  = db.collection('usuarios').doc(user.uid);
@@ -505,28 +659,36 @@
 
     if (tabActual === 'sistema' && bets.length >= 3) {
       const porPartido = {};
-      bets.forEach(b => { const pid = b.partidoId; if (!porPartido[pid]) porPartido[pid] = b; });
+      bets.forEach(b => {
+        const pid = b.partidoId;
+        if (!porPartido[pid]) porPartido[pid] = b;
+      });
       const sels = Object.values(porPartido);
       const k    = parseInt(document.querySelector('input[name="sistema-tipo"]:checked')?.value || 2);
       const { combos } = calcularSistema(sels, k);
-      totalDescontar    = stake * combos;
+      totalDescontar = stake * combos;
       if (totalDescontar > saldo) { toast('Saldo insuficiente', 'error'); return; }
       apuestaData = {
-        usuarioId: user.uid, fecha: firebase.firestore.FieldValue.serverTimestamp(),
-        tipo: 'sistema', sistema: { k, n: sels.length, combos },
-        stake, totalDescontar, totalOdds: calcularCuotaCombinada(sels),
+        usuarioId: user.uid,
+        fecha: firebase.firestore.FieldValue.serverTimestamp(),
+        tipo: 'sistema',
+        sistema: { k, n: sels.length, combos },
+        stake, totalDescontar,
+        totalOdds: calcularCuotaCombinada(sels),
         potentialWin: stake * calcularCuotaCombinada(sels) * combos,
         bets: bets.map(b => ({ ...b, cuota: parseFloat(b.cuota) })),
         estado: 'pendiente', resultado: null,
       };
     } else {
       const totalOdds = calcularCuotaCombinada(bets);
-      totalDescontar   = stake;
+      totalDescontar  = stake;
       if (totalDescontar > saldo) { toast('Saldo insuficiente', 'error'); return; }
       apuestaData = {
-        usuarioId: user.uid, fecha: firebase.firestore.FieldValue.serverTimestamp(),
+        usuarioId: user.uid,
+        fecha: firebase.firestore.FieldValue.serverTimestamp(),
         tipo: bets.length === 1 ? 'simple' : 'combinada',
-        stake, totalOdds, potentialWin: stake * totalOdds,
+        stake, totalOdds,
+        potentialWin: stake * totalOdds,
         bets: bets.map(b => ({ ...b, cuota: parseFloat(b.cuota) })),
         estado: 'pendiente', resultado: null,
       };
@@ -541,7 +703,9 @@
       window._saldoUsuario = nuevoSaldo;
       const saldoVal = document.getElementById('hdr-saldo-val');
       if (saldoVal) saldoVal.textContent = `${nuevoSaldo.toFixed(2)} €`;
-      document.querySelectorAll('.hdr-dd-saldo').forEach(el => { el.textContent = `${nuevoSaldo.toFixed(2)} €`; });
+      document.querySelectorAll('.hdr-dd-saldo').forEach(el => {
+        el.textContent = `${nuevoSaldo.toFixed(2)} €`;
+      });
       cerrarModalesMobil();
     } catch (err) {
       console.error('[BetSlip] Error al guardar apuesta:', err);
@@ -561,21 +725,25 @@
     );
 
     document.querySelectorAll(
-        '.stake-input input, #slip-stake, #slip-stake-modal, #index-stake-modal'
-      ).forEach(el => {
-        el.addEventListener('input', () => {
-          const val = el.value;
-          document.querySelectorAll('.stake-input input, #slip-stake, #slip-stake-modal, #index-stake-modal').forEach(o => {
-            if (o !== el) o.value = val;
-          });
-          renderFooter();
+      '.stake-input input, #slip-stake, #slip-stake-modal, #index-stake-modal'
+    ).forEach(el => {
+      el.addEventListener('input', () => {
+        const val = el.value;
+        document.querySelectorAll('.stake-input input, #slip-stake, #slip-stake-modal, #index-stake-modal').forEach(o => {
+          if (o !== el) o.value = val;
         });
+        renderFooter();
       });
+    });
 
     document.querySelectorAll('.qs').forEach(btn => {
       btn.addEventListener('click', () => {
-        const v = btn.classList.contains('all-in') ? (window._saldoUsuario || 0) : (parseFloat(btn.textContent) || 0);
-        document.querySelectorAll('.stake-input input, #slip-stake, #slip-stake-modal, #index-stake-modal').forEach(el => { el.value = v; });
+        const v = btn.classList.contains('all-in')
+          ? (window._saldoUsuario || 0)
+          : (parseFloat(btn.textContent) || 0);
+        document.querySelectorAll('.stake-input input, #slip-stake, #slip-stake-modal, #index-stake-modal').forEach(el => {
+          el.value = v;
+        });
         renderFooter();
       });
     });
@@ -588,48 +756,58 @@
       '.accept-btn, #btn-apostar, #btn-apostar-modal, #index-btn-apostar-modal'
     ).forEach(el => el?.addEventListener('click', realizarApuesta));
 
-    /* Modal partido.html */
     const mobileBetBtn = document.getElementById('mobile-bet-btn');
     const slipOverlay  = document.getElementById('slip-overlay');
     const slipModal    = document.getElementById('slip-modal');
-    mobileBetBtn?.addEventListener('click', () => { slipOverlay?.classList.add('active'); slipModal?.classList.add('open'); document.body.style.overflow = 'hidden'; });
-    slipOverlay?.addEventListener('click',  () => { slipOverlay.classList.remove('active'); slipModal?.classList.remove('open'); document.body.style.overflow = ''; });
+    mobileBetBtn?.addEventListener('click', () => {
+      slipOverlay?.classList.add('active');
+      slipModal?.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    });
+    slipOverlay?.addEventListener('click', () => {
+      slipOverlay.classList.remove('active');
+      slipModal?.classList.remove('open');
+      document.body.style.overflow = '';
+    });
 
     render();
   }
 
   /* ── API pública ── */
-  window.BetSlip     = { addBet, vaciar, render, getBets: () => bets, onChange: fn => _subs.push(fn) };
+  window.BetSlip      = { addBet, vaciar, render, getBets: () => bets, onChange: fn => _subs.push(fn) };
   window.addBetToSlip = addBet;
   window.addBet       = (tipo, cuota, mercado) => {
     const p = window._partidoData;
-    addBet({ partido: p ? `${p.local} vs ${p.visitante}` : '', tipo, cuota: String(cuota), mercado, partidoId: window._partidoId || '' });
+    addBet({
+      partido:   p ? `${p.local} vs ${p.visitante}` : '',
+      tipo,
+      cuota:     String(cuota),
+      mercado,
+      partidoId: window._partidoId || '',
+    });
   };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 
-  /* ── formatTipo ──────────────────────────────────────────────
-     Convierte (tipo, mercado) en texto legible para el carrito.
-  ─────────────────────────────────────────────────────────────── */
+  /* ═══════════════════════════════════════════════════════════
+     formatTipo — convierte (tipo, mercado) en texto legible
+     del carrito. Usa normM() igual que el resto del módulo.
+  ═══════════════════════════════════════════════════════════ */
   function formatTipo(tipo, mercado) {
-    const m = normM(mercado);
+    const m = normM(mercado); // ya lowercase sin espacios/guiones
 
-    // Mercados principales existentes
     if (m === 'resultado')        return tipo.toLowerCase() === 'empate' ? 'Empate' : `Gana ${tipo}`;
     if (m === 'dobleoportunidad') return tipo;
     if (m === 'goleadores')       return `Gol de ${tipo}`;
-    if (m === 'totalgoles')       return tipo;
-    if (m === 'descanso')         return tipo;
-    if (m === 'segunda')          return tipo;
+    if (m === 'totalgoles') return tipo;
+    if (m === 'descanso' || m === 'htresult')
+      return `1ª mitad: ${tipo.replace(/^ht1?:\s*/i, '')}`;
+    if (m === 'segunda')
+      return `2ª mitad: ${tipo.replace(/^ht2?:\s*/i, '')}`;
 
-    // DNB
-    if (m === 'dnb') {
-      // Quitar prefijo "DNB: " si lo tiene
-      return tipo.replace(/^DNB:\s*/i, 'Sin empate: ');
-    }
+    if (m === 'dnb') return tipo.replace(/^DNB:\s*/i, 'Sin empate: ');
 
-    // Ambos marcan / BTTS
     if (m === 'ambosmarcan' || m === 'btts') {
       const v = tipo.toLowerCase();
       if (v === 'sí' || v === 'si' || v === 'yes') return 'Ambos marcan: Sí';
@@ -637,42 +815,80 @@
       return `Ambos marcan: ${tipo}`;
     }
 
-    // HT result (alias del descanso para los nuevos campos)
-    if (m === 'htresult') return `1ª mitad: ${tipo}`;
+    if (m === 'imparpar')   return `Goles ${tipo}`;
+    if (m === 'htimparpar') return `Goles ${tipo} (1ª mitad)`;
 
-    // Over/Under 1ª mitad
-    if (m === 'totalsht') {
-      // tipo ej. "Más de 1.5 (1ª parte)" → limpiar paréntesis
-      return tipo.replace(/\s*\(1ª parte\)/i, ' · 1ª parte');
+    if (m === 'totalsht')    return tipo.replace(/\s*\(1ª parte\)/i, '') + ' · 1ª parte';
+    if (m === 'asiantotals') return tipo.replace(/\s*\(asian\)/i, '') + ' (Asian)';
+
+    if (m === 'teamtotalhome') return `🏠 ${tipo}`;
+    if (m === 'teamtotalaway') return `✈️ ${tipo}`;
+    if (m === 'httotalhome') return `🏠 ${tipo}`;
+    if (m === 'httotalaway') return `✈️ ${tipo}`;
+
+    if (m === 'cornerstotal' || m === 'corners') return `📐 ${tipo}`;
+    if (m === 'cornersht')    return `📐 ${tipo}`;
+
+    if (m === 'bookingstotal' || m === 'tarjetas') return `🟨 ${tipo}`;
+
+    if (m === 'ehresult')      return tipo.replace(/^EH:\s*/i, 'Hándicap: ');
+    if (m === 'asianhandicap') return tipo.replace(/^AH:\s*/i, 'H. Asiático: ');
+
+    if (m === 'htft') {
+      const HTFT_LABELS = {
+        htft_1_1: '1ª: Local / FT: Local',
+        htft_1_x: '1ª: Local / FT: Empate',
+        htft_1_2: '1ª: Local / FT: Visitante',
+        htft_x_1: '1ª: Empate / FT: Local',
+        htft_x_x: '1ª: Empate / FT: Empate',
+        htft_x_2: '1ª: Empate / FT: Visitante',
+        htft_2_1: '1ª: Visitante / FT: Local',
+        htft_2_x: '1ª: Visitante / FT: Empate',
+        htft_2_2: '1ª: Visitante / FT: Visitante',
+      };
+      return HTFT_LABELS[tipo] || tipo;
     }
 
-    // Total goles local
-    if (m === 'teamtotalhome') {
-      // tipo ej. "Arsenal más de 1.5"
-      return `🏠 ${tipo}`;
+    if (m === 'correctscore') {
+      if (tipo === 'csOther') return 'Marcador exacto: Otro';
+      const raw = tipo.replace('cs', '');
+      return `Marcador: ${raw.slice(0, -1)}-${raw.slice(-1)}`;
     }
 
-    // Total goles visitante
-    if (m === 'teamtotalaway') {
-      return `✈️ ${tipo}`;
+    if (m === 'cleansheethome') {
+      const v = tipo.endsWith('Yes') ? 'Sí' : 'No';
+      return `🧤 Portería a cero local: ${v}`;
+    }
+    if (m === 'cleansheetaway') {
+      const v = tipo.endsWith('Yes') ? 'Sí' : 'No';
+      return `🧤 Portería a cero visitante: ${v}`;
     }
 
-    // Córners
-    if (m === 'cornerstotal' || m === 'corners') {
-      return `📐 ${tipo}`;
+    if (m === 'firstscore') {
+      if (tipo === 'firstScoreHome') return '🥇 Primer gol: Local';
+      if (tipo === 'firstScoreNone') return '🥇 Sin goles';
+      if (tipo === 'firstScoreAway') return '🥇 Primer gol: Visitante';
     }
 
-    // Tarjetas
-    if (m === 'bookingstotal' || m === 'tarjetas') {
-      return `🟨 ${tipo}`;
+    if (m === 'nextgoal') {
+      if (tipo === 'nextGoalHome') return '⚡ Próx. gol: Local';
+      if (tipo === 'nextGoalNone') return '⚡ Sin gol';
+      if (tipo === 'nextGoalAway') return '⚡ Próx. gol: Visitante';
     }
 
-    // Hándicap europeo
-    if (m === 'ehresult') {
-      return tipo.replace(/^EH:\s*/i, 'Hándicap: ');
+    if (m === 'winnil') {
+      if (tipo === 'winNilHome') return '🔒 Local gana sin encajar';
+      if (tipo === 'winNilAway') return '🔒 Visitante gana sin encajar';
     }
 
-    // Fallback
+    // ── Goles unificado v3.2: tipos "+2.5" / "-2.5" ──────────
+    // mercado: totalgoles, totalsht, teamtotalhome, teamtotalaway
+    if (/^[+-]\d/.test(tipo)) {
+      const dir = tipo.startsWith('+') ? 'Más de' : 'Menos de';
+      const val = tipo.slice(1);
+      return `${dir} ${val}`;
+    }
+
     return tipo;
   }
 
