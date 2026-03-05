@@ -608,3 +608,4 @@ return tags[key] || mercado || 'Apuesta';
 
 function renderEmptyState(icon, title, sub) {
 return `<div class="empty-state"><div class="empty-state-icon">${icon}</div><div class="empty-state-title">${title}</div><div class="empty-state-sub">${sub}</div></div>`;
+}
