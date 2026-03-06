@@ -106,26 +106,6 @@
     .index-slip-bottom-pad { height: calc(var(--bn-h, 64px) + 16px); flex-shrink: 0; }
 
     /* ══════════════════════════════════════════════
-       COLUMNA IZQUIERDA — Ads + Widget
-    ══════════════════════════════════════════════ */
-    .ad-label {
-      display: block;
-      font-family: 'Barlow Condensed', sans-serif;
-      font-size: 0.62rem; font-weight: 700;
-      letter-spacing: 1.2px; text-transform: uppercase;
-      color: #3a3f52; text-align: center; padding: 6px 0 4px;
-    }
-    .ad-block {
-      width: 100%; border-radius: 10px; overflow: hidden;
-      background: #12141a; border: 1px solid #1e2130;
-      display: flex; justify-content: center;
-    }
-    .sidebar-sticky {
-      position: sticky; top: 80px;
-      display: flex; flex-direction: column; gap: 18px;
-    }
-
-    /* ══════════════════════════════════════════════
        WIDGET TIPS DE APUESTAS
     ══════════════════════════════════════════════ */
     .tips-widget {
@@ -219,7 +199,6 @@
   window.addEventListener('load', function () {
     var splash = document.getElementById('pwa-splash');
     if (!splash) return;
-    // Solo mostrar splash si viene de PWA instalada
     var isStandalone = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
     if (isStandalone) {
       splash.style.opacity = '0';
@@ -251,35 +230,7 @@
     <div class="column column-left">
       <div class="sidebar-sticky">
 
-        <!-- 1 · Native Ad (solo desktop) -->
-        <div style="display:none;" class="desktop-only-ad">
-          <span class="ad-label">Publicidad</span>
-          <div class="ad-block">
-            <script async="async" data-cfasync="false"
-              src="https://pl28851328.effectivegatecpm.com/4a33511adbf3c3aff8bfede6873f7e14/invoke.js">
-            </script>
-            <div id="container-4a33511adbf3c3aff8bfede6873f7e14"></div>
-          </div>
-        </div>
-
-        <!-- 2 · Banner 300x250 -->
-        <div>
-          <span class="ad-label">Publicidad</span>
-          <div class="ad-block">
-            <script>
-              atOptions = {
-                'key'    : 'f3e6a6e35c548b930b129bee0331b250',
-                'format' : 'iframe',
-                'height' : 250,
-                'width'  : 300,
-                'params' : {}
-              };
-            </script>
-            <script src="https://www.highperformanceformat.com/f3e6a6e35c548b930b129bee0331b250/invoke.js"></script>
-          </div>
-        </div>
-
-        <!-- 3 · Widget Tips de Apuestas -->
+        <!-- Widget Tips de Apuestas -->
         <div class="tips-widget" id="tips-widget">
           <div class="tips-widget-header">
             <div class="tips-widget-icon">💡</div>
@@ -589,19 +540,6 @@
 
   renderPagina(0);
   reiniciarAuto();
-})();
-
-/* ════════════════════════════════════════════════════
-   NATIVE AD — Solo mostrar en desktop (>900px)
-════════════════════════════════════════════════════ */
-(function () {
-  var adBlock = document.querySelector('.desktop-only-ad');
-  if (!adBlock) return;
-  function checkWidth() {
-    adBlock.style.display = window.innerWidth > 900 ? 'block' : 'none';
-  }
-  checkWidth();
-  window.addEventListener('resize', checkWidth);
 })();
 
 /* ════════════════════════════════════════════════════
