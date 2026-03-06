@@ -1565,3 +1565,218 @@
   font-size: 12px;
   text-align: center;
 }
+
+/* ================================================================
+   partido-card-fix.css — Winnet
+   Proporciones fijas en tarjetas de partido:
+   · Equipos y cuotas siempre del mismo tamaño
+   · Nombres largos truncados con ellipsis, nunca empujan el centro
+   · Cuotas siempre en 3 columnas iguales, sin deformarse
+   · Escudos siempre centrados y del mismo tamaño
+   Añadir DESPUÉS de partidos-view.css en el <head>
+================================================================ */
+
+/* ── 1. Grid de equipos: proporciones fijas 2fr–1fr–2fr ──────────
+   El centro (hora/marcador) ocupa siempre 1 parte fija.
+   Cada equipo ocupa 2 partes iguales, sin importar el nombre.
+   max-content en el centro evita que se comprima.
+──────────────────────────────────────────────────────────────── */
+.info-equipos {
+  display: grid;
+  grid-template-columns: 1fr 72px 1fr;   /* centro fijo 72px */
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+/* ── 2. Equipo: no crecen más de lo que les toca ── */
+.equipo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;          /* imprescindible para que trunce */
+  width: 100%;
+}
+
+/* ── 3. Nombre del equipo: truncar con ellipsis ── */
+.equipo span {
+  font-family: 'Barlow', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--blanco);
+  text-align: center;
+  line-height: 1.25;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* En móvil los nombres pueden ir en 2 líneas si quieres,
+   pero controlados: máximo 2 líneas, nunca empujan el centro */
+@media (max-width: 480px) {
+  .equipo span {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;              /* ← estándar, elimina el warning */
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.75rem;
+  }
+
+  /* Centro aún más compacto en móvil pequeño */
+  .info-equipos {
+    grid-template-columns: 1fr 60px 1fr;
+  }
+}
+
+/* ── 4. Escudo: tamaño siempre fijo ── */
+.escudo-wrapper {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  min-height: 40px;
+  border-radius: 50%;
+  background: #1e2028;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--borde);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.escudo-wrapper img {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+}
+
+/* ── 5. Centro: nunca se encoge, siempre centrado ── */
+.centro {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 0;
+  width: 100%;
+}
+
+/* ── 6. Cuotas: siempre 3 columnas iguales, sin deformarse ── */
+.cuotas-futbol {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-top: 12px;
+  width: 100%;
+}
+
+.cuota {
+  background: #0e0f14;
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  padding: 7px 4px 6px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  user-select: none;
+  min-width: 0;          /* permite que se encoja sin romper el grid */
+  width: 100%;
+}
+
+/* Nombre abreviado dentro de la cuota: nunca desborda */
+.nombre-equipo-cuota {
+  font-family: 'Barlow', sans-serif;
+  font-size: 0.65rem;
+  color: var(--texto-secundario);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  width: 100%;
+  text-align: center;
+}
+
+/* Valor cuota: tamaño fijo */
+.valor-cuota,
+.cuota-btn {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--amarillo);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* ── 7. Hora/marcador: tamaño estable ── */
+.hora {
+  font-family: 'Barlow', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--amarillo);
+  display: block;
+  text-align: center;
+  white-space: nowrap;
+}
+.hora small {
+  font-size: 0.68rem;
+  color: var(--texto-secundario);
+  font-weight: 400;
+  display: block;
+  margin-top: 1px;
+}
+
+.marcador {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--blanco);
+  letter-spacing: 3px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* ── 8. Tarjeta: no dejar que el contenido rompa el ancho ── */
+.partido-card {
+  overflow: hidden;    /* corta cualquier overflow residual */
+  box-sizing: border-box;
+  width: 100%;
+}
+
+/* ── 9. Ajuste fino en pantallas muy pequeñas (<360px) ── */
+@media (max-width: 360px) {
+  .info-equipos {
+    grid-template-columns: 1fr 54px 1fr;
+    gap: 4px;
+  }
+  .escudo-wrapper {
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    min-height: 34px;
+  }
+  .escudo-wrapper img {
+    width: 22px;
+    height: 22px;
+  }
+  .cuotas-futbol {
+    gap: 4px;
+  }
+  .valor-cuota, .cuota-btn {
+    font-size: 0.95rem;
+  }
+}

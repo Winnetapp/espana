@@ -1,38 +1,19 @@
 /* ══════════════════════════════════════════════════════════════
    WINNET — CENTRO DE NOTIFICACIONES INTERNO
    Archivo: assets/js/notifications.js
-
-   FUNCIONALIDADES:
-   ─ Bandeja de entrada persistente en Firestore
-   ─ Notificaciones automáticas:
-       · ⏰ Partido favorito empieza en 30 min
-       · 🟢 Partido favorito ha comenzado
-       · ⚽ Gol en tu partido favorito
-       · ✅/❌ Apuesta resuelta (ganada / perdida / empate)
-       · 💰 Racha de pérdidas (3 seguidas)
-       · 🎁 Bono de bienvenida / primera apuesta del día
-       · 🏆 Nuevo logro desbloqueado (cuota alta ganada, etc.)
-   ─ Panel lateral con tabs (Todas / Sin leer / Apuestas / Partidos)
-   ─ Toast animado al llegar notificación nueva
-   ─ Badge con contador de no leídas en la campana
-   ─ Marcar como leída / eliminar individual / limpiar todo
 ══════════════════════════════════════════════════════════════ */
 
 window.WinnetNotifications = (function () {
 
-  /* ── Constantes ─────────────────────────────────────── */
-  const MAX_NOTIFS       = 60;   // máximo en Firestore por usuario
-  const POLL_INTERVAL_MS = 60000; // cada 60s comprueba partidos favoritos
-  const TOAST_DURATION   = 5000;  // ms que dura el toast
+  const MAX_NOTIFS       = 60;
+  const TOAST_DURATION   = 5000;
 
-  /* ── Estado interno ──────────────────────────────────── */
   let _db          = null;
   let _auth        = null;
   let _uid         = null;
-  let _notifs      = [];         // array local sincronizado con Firestore
+  let _notifs      = [];
   let _tabActual   = 'todas';
-  let _pollTimer   = null;
-  let _unsubscribe = null;       // listener Firestore en tiempo real
+  let _unsubscribe = null;
   let _toastQueue  = [];
   let _toastBusy   = false;
 
@@ -50,14 +31,11 @@ window.WinnetNotifications = (function () {
       if (user) {
         _uid = user.uid;
         _iniciarListener();
-        _iniciarPolling();
-        _verificarApuestasResueltas();
         _saludo();
       } else {
         _uid = null;
         _notifs = [];
         if (_unsubscribe) { _unsubscribe(); _unsubscribe = null; }
-        if (_pollTimer)   { clearInterval(_pollTimer); _pollTimer = null; }
         _renderLista();
         _actualizarBadge();
       }
@@ -65,19 +43,17 @@ window.WinnetNotifications = (function () {
   }
 
   /* ══════════════════════════════════════════════════════
-     2 · HTML del panel (se inyecta en el <body>)
+     2 · HTML del panel
   ══════════════════════════════════════════════════════ */
   function _inyectarHTML() {
-    if (document.getElementById('notif-panel')) return; // ya existe
+    if (document.getElementById('notif-panel')) return;
 
     document.head.insertAdjacentHTML('beforeend',
       '<link rel="stylesheet" href="assets/css/notifications.css">');
 
     document.body.insertAdjacentHTML('beforeend', `
-      <!-- Overlay -->
       <div id="notif-overlay"></div>
 
-      <!-- Panel lateral -->
       <div id="notif-panel" role="dialog" aria-label="Centro de notificaciones">
         <div class="notif-panel-header">
           <span class="notif-panel-title">
@@ -107,7 +83,6 @@ window.WinnetNotifications = (function () {
         </div>
       </div>
 
-      <!-- Toast -->
       <div id="notif-toast">
         <span class="toast-icon" id="toast-icon"></span>
         <div class="toast-body">
@@ -116,8 +91,7 @@ window.WinnetNotifications = (function () {
         </div>
       </div>
     `);
-
-    // El botón #notif-bell-trigger lo crea header.js — no hacemos nada aquí
+    // El botón #notif-bell-trigger lo crea header.js
   }
 
   /* ══════════════════════════════════════════════════════
@@ -125,40 +99,31 @@ window.WinnetNotifications = (function () {
   ══════════════════════════════════════════════════════ */
   function _bindUI() {
     document.addEventListener('click', function (e) {
-      // Abrir panel
       const bell = e.target.closest('#notif-bell-trigger');
       if (bell) { _abrirPanel(); return; }
 
-      // Cerrar panel
       if (e.target.id === 'notif-close' || e.target.id === 'notif-overlay') {
         _cerrarPanel(); return;
       }
 
-      // Tabs
       const tab = e.target.closest('.notif-tab');
       if (tab && tab.dataset.tab) { _cambiarTab(tab.dataset.tab); return; }
 
-      // Marcar todas leídas
       if (e.target.id === 'notif-mark-all') { _marcarTodasLeidas(); return; }
-
-      // Limpiar todas
       if (e.target.id === 'notif-clear-all') { _limpiarTodas(); return; }
 
-      // Eliminar individual
       const delBtn = e.target.closest('.notif-delete-btn');
       if (delBtn) {
         e.stopPropagation();
         _eliminarNotif(delBtn.dataset.id); return;
       }
 
-      // Marcar leída + navegar al hacer clic en la tarjeta
       const item = e.target.closest('.notif-item');
       if (item && item.dataset.id) {
         _marcarLeida(item.dataset.id);
         const url = item.dataset.url;
         if (url) {
           _cerrarPanel();
-          // Pequeño delay para que se vea el cierre del panel antes de navegar
           setTimeout(() => { window.location.href = url; }, 180);
         }
         return;
@@ -202,7 +167,6 @@ window.WinnetNotifications = (function () {
         _renderLista();
         _actualizarBadge();
 
-        // Si llegaron notificaciones nuevas mientras el panel está cerrado → toast
         if (newCount > prevCount) {
           const nuevas = _notifs.filter(n => !n.leida).slice(0, newCount - prevCount);
           nuevas.forEach(n => _mostrarToast(n));
@@ -249,7 +213,6 @@ window.WinnetNotifications = (function () {
       return;
     }
 
-    // Agrupar por fecha
     const grupos = {};
     items.forEach(n => {
       const key = _labelFecha(n.ts?.toDate ? n.ts.toDate() : new Date(n.ts));
@@ -260,9 +223,7 @@ window.WinnetNotifications = (function () {
     let html = '';
     Object.entries(grupos).forEach(([fecha, notifs]) => {
       html += `<div class="notif-date-sep">${fecha}</div>`;
-      notifs.forEach(n => {
-        html += _templateItem(n);
-      });
+      notifs.forEach(n => { html += _templateItem(n); });
     });
 
     lista.innerHTML = html;
@@ -309,14 +270,14 @@ window.WinnetNotifications = (function () {
 
   function _iconoTipo(tipo) {
     const mapa = {
-      partido:  'fas fa-futbol',
-      gol:      'fas fa-futbol',
-      apuesta:  'fas fa-ticket-alt',
-      ganada:   'fas fa-check-circle',
-      perdida:  'fas fa-times-circle',
-      empate:   'fas fa-minus-circle',
-      inicio:   'fas fa-play-circle',
-      sistema:  'fas fa-bell',
+      partido: 'fas fa-futbol',
+      gol:     'fas fa-futbol',
+      apuesta: 'fas fa-ticket-alt',
+      ganada:  'fas fa-check-circle',
+      perdida: 'fas fa-times-circle',
+      empate:  'fas fa-minus-circle',
+      inicio:  'fas fa-play-circle',
+      sistema: 'fas fa-bell',
     };
     return mapa[tipo] || 'fas fa-bell';
   }
@@ -336,7 +297,7 @@ window.WinnetNotifications = (function () {
   }
 
   /* ══════════════════════════════════════════════════════
-     8 · ACCIONES (marcar leída, eliminar, limpiar)
+     8 · ACCIONES
   ══════════════════════════════════════════════════════ */
   function _marcarLeida(id) {
     if (!_db || !_uid) return;
@@ -378,25 +339,19 @@ window.WinnetNotifications = (function () {
   }
 
   /* ══════════════════════════════════════════════════════
-     9 · CREAR NOTIFICACIÓN (uso interno y externo)
+     9 · CREAR NOTIFICACIÓN (frontend — solo apuestas)
+     Goles, partidos y demás los crea el Worker.
   ══════════════════════════════════════════════════════ */
-  /**
-   * Crea una notificación en Firestore.
-   * @param {object} opts { titulo, desc, tipo, categoria, dedupeKey? }
-   * tipo:      'partido' | 'gol' | 'apuesta' | 'ganada' | 'perdida' | 'empate' | 'inicio' | 'sistema'
-   * categoria: 'partido' | 'apuesta' | 'sistema'
-   * dedupeKey: si se pasa, comprueba que no exista ya una notif con esa clave hoy
-   */
   function crear(opts) {
     if (!_db || !_uid) return Promise.resolve();
 
     const { titulo, desc, tipo, categoria, dedupeKey } = opts;
 
-    // Deduplicación: no repetir la misma notif el mismo día
     if (dedupeKey) {
       const hoy = _hoyStr();
       const yaExiste = _notifs.some(n =>
-        n.dedupeKey === dedupeKey && _fechaStr(n.ts?.toDate ? n.ts.toDate() : new Date(n.ts)) === hoy
+        n.dedupeKey === dedupeKey &&
+        _fechaStr(n.ts?.toDate ? n.ts.toDate() : new Date(n.ts)) === hoy
       );
       if (yaExiste) return Promise.resolve();
     }
@@ -406,11 +361,11 @@ window.WinnetNotifications = (function () {
       .add({
         titulo,
         desc,
-        tipo:       tipo || 'sistema',
-        categoria:  categoria || 'sistema',
-        leida:      false,
-        ts:         firebase.firestore.FieldValue.serverTimestamp(),
-        dedupeKey:  dedupeKey || null,
+        tipo:      tipo || 'sistema',
+        categoria: categoria || 'sistema',
+        leida:     false,
+        ts:        firebase.firestore.FieldValue.serverTimestamp(),
+        dedupeKey: dedupeKey || null,
       })
       .catch(e => console.warn('[Winnet Notif] crear:', e));
   }
@@ -427,14 +382,13 @@ window.WinnetNotifications = (function () {
     if (_toastQueue.length === 0) { _toastBusy = false; return; }
     _toastBusy = true;
 
-    const n = _toastQueue.shift();
+    const n          = _toastQueue.shift();
     const toast      = document.getElementById('notif-toast');
     const toastIcon  = document.getElementById('toast-icon');
     const toastTitle = document.getElementById('toast-title');
     const toastDesc  = document.getElementById('toast-desc');
     if (!toast) { _toastBusy = false; return; }
 
-    // Mapa emoji rápido
     const emojis = { partido:'⏰', gol:'⚽', ganada:'✅', perdida:'❌', empate:'🤝', inicio:'🟢', apuesta:'🎫', sistema:'🔔' };
     toastIcon.textContent  = emojis[n.tipo] || '🔔';
     toastTitle.textContent = n.titulo;
@@ -448,90 +402,8 @@ window.WinnetNotifications = (function () {
   }
 
   /* ══════════════════════════════════════════════════════
-     11 · POLLING — Comprueba partidos favoritos
-  ══════════════════════════════════════════════════════ */
-  function _iniciarPolling() {
-    if (_pollTimer) clearInterval(_pollTimer);
-    _comprobarPartidosFavoritos(); // ejecución inmediata
-    _pollTimer = setInterval(_comprobarPartidosFavoritos, POLL_INTERVAL_MS);
-  }
-
-  async function _comprobarPartidosFavoritos() {
-    if (!_db || !_uid) return;
-
-    try {
-      // Obtener favoritos del usuario
-      const favSnap = await _db.collection('usuarios').doc(_uid)
-        .collection('favoritos').get();
-      if (favSnap.empty) return;
-
-      const favIds = favSnap.docs.map(d => d.id);
-
-      // Obtener partidos próximas 24h
-      const ahora = new Date();
-      const en24h = new Date(ahora.getTime() + 24 * 3600 * 1000);
-
-      // Buscar en colección 'partidos' los que sean favoritos
-      // Se hace en lotes de 10 (límite de 'in' en Firestore)
-      const lotes = _chunks(favIds, 10);
-      for (const lote of lotes) {
-        const snap = await _db.collection('partidos')
-          .where(firebase.firestore.FieldPath.documentId(), 'in', lote)
-          .get();
-
-        snap.docs.forEach(doc => {
-          const p = doc.data();
-          const fechaPartido = p.fecha?.toDate ? p.fecha.toDate() : new Date(p.fecha);
-          const diffMin = (fechaPartido - ahora) / 60000;
-
-          // ⏰ Empieza en ~30 min (entre 25 y 35 min)
-          if (diffMin >= 25 && diffMin <= 35) {
-            crear({
-              titulo: `⏰ ${p.local} vs ${p.visitante} empieza pronto`,
-              desc:   `Comienza en aproximadamente 30 minutos. ¡Prepara tu apuesta!`,
-              tipo:      'partido',
-              categoria: 'partido',
-              dedupeKey: `pronto_${doc.id}`,
-            });
-          }
-
-          // 🟢 Ha comenzado (entre -2 y 5 min del kick-off)
-          if (diffMin >= -2 && diffMin <= 5 && p.estado === 'en_vivo') {
-            crear({
-              titulo: `🟢 ${p.local} vs ${p.visitante} ha comenzado`,
-              desc:   `Tu partido favorito ya está en juego. ¡Sigue el marcador en directo!`,
-              tipo:      'inicio',
-              categoria: 'partido',
-              dedupeKey: `inicio_${doc.id}`,
-            });
-          }
-
-          // ⚽ Gol nuevo (compara marcador con el almacenado localmente)
-          const claveGol    = `goles_${doc.id}`;
-          const marcadorAnt = sessionStorage.getItem(claveGol);
-          const marcadorAct = `${p.golesLocal}-${p.golesVisitante}`;
-          if (marcadorAnt !== null && marcadorAnt !== marcadorAct && p.estado === 'en_vivo') {
-            crear({
-              titulo: `⚽ ¡Gol en ${p.local} vs ${p.visitante}!`,
-              desc:   `Marcador actualizado: ${p.local} ${p.golesLocal} – ${p.golesVisitante} ${p.visitante}`,
-              tipo:      'gol',
-              categoria: 'partido',
-              dedupeKey: `gol_${doc.id}_${marcadorAct}`,
-            });
-          }
-          sessionStorage.setItem(claveGol, marcadorAct);
-        });
-      }
-    } catch (e) {
-      console.warn('[Winnet Notif] polling favoritos:', e);
-    }
-  }
-
-  /* ══════════════════════════════════════════════════════
-     12 · NOTIFICACIONES DE APUESTAS
-     Llama a esta función desde betslip-core.js cuando
-     se resuelva una apuesta:
-       WinnetNotifications.apuestaResuelta(apuesta)
+     11 · NOTIFICACIONES DE APUESTAS (desde betslip-core)
+     WinnetNotifications.apuestaResuelta(apuesta)
   ══════════════════════════════════════════════════════ */
   function apuestaResuelta(apuesta) {
     if (!apuesta) return;
@@ -545,8 +417,6 @@ window.WinnetNotifications = (function () {
         tipo:      'ganada',
         categoria: 'apuesta',
       });
-
-      // Logro: cuota alta (>= 5)
       if (parseFloat(cuotaTotal) >= 5) {
         crear({
           titulo:    `🏆 ¡Logro desbloqueado! Cuota alta ganada`,
@@ -563,7 +433,8 @@ window.WinnetNotifications = (function () {
         tipo:      'perdida',
         categoria: 'apuesta',
       });
-      _comprobarRachaPerdidas();
+      // Racha de pérdidas: se detecta en el array local, sin query a Firestore
+      _comprobarRachaLocal();
     } else if (resultado === 'empate') {
       crear({
         titulo:    `🤝 Apuesta devuelta (empate)`,
@@ -574,78 +445,32 @@ window.WinnetNotifications = (function () {
     }
   }
 
-  async function _comprobarRachaPerdidas() {
-    if (!_db || !_uid) return;
-    try {
-      const snap = await _db.collection('usuarios').doc(_uid)
-        .collection('apuestas')
-        .orderBy('ts', 'desc')
-        .limit(3)
-        .get();
+  /* Comprueba racha de pérdidas usando el array local (_notifs),
+     sin hacer ninguna query adicional a Firestore             */
+  function _comprobarRachaLocal() {
+    const apuestas = _notifs
+      .filter(n => n.categoria === 'apuesta' && ['ganada','perdida','empate'].includes(n.tipo))
+      .slice(0, 3);
 
-      const ultimas = snap.docs.map(d => d.data());
-      if (ultimas.length === 3 && ultimas.every(a => a.resultado === 'perdida')) {
-        crear({
-          titulo:    `💡 Consejo: llevas 3 pérdidas seguidas`,
-          desc:      `Recuerda gestionar tu bankroll. Nunca apuestes más del 5% de tu saldo en una sola apuesta.`,
-          tipo:      'sistema',
-          categoria: 'sistema',
-          dedupeKey: `racha_perdidas_${_hoyStr()}`,
-        });
-      }
-    } catch (e) {
-      console.warn('[Winnet Notif] rachaPerdidas:', e);
+    if (apuestas.length === 3 && apuestas.every(n => n.tipo === 'perdida')) {
+      crear({
+        titulo:    `💡 Consejo: llevas 3 pérdidas seguidas`,
+        desc:      `Recuerda gestionar tu bankroll. Nunca apuestes más del 5% de tu saldo en una sola apuesta.`,
+        tipo:      'sistema',
+        categoria: 'sistema',
+        dedupeKey: `racha_perdidas_${_hoyStr()}`,
+      });
     }
   }
 
   /* ══════════════════════════════════════════════════════
-     13 · VERIFICAR APUESTAS RESUELTAS AL CARGAR
-     Comprueba si hay apuestas pendientes que ya terminaron
+     12 · SALUDO DEL DÍA
   ══════════════════════════════════════════════════════ */
-  async function _verificarApuestasResueltas() {
-    if (!_db || !_uid) return;
-    try {
-      const snap = await _db.collection('usuarios').doc(_uid)
-        .collection('apuestas')
-        .where('estado', '==', 'pendiente')
-        .get();
-
-      if (snap.empty) return;
-
-      for (const doc of snap.docs) {
-        const apuesta = doc.data();
-        const finPartido = apuesta.fechaFin?.toDate ? apuesta.fechaFin.toDate() : null;
-        if (!finPartido || finPartido > new Date()) continue;
-
-        // La apuesta debería estar resuelta pero sigue "pendiente"
-        // Notificamos al usuario para que revise
-        crear({
-          titulo:    `📋 Una apuesta pendiente puede haber terminado`,
-          desc:      `Revisa el estado de tus apuestas en "Mis Apuestas".`,
-          tipo:      'apuesta',
-          categoria: 'apuesta',
-          dedupeKey: `pendiente_check_${doc.id}_${_hoyStr()}`,
-        });
-      }
-    } catch (e) {
-      console.warn('[Winnet Notif] verificarApuestas:', e);
-    }
-  }
-
-  /* ══════════════════════════════════════════════════════
-     14 · SALUDO / PRIMERA VEZ DEL DÍA
-  ══════════════════════════════════════════════════════ */
-  async function _saludo() {
-    if (!_db || !_uid) return;
-    try {
-      const snap = await _db.collection('usuarios').doc(_uid)
-        .collection('notificaciones')
-        .where('dedupeKey', '==', `saludo_${_hoyStr()}`)
-        .limit(1)
-        .get();
-
-      if (!snap.empty) return; // ya se saludó hoy
-
+  function _saludo() {
+    // Usa el array local — sin queries extra a Firestore
+    // El listener ya habrá cargado _notifs antes de que se llame
+    // Se retrasa 2s para dar tiempo al onSnapshot inicial
+    setTimeout(() => {
       crear({
         titulo:    `👋 ¡Bienvenido de nuevo a Winnet!`,
         desc:      `Tienes nuevos partidos disponibles. ¡Revisa tus favoritos y haz tus apuestas del día!`,
@@ -653,13 +478,11 @@ window.WinnetNotifications = (function () {
         categoria: 'sistema',
         dedupeKey: `saludo_${_hoyStr()}`,
       });
-    } catch (e) {
-      console.warn('[Winnet Notif] saludo:', e);
-    }
+    }, 2000);
   }
 
   /* ══════════════════════════════════════════════════════
-     15 · UTILIDADES
+     13 · UTILIDADES
   ══════════════════════════════════════════════════════ */
   function _tiempoRelativo(fecha) {
     if (!fecha || isNaN(fecha)) return '';
@@ -703,13 +526,7 @@ window.WinnetNotifications = (function () {
     return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
 
-  function _chunks(arr, size) {
-    const res = [];
-    for (let i = 0; i < arr.length; i += size) res.push(arr.slice(i, i + size));
-    return res;
-  }
-
-  /* ── API pública ─────────────────────────────────────── */
+  /* ── API pública ── */
   return { init, crear, apuestaResuelta };
 
 })();
