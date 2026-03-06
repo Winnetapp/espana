@@ -1,13 +1,20 @@
 /* =============================================================
-   mercados.js  —  v3.2
+   mercados.js  —  v3.4
    Renderiza todos los mercados de apuestas.
 
+   CAMBIOS v3.4:
+   · _renderLineasGU: data-tipo pasa texto legible
+     ("Más de 2.5 goles" / "Menos de 2.5 goles") en lugar de
+     "+2.5" / "-2.5". Se añaden data-line y data-dir para que
+     betslip-core y worker.js puedan resolver sin regex.
+
+   CAMBIOS v3.3:
+   · _leerOUraw: filtro revertido a original (line !== null && line > 0)
+     El worker garantiza el point correcto vía votación de bookmakers.
+
    CAMBIOS v3.1:
-   · Mercados de goles (#5, #9, #14, #15, #16, #17) unificados
-     en un único bloque con selector de tipo al estilo Bet365:
-       ⚽ Partido / ⏱ 1ª parte / 🏠 Local / ✈️ Visitante
-     con tabs horizontales y cuadrícula de líneas over/under.
-   · El resto de mercados sin cambios.
+   · Mercados de goles unificados en bloque con selector de tipo
+     al estilo Bet365.
    ============================================================= */
 
 window.toggleMercado = function(id) {
@@ -17,7 +24,11 @@ window.toggleMercado = function(id) {
 window.handleOpcion = function(btn) {
   if (btn.classList.contains('sin-cuota'))    return;
   if (btn.classList.contains('ft-bloqueada')) return;
-  window.addBet(btn.dataset.tipo, btn.dataset.cuota, btn.dataset.mercado);
+  // ★ v3.4: pasar line y dir si están presentes en el botón
+  const extra = {};
+  if (btn.dataset.line != null && btn.dataset.line !== '') extra.line = parseFloat(btn.dataset.line);
+  if (btn.dataset.dir  != null && btn.dataset.dir  !== '') extra.dir  = btn.dataset.dir;
+  window.addBet(btn.dataset.tipo, btn.dataset.cuota, btn.dataset.mercado, extra);
 };
 
 /* ─────────────────────────────────────────────────────────────
@@ -30,17 +41,15 @@ function parseLineKey(raw) {
     return v !== null ? -v : null;
   }
   const len = raw.length;
-  if (len === 1) return parseFloat(raw);                          // "1"   → 1
-  if (len === 2) return parseFloat(raw[0] + '.' + raw[1]);       // "25"  → 2.5, "05" → 0.5
-  if (len === 3 && raw[0] === '0')
-    return parseFloat('0.' + raw[1] + raw[2]);                   // "025" → 0.25
-  if (len === 3)
-    return parseFloat(raw[0] + '.' + raw[1] + raw[2]);           // "275" → 2.75
+  if (len === 1) return parseFloat(raw);
+  if (len === 2) return parseFloat(raw[0] + '.' + raw[1]);
+  if (len === 3 && raw[0] === '0') return parseFloat('0.' + raw[1] + raw[2]);
+  if (len === 3) return parseFloat(raw[0] + '.' + raw[1] + raw[2]);
   return null;
 }
 
 /* ─────────────────────────────────────────────────────────────
-   HELPER: leer líneas over/under dinámicas
+   HELPER: leer líneas over/under dinámicas (mercados no-goles)
 ─────────────────────────────────────────────────────────────── */
 function leerLineasOU(c, prefOver, prefUnder, mercadoId, labelOver, labelUnder) {
   const lineas = new Set();
@@ -86,6 +95,16 @@ const _GU_MAP = {
   visitante:   { prefO: 'ttAwayOver',   prefU: 'ttAwayUnder',   mercado: 'teamtotalaway' },
   localht:     { prefO: 'htTtHomeOver', prefU: 'htTtHomeUnder', mercado: 'httotalhome'   },
   visitanteht: { prefO: 'htTtAwayOver', prefU: 'htTtAwayUnder', mercado: 'httotalaway'   },
+};
+
+// Etiquetas legibles por tab
+const _GU_LABELS = {
+  partido:     { over: (l) => `Más de ${l} goles`,    under: (l) => `Menos de ${l} goles`    },
+  primera:     { over: (l) => `Más de ${l} (1ª)`,     under: (l) => `Menos de ${l} (1ª)`     },
+  local:       { over: (l) => `Local más de ${l}`,     under: (l) => `Local menos de ${l}`     },
+  visitante:   { over: (l) => `Visitante más de ${l}`, under: (l) => `Visitante menos de ${l}` },
+  localht:     { over: (l) => `Local más de ${l} (1ª)`,     under: (l) => `Local menos de ${l} (1ª)`     },
+  visitanteht: { over: (l) => `Visitante más de ${l} (1ª)`, under: (l) => `Visitante menos de ${l} (1ª)` },
 };
 
 function _getLineasGU(tabId, c) {
@@ -140,30 +159,36 @@ function _renderLineasGU(tabId, lineas, mercado, ganadores, terminado) {
   if (!lineas.length)
     return `<div class="gu-empty">Sin líneas disponibles</div>`;
 
+  const labels = _GU_LABELS[tabId] || _GU_LABELS['partido'];
+
   return lineas.map(({ line, over, under }) => {
-    const esParPar = tabId === 'partido' || tabId === 'primera';
-    const labelO = `+${line}`;
-    const labelU = `-${line}`;
     const esGO = ganadores.has(`over_${line}`);
     const esGU = ganadores.has(`under_${line}`);
 
-    const mkBtn = ({ label, cuota, esG }) => {
+    // ★ v3.4: tipo legible + data-line y data-dir
+    const tipoOver  = labels.over(line);
+    const tipoUnder = labels.under(line);
+
+    const mkBtn = ({ tipo, cuota, esG, dir }) => {
       const tieneValor = cuota != null;
       let cls = 'gu-btn opcion-btn';
       if (!tieneValor) cls += ' sin-cuota';
       if (terminado)   cls += ' ft-bloqueada';
       if (esG)         cls += ' ft-ganadora';
-      const isOver = label.startsWith('+');
-      const dir = isOver ? 'over' : 'under';
-      const flecha = isOver ? '▲' : '▼';
+      const isOver  = dir === 'over';
+      const flecha  = isOver ? '▲' : '▼';
+      const dirCls  = isOver ? 'over' : 'under';
+      const display = isOver ? `+${line}` : `-${line}`;
       return `<button class="${cls}"
-                      data-tipo="${label}"
+                      data-tipo="${tipo}"
                       data-cuota="${tieneValor ? cuota : '-'}"
                       data-mercado="${mercado}"
+                      data-line="${line}"
+                      data-dir="${dir}"
                       onclick="handleOpcion(this)"
                       ${terminado ? 'title="Partido finalizado"' : ''}>
-                <span class="gu-btn-dir ${dir}">${flecha}</span>
-                <span class="gu-btn-label">${label}</span>
+                <span class="gu-btn-dir ${dirCls}">${flecha}</span>
+                <span class="gu-btn-label">${display}</span>
                 <span class="gu-btn-cuota">${tieneValor ? parseFloat(cuota).toFixed(2) : '—'}</span>
                 ${esG ? '<span class="ft-ganadora-badge">✓</span>' : ''}
               </button>`;
@@ -173,8 +198,8 @@ function _renderLineasGU(tabId, lineas, mercado, ganadores, terminado) {
       <div class="gu-linea">
         <div class="gu-linea-val">${line}</div>
         <div class="gu-linea-par">
-          ${mkBtn({ label: labelO, cuota: over,  esG: esGO })}
-          ${mkBtn({ label: labelU, cuota: under, esG: esGU })}
+          ${mkBtn({ tipo: tipoOver,  cuota: over,  esG: esGO, dir: 'over'  })}
+          ${mkBtn({ tipo: tipoUnder, cuota: under, esG: esGU, dir: 'under' })}
         </div>
       </div>`;
   }).join('');
@@ -293,8 +318,6 @@ function obtenerGanadores(mercadoId, p, c) {
       if (gv > gl && gl === 0) g.add('winNilAway');
       break;
     }
-    // cornersTotal, cornersHT, bookingsTotal, asianHandicap,
-    // ehResult, firstScore, nextGoal → sin resolución automática
   }
   return g;
 }
@@ -373,12 +396,12 @@ window.renderMercados = function(p) {
     });
   }
 
-  /* ── 5. GOLES UNIFICADO (partido / 1ª parte / local / visit.)  ── */
+  /* ── 5. GOLES UNIFICADO ── */
   const golesTabs = _getTabs(c, p);
   if (golesTabs.length) {
-    const primerTab     = golesTabs[0];
+    const primerTab = golesTabs[0];
     const { lineas: l0, mercado: m0 } = _getLineasGU(primerTab.id, c);
-    const ganadores0    = terminado ? _ganadoresGU(primerTab.id, p, c) : new Set();
+    const ganadores0 = terminado ? _ganadoresGU(primerTab.id, p, c) : new Set();
 
     const optsHTML = golesTabs.map((t, i) =>
       `<option value="${t.id}"${i === 0 ? ' selected' : ''}>${t.icon} ${t.label}</option>`
@@ -500,16 +523,14 @@ window.renderMercados = function(p) {
 
   /* ── 13. Hándicap europeo ────────────────────────────────── */
   if (c.ehHome != null || c.ehDraw != null || c.ehAway != null) {
-    // ehHdp guardado por el worker (hdp del home elegido, p.ej. 1)
-    // Si no existe, inferir: home positivo → +1, draw/away negativo → -1
     const ehHdp = c.ehHdp ?? 1;
     const ehSign = ehHdp >= 0 ? '+' : '';
     mercados.push({
       id: 'ehResult', titulo: '⚖️ Hándicap europeo', cols: 3,
       opciones: [
-        { label: p.local,     cuota: c.ehHome, tipo: `EH: ${ehSign}${ehHdp} ${p.local}`,     mercado: 'ehResult' },
-        { label: 'Empate',    cuota: c.ehDraw, tipo: `EH: ${ehSign}${ehHdp} Empate`,          mercado: 'ehResult' },
-        { label: p.visitante, cuota: c.ehAway, tipo: `EH: -${ehHdp} ${p.visitante}`,          mercado: 'ehResult' },
+        { label: p.local,     cuota: c.ehHome, tipo: `EH: ${ehSign}${ehHdp} ${p.local}`,  mercado: 'ehResult' },
+        { label: 'Empate',    cuota: c.ehDraw, tipo: `EH: ${ehSign}${ehHdp} Empate`,       mercado: 'ehResult' },
+        { label: p.visitante, cuota: c.ehAway, tipo: `EH: -${ehHdp} ${p.visitante}`,       mercado: 'ehResult' },
       ], collapsed: true,
     });
   }
@@ -613,7 +634,6 @@ window.renderMercados = function(p) {
   wrap.innerHTML = bannerFT + mercados.map(m => {
     const colapsado = m.collapsed ? ' collapsed' : '';
 
-    /* Bloque custom (goles unificado) */
     if (m._custom) {
       return `
         <div class="mercado-section${colapsado}" id="sec-${m.id}">
@@ -627,7 +647,6 @@ window.renderMercados = function(p) {
         </div>`;
     }
 
-    /* Bloque estándar */
     const ganadores = terminado ? obtenerGanadores(m.id, p, c) : new Set();
     return `
       <div class="mercado-section${colapsado}" id="sec-${m.id}">

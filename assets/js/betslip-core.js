@@ -1,28 +1,24 @@
 /* =============================================================
-   betslip-core.js  —  v3.2
+   betslip-core.js  —  v3.3
    Módulo compartido de carrito entre index.html y partido.html
 
-   FIXES v3.2 (sobre v3.1):
-   · formatTipo(): añadido handler para tipos "+2.5" / "-2.5"
-     generados por el bloque Goles Unificado de mercados v3.2.
-     Sin este fix aparecían como "+2.5" en lugar de "Más de 2.5".
+   CAMBIOS v3.3:
+   · addBet() acepta un 4º parámetro `extra` con { line, dir }
+     que se almacena en el bet para que worker.js pueda resolver
+     sin regex (bet.line + bet.dir en lugar de parsear el tipo).
+   · window.addBet() (API pública de partido.html) también pasa
+     el extra recibido desde handleOpcion.
+   · formatTipo(): el handler de goles unificado ahora usa el
+     texto legible directamente ("Más de 2.5 goles") porque
+     mercados.js v3.4 ya genera ese texto en data-tipo.
+     Se mantiene el fallback de "+2.5"/"-2.5" por compatibilidad.
+
+   FIXES v3.2:
+   · formatTipo(): handler para "+2.5"/"-2.5".
 
    FIXES v3.1:
-   · claveExclusion(): corregidos todos los mercados con
-     mayúsculas mixtas (cleanSheetHome/Away, firstScore,
-     nextGoal, winNil, cornersHT, asianTotals, htft,
-     correctScore, asianHandicap) para que normM() no
-     los rompa al comparar.
-   · formatTipo(): corregido case 'cleansheethome' duplicado
-     y alias unificados.
-   · parseLineKey() expuesto como helper interno para que
-     claveExclusion use el mismo valor numérico que mercados.js.
-
-   FIX v3.2:
-   · formatTipo(): añadido handler para tipos "+2.5" / "-2.5"
-     generados por el bloque Goles Unificado de mercados v3.2.
-     Sin este fix aparecían como "+2.5" en el carrito en lugar
-     de "Más de 2.5" / "Menos de 2.5".
+   · claveExclusion(): todos los mercados con mayúsculas corregidos.
+   · parseLineKey() expuesto como helper interno.
    ============================================================= */
 
 (function () {
@@ -30,9 +26,6 @@
 
   const ESTADOS_VIVO = ['1H', 'HT', '2H', 'ET', 'P'];
 
-  // normM: lowercase + quita espacios y guiones
-  // IMPORTANTE: también quita mayúsculas, por eso todas las
-  // comparaciones de mercado deben usar normM() en AMBOS lados.
   const normM = m => (m || '').toLowerCase().replace(/[\s-]/g, '');
 
   /* ── Toast ── */
@@ -67,7 +60,7 @@
     } catch { return true; }
   }
 
-  /* ── parseLineKey: igual que en mercados.js ── */
+  /* ── parseLineKey ── */
   function parseLineKey(raw) {
     if (!raw) return null;
     if (raw.startsWith('m')) {
@@ -75,12 +68,10 @@
       return v !== null ? -v : null;
     }
     const len = raw.length;
-    if (len === 1) return parseFloat(raw);                          // "1"   → 1
-    if (len === 2) return parseFloat(raw[0] + '.' + raw[1]);       // "25"  → 2.5
-    if (len === 3 && raw[0] === '0')
-      return parseFloat('0.' + raw[1] + raw[2]);                   // "025" → 0.25
-    if (len === 3)
-      return parseFloat(raw[0] + '.' + raw[1] + raw[2]);           // "275" → 2.75
+    if (len === 1) return parseFloat(raw);
+    if (len === 2) return parseFloat(raw[0] + '.' + raw[1]);
+    if (len === 3 && raw[0] === '0') return parseFloat('0.' + raw[1] + raw[2]);
+    if (len === 3) return parseFloat(raw[0] + '.' + raw[1] + raw[2]);
     return null;
   }
 
@@ -106,92 +97,47 @@
     return /sí$|si$/.test(t) ? 'si' : /no$/.test(t) ? 'no' : null;
   }
 
-  /* ── claveExclusion ──────────────────────────────────────────
-     TODAS las comparaciones usan normM() para ser consistentes
-     con el normM que aplica addBet al guardar el mercado.
-  ─────────────────────────────────────────────────────────────*/
+  /* ── claveExclusion ── */
   function claveExclusion(mercado, tipo) {
-    const m = normM(mercado); // ya en minúsculas sin espacios/guiones
+    const m = normM(mercado);
 
-    // ── Resultado / Doble oportunidad ────────────────────────
     if (m === 'resultado' || m === 'dobleoportunidad') return 'resultado_o_doble';
+    if (m === 'ambosmarcan' || m === 'btts')           return `ambosmarcan|${segmento(tipo)}`;
+    if (m === 'golesimparpar' || m === 'imparpar')     return 'imparpar|encuentro';
+    if (m === 'htimparpar')                            return 'imparpar|primera';
+    if (m === 'dnb')                                   return 'dnb';
+    if (m === 'descanso' || m === 'htresult')          return 'descanso';
+    if (m === 'segunda')                               return 'segunda';
+    if (m === 'totalsht')                              return `totalsHT|${valorNum(tipo) ?? 'x'}`;
+    if (m === 'asiantotals')                           return `asianTotals|${valorNum(tipo) ?? 'x'}`;
+    if (m === 'ehresult')                              return 'ehResult';
+    if (m === 'asianhandicap')                         return `asianHandicap|${tipo}`;
+    if (m === 'htft')                                  return 'htft';
+    if (m === 'correctscore')                          return 'correctScore';
+    if (m === 'cleansheethome')                        return 'cleanSheetHome';
+    if (m === 'cleansheetaway')                        return 'cleanSheetAway';
+    if (m === 'firstscore')                            return 'firstScore';
+    if (m === 'nextgoal')                              return 'nextGoal';
+    if (m === 'winnil')                                return 'winNil';
 
-    // ── BTTS ─────────────────────────────────────────────────
-    if (m === 'ambosmarcan' || m === 'btts')
-      return `ambosmarcan|${segmento(tipo)}`;
+    if (m === 'teamtotalhome') return `ttHome|${valorNum(tipo) ?? 'x'}`;
+    if (m === 'teamtotalaway') return `ttAway|${valorNum(tipo) ?? 'x'}`;
+    if (m === 'httotalhome')   return `htTtHome|${valorNum(tipo) ?? 'x'}`;
+    if (m === 'httotalaway')   return `htTtAway|${valorNum(tipo) ?? 'x'}`;
 
-    // ── Impar/Par ─────────────────────────────────────────────
-    if (m === 'golesimparpar' || m === 'imparpar') return 'imparpar|encuentro';
-    if (m === 'htimparpar')                        return 'imparpar|primera';
-
-    // ── DNB ───────────────────────────────────────────────────
-    if (m === 'dnb') return 'dnb';
-
-    // ── Resultado mitades ─────────────────────────────────────
-    if (m === 'descanso' || m === 'htresult') return 'descanso';
-    if (m === 'segunda')                      return 'segunda';
-
-    // ── Totals HT ─────────────────────────────────────────────
-    if (m === 'totalsht') return `totalsHT|${valorNum(tipo) ?? 'x'}`;
-
-    // ── Asian Totals ──────────────────────────────────────────
-    if (m === 'asiantotals') return `asianTotals|${valorNum(tipo) ?? 'x'}`;
-
-    // ── EH / AH ───────────────────────────────────────────────
-    if (m === 'ehresult') return 'ehResult';
-    if (m === 'asianhandicap') return `asianHandicap|${tipo}`;
-
-    // ── HT/FT ─────────────────────────────────────────────────
-    if (m === 'htft') return 'htft';
-
-    // ── Correct Score ─────────────────────────────────────────
-    if (m === 'correctscore') return 'correctScore';
-
-    // ── Clean Sheet ───────────────────────────────────────────
-    if (m === 'cleansheethome') return 'cleanSheetHome';
-    if (m === 'cleansheetaway') return 'cleanSheetAway';
-
-    // ── First Score / Next Goal / Win to Nil ──────────────────
-    if (m === 'firstscore') return 'firstScore';
-    if (m === 'nextgoal')   return 'nextGoal';
-    if (m === 'winnil')     return 'winNil';
-
-    // ── Team Totals ───────────────────────────────────────────
-    if (m === 'teamtotalhome') {
-      const n = valorNum(tipo);
-      return `ttHome|${n ?? 'x'}`;
-    }
-    if (m === 'teamtotalaway') {
-      const n = valorNum(tipo);
-      return `ttAway|${n ?? 'x'}`;
-    }
-
-    // ── HT Team Totals ────────────────────────────────────────
-    if (m === 'httotalhome') {
-      const n = valorNum(tipo);
-      return `htTtHome|${n ?? 'x'}`;
-    }
-    if (m === 'httotalaway') {
-      const n = valorNum(tipo);
-      return `htTtAway|${n ?? 'x'}`;
-    }
-
-    // ── Corners ───────────────────────────────────────────────
     if (m === 'corners' || m === 'cornerstotal') {
-      const t = (tipo || '').toLowerCase();
+      const t  = (tipo || '').toLowerCase();
       const eq = t.includes('local') ? 'local' : t.includes('visitante') ? 'visitante' : 'ambos';
       return `corners|encuentro|${eq}`;
     }
     if (m === 'cornersht') return `corners|primera|ambos`;
 
-    // ── Tarjetas / Bookings ───────────────────────────────────
     if (m === 'tarjetas' || m === 'bookingstotal') {
-      const t = (tipo || '').toLowerCase();
+      const t  = (tipo || '').toLowerCase();
       const eq = t.includes('local') ? 'local' : t.includes('visitante') ? 'visitante' : 'ambos';
       return `tarjetas|${segmento(tipo)}|${eq}`;
     }
 
-    // ── Total goles ───────────────────────────────────────────
     if (m === 'totalgoles') return `totalgoles|${valorNum(tipo) ?? 'x'}|${direccion(tipo) ?? 'x'}`;
 
     return m;
@@ -239,11 +185,14 @@
         (esAmbos(mB) && esRes(mA) && opcionSiNo(tB) === 'si')) return 0.5;
 
     if (esGoles(mA) && esGoles(mB)) {
-      const [dA, dB] = [direccion(tA), direccion(tB)];
-      const [nA, nB] = [valorNum(tA), valorNum(tB)];
-      if (dA === 'mas' && dB === 'menos' && nA === nB) return 0;
-      if (dA === 'menos' && dB === 'mas' && nA === nB) return 0;
-      if (dA === dB && dA === 'mas' && nA !== null && nB !== null) return 0.7;
+      // ★ v3.3: usar dir/line del bet si disponibles, si no fallback a texto
+      const dA = a.dir || direccion(tA), dB = b.dir || direccion(tB);
+      const nA = a.line ?? valorNum(tA),  nB = b.line ?? valorNum(tB);
+      if (dA === 'over'  && dB === 'under' && nA === nB) return 0;
+      if (dA === 'under' && dB === 'over'  && nA === nB) return 0;
+      if (dA === 'mas'   && dB === 'menos' && nA === nB) return 0;
+      if (dA === 'menos' && dB === 'mas'   && nA === nB) return 0;
+      if ((dA === dB || (dA === 'over' && dB === 'mas') || (dA === 'mas' && dB === 'over')) && nA !== null && nB !== null) return 0.7;
     }
 
     if (esAsian(mA) && esAsian(mB)) {
@@ -286,17 +235,17 @@
     if (esImpar(mA) && esImpar(mB)) return 0;
 
     if (esTTHome(mA) && esTTHome(mB)) {
-      const [dA, dB] = [direccion(tA), direccion(tB)];
-      const [nA, nB] = [valorNum(tA), valorNum(tB)];
-      if (dA === 'mas' && dB === 'menos' && nA === nB) return 0;
-      if (dA === 'menos' && dB === 'mas' && nA === nB) return 0;
+      const [dA, dB] = [a.dir || direccion(tA), b.dir || direccion(tB)];
+      const [nA, nB] = [a.line ?? valorNum(tA),  b.line ?? valorNum(tB)];
+      if ((dA === 'over' || dA === 'mas') && (dB === 'under' || dB === 'menos') && nA === nB) return 0;
+      if ((dA === 'under'|| dA === 'menos') && (dB === 'over' || dB === 'mas') && nA === nB) return 0;
       if (dA === dB) return 0.7;
     }
     if (esTTAway(mA) && esTTAway(mB)) {
-      const [dA, dB] = [direccion(tA), direccion(tB)];
-      const [nA, nB] = [valorNum(tA), valorNum(tB)];
-      if (dA === 'mas' && dB === 'menos' && nA === nB) return 0;
-      if (dA === 'menos' && dB === 'mas' && nA === nB) return 0;
+      const [dA, dB] = [a.dir || direccion(tA), b.dir || direccion(tB)];
+      const [nA, nB] = [a.line ?? valorNum(tA),  b.line ?? valorNum(tB)];
+      if ((dA === 'over' || dA === 'mas') && (dB === 'under' || dB === 'menos') && nA === nB) return 0;
+      if ((dA === 'under'|| dA === 'menos') && (dB === 'over' || dB === 'mas') && nA === nB) return 0;
       if (dA === dB) return 0.7;
     }
 
@@ -395,10 +344,12 @@
   }
   function guardar() { localStorage.setItem(STORAGE_KEY, JSON.stringify(bets)); }
 
-  /* ── addBet ── */
-  async function addBet({ partido, tipo, cuota, partidoId, mercado }) {
+  /* ── addBet ─────────────────────────────────────────────────
+     ★ v3.3: acepta extra = { line, dir } para mercados de goles
+  ─────────────────────────────────────────────────────────────*/
+  async function addBet({ partido, tipo, cuota, partidoId, mercado, line, dir }) {
     const pid   = (partidoId || '').toString().trim();
-    const mNorm = normM(mercado); // guardamos siempre en normM
+    const mNorm = normM(mercado);
     const cStr  = (cuota || '').toString().trim();
     const clave = claveExclusion(mNorm, tipo);
 
@@ -412,6 +363,11 @@
       claveExclusion(normM(b.mercado), b.tipo) === clave
     );
 
+    // ★ Construir el objeto bet con line/dir si están presentes
+    const betObj = { partido, tipo, cuota: cStr, partidoId: pid, mercado: mNorm };
+    if (line != null) betObj.line = line;
+    if (dir  != null) betObj.dir  = dir;
+
     if (idx !== -1) {
       const ant = bets[idx];
       if (normM(ant.mercado) === mNorm &&
@@ -419,11 +375,11 @@
           (ant.cuota || '').toString()     === cStr) {
         bets.splice(idx, 1); guardar(); notificar(); toast('Selección eliminada', 'info'); return;
       }
-      bets[idx] = { partido, tipo, cuota: cStr, partidoId: pid, mercado: mNorm };
+      bets[idx] = betObj;
       guardar(); notificar(); toast('Selección reemplazada ✓', 'ok'); return;
     }
 
-    bets.push({ partido, tipo, cuota: cStr, partidoId: pid, mercado: mNorm });
+    bets.push(betObj);
     guardar(); notificar(); toast('Apuesta añadida ✓', 'ok');
   }
 
@@ -776,7 +732,9 @@
   /* ── API pública ── */
   window.BetSlip      = { addBet, vaciar, render, getBets: () => bets, onChange: fn => _subs.push(fn) };
   window.addBetToSlip = addBet;
-  window.addBet       = (tipo, cuota, mercado) => {
+
+  // ★ v3.3: addBet global acepta extra { line, dir } como 4º param
+  window.addBet = (tipo, cuota, mercado, extra = {}) => {
     const p = window._partidoData;
     addBet({
       partido:   p ? `${p.local} vs ${p.visitante}` : '',
@@ -784,6 +742,8 @@
       cuota:     String(cuota),
       mercado,
       partidoId: window._partidoId || '',
+      line:      extra.line ?? null,
+      dir:       extra.dir  ?? null,
     });
   };
 
@@ -792,15 +752,62 @@
 
   /* ═══════════════════════════════════════════════════════════
      formatTipo — convierte (tipo, mercado) en texto legible
-     del carrito. Usa normM() igual que el resto del módulo.
   ═══════════════════════════════════════════════════════════ */
   function formatTipo(tipo, mercado) {
-    const m = normM(mercado); // ya lowercase sin espacios/guiones
+    const m = normM(mercado);
 
     if (m === 'resultado')        return tipo.toLowerCase() === 'empate' ? 'Empate' : `Gana ${tipo}`;
     if (m === 'dobleoportunidad') return tipo;
     if (m === 'goleadores')       return `Gol de ${tipo}`;
-    if (m === 'totalgoles') return tipo;
+
+    // ★ v3.4: totalgoles ya viene con texto legible desde mercados.js
+    // Si por algún motivo viene el formato antiguo "+2.5"/"-2.5", también se maneja
+    if (m === 'totalgoles') {
+      if (/^[+-]\d/.test(tipo)) {
+        const dir = tipo.startsWith('+') ? 'Más de' : 'Menos de';
+        const val = tipo.slice(1);
+        return `${dir} ${val} goles`;
+      }
+      return tipo; // ya viene como "Más de 2.5 goles"
+    }
+
+    if (m === 'totalsht') {
+      if (/^[+-]\d/.test(tipo)) {
+        const dir = tipo.startsWith('+') ? 'Más de' : 'Menos de';
+        return `${dir} ${tipo.slice(1)} (1ª)`;
+      }
+      return tipo.replace(/\s*\(1ª parte\)/i, '') + ' · 1ª parte';
+    }
+
+    if (m === 'teamtotalhome') {
+      if (/^[+-]\d/.test(tipo)) {
+        const dir = tipo.startsWith('+') ? 'Más de' : 'Menos de';
+        return `🏠 ${dir} ${tipo.slice(1)}`;
+      }
+      return `🏠 ${tipo}`;
+    }
+    if (m === 'teamtotalaway') {
+      if (/^[+-]\d/.test(tipo)) {
+        const dir = tipo.startsWith('+') ? 'Más de' : 'Menos de';
+        return `✈️ ${dir} ${tipo.slice(1)}`;
+      }
+      return `✈️ ${tipo}`;
+    }
+    if (m === 'httotalhome') {
+      if (/^[+-]\d/.test(tipo)) {
+        const dir = tipo.startsWith('+') ? 'Más de' : 'Menos de';
+        return `🏠 ${dir} ${tipo.slice(1)} (1ª)`;
+      }
+      return `🏠 ${tipo}`;
+    }
+    if (m === 'httotalaway') {
+      if (/^[+-]\d/.test(tipo)) {
+        const dir = tipo.startsWith('+') ? 'Más de' : 'Menos de';
+        return `✈️ ${dir} ${tipo.slice(1)} (1ª)`;
+      }
+      return `✈️ ${tipo}`;
+    }
+
     if (m === 'descanso' || m === 'htresult')
       return `1ª mitad: ${tipo.replace(/^ht1?:\s*/i, '')}`;
     if (m === 'segunda')
@@ -818,13 +825,7 @@
     if (m === 'imparpar')   return `Goles ${tipo}`;
     if (m === 'htimparpar') return `Goles ${tipo} (1ª mitad)`;
 
-    if (m === 'totalsht')    return tipo.replace(/\s*\(1ª parte\)/i, '') + ' · 1ª parte';
     if (m === 'asiantotals') return tipo.replace(/\s*\(asian\)/i, '') + ' (Asian)';
-
-    if (m === 'teamtotalhome') return `🏠 ${tipo}`;
-    if (m === 'teamtotalaway') return `✈️ ${tipo}`;
-    if (m === 'httotalhome') return `🏠 ${tipo}`;
-    if (m === 'httotalaway') return `✈️ ${tipo}`;
 
     if (m === 'cornerstotal' || m === 'corners') return `📐 ${tipo}`;
     if (m === 'cornersht')    return `📐 ${tipo}`;
@@ -836,14 +837,10 @@
 
     if (m === 'htft') {
       const HTFT_LABELS = {
-        htft_1_1: '1ª: Local / FT: Local',
-        htft_1_x: '1ª: Local / FT: Empate',
-        htft_1_2: '1ª: Local / FT: Visitante',
-        htft_x_1: '1ª: Empate / FT: Local',
-        htft_x_x: '1ª: Empate / FT: Empate',
-        htft_x_2: '1ª: Empate / FT: Visitante',
-        htft_2_1: '1ª: Visitante / FT: Local',
-        htft_2_x: '1ª: Visitante / FT: Empate',
+        htft_1_1: '1ª: Local / FT: Local',     htft_1_x: '1ª: Local / FT: Empate',
+        htft_1_2: '1ª: Local / FT: Visitante', htft_x_1: '1ª: Empate / FT: Local',
+        htft_x_x: '1ª: Empate / FT: Empate',   htft_x_2: '1ª: Empate / FT: Visitante',
+        htft_2_1: '1ª: Visitante / FT: Local', htft_2_x: '1ª: Visitante / FT: Empate',
         htft_2_2: '1ª: Visitante / FT: Visitante',
       };
       return HTFT_LABELS[tipo] || tipo;
@@ -881,12 +878,10 @@
       if (tipo === 'winNilAway') return '🔒 Visitante gana sin encajar';
     }
 
-    // ── Goles unificado v3.2: tipos "+2.5" / "-2.5" ──────────
-    // mercado: totalgoles, totalsht, teamtotalhome, teamtotalaway
+    // Fallback genérico para "+X"/"-X" legacy
     if (/^[+-]\d/.test(tipo)) {
       const dir = tipo.startsWith('+') ? 'Más de' : 'Menos de';
-      const val = tipo.slice(1);
-      return `${dir} ${val}`;
+      return `${dir} ${tipo.slice(1)}`;
     }
 
     return tipo;
