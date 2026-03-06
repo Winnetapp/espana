@@ -1,708 +1,816 @@
 /* =============================================================
-   mercados.js  —  v3.0
-   Renderiza TODOS los mercados de apuestas disponibles.
+  apuestas.js — Winnet · Seguimiento de apuestas profesional
+  ============================================================= */
 
-   MERCADOS INCLUIDOS:
-   ─ Resultado 1X2
-   ─ Doble oportunidad
-   ─ Draw No Bet
-   ─ Ambos marcan (BTTS)
-   ─ Total goles (over/under)
-   ─ Asian Totals (aOver/aUnder)         ← NUEVO
-   ─ Impar/Par total                     ← NUEVO
-   ─ Resultado 1ª mitad
-   ─ Over/Under 1ª mitad
-   ─ Impar/Par 1ª mitad                  ← NUEVO
-   ─ Resultado 2ª mitad
-   ─ HT/FT Doble resultado               ← NUEVO
-   ─ Marcador exacto (Correct Score)     ← NUEVO
-   ─ Total goles local
-   ─ Total goles visitante
-   ─ Total goles local 1ª mitad          ← NUEVO
-   ─ Total goles visitante 1ª mitad      ← NUEVO
-   ─ Asian Handicap                      ← NUEVO
-   ─ Hándicap europeo
-   ─ Portería a cero local               ← NUEVO
-   ─ Portería a cero visitante           ← NUEVO
-   ─ Primer equipo en marcar             ← NUEVO
-   ─ Próximo gol                         ← NUEVO
-   ─ Sin encajar (Win to Nil)            ← NUEVO
-   ─ Córners (total partido)
-   ─ Córners (1ª mitad)                  ← NUEVO
-   ─ Tarjetas
-   ============================================================= */
+/* ── Elementos DOM ── */
+const container       = document.getElementById('apuestas-container');
+const tabButtons      = document.querySelectorAll('.tab-btn');
+const filtrosDiv      = document.getElementById('filtros-apuestas-todas');
+const filtroPrincipal = document.getElementById('filtro-principal');
+const filtroExtra     = document.getElementById('filtro-extra');
+const btnFiltrar      = document.getElementById('aplicar-filtros');
+const btnLimpiar      = document.getElementById('limpiar-filtros');
 
-window.toggleMercado = function(id) {
-  document.getElementById('sec-' + id)?.classList.toggle('collapsed');
-};
+/* ── Estado ── */
+let apuestas       = [];
+let currentUser    = null;
+let currentTab     = 'pendientes';
+let filtrosActivos = {};
+let unsubscribe    = null;
+let partidoCache   = {};
 
-window.handleOpcion = function(btn) {
-  if (btn.classList.contains('sin-cuota'))    return;
-  if (btn.classList.contains('ft-bloqueada')) return;
-  window.addBet(btn.dataset.tipo, btn.dataset.cuota, btn.dataset.mercado);
-};
+/* =========================================================
+  FLATPICKR
+  ========================================================= */
+flatpickr('#filtro-rango-fecha', { mode: 'range', dateFormat: 'Y-m-d', locale: 'es' });
 
-/* ─────────────────────────────────────────────────────────────
-   HELPER: convertir clave numérica "25" → 2.5, "m10" → -1.0
-─────────────────────────────────────────────────────────────── */
-function parseLineKey(raw) {
-  if (!raw) return null;
-  // Negativo: "m10" → -1.0, "m25" → -2.5
-  if (raw.startsWith('m')) {
-    const pos = raw.slice(1);
-    return -parseLineKey(pos);
+/* =========================================================
+  FILTROS DINÁMICOS
+  ========================================================= */
+filtroPrincipal.addEventListener('change', () => {
+  filtroExtra.innerHTML = '';
+  switch (filtroPrincipal.value) {
+    case 'fecha':
+      filtroExtra.innerHTML = '<input type="text" id="filtro-rango-fecha" placeholder="Selecciona rango de fechas" style="min-width:220px;">';
+      setTimeout(() => {
+        flatpickr('#filtro-rango-fecha', { mode: 'range', dateFormat: 'Y-m-d', locale: 'es' });
+      }, 20);
+      break;
+    case 'estado':
+      filtroExtra.innerHTML = `
+        <select id="filtro-estado" class="filtro-select" style="min-width:140px;">
+          <option value="ganada">Ganadas</option>
+          <option value="perdida">Perdidas</option>
+          <option value="pendiente">Pendientes</option>
+        </select>`;
+      break;
+    case 'ganancia':
+      filtroExtra.innerHTML = `<input type="number" id="filtro-min-ganancia" placeholder="Mín. Ganancia €" min="0" />`;
+      break;
+    case 'perdida':
+      filtroExtra.innerHTML = `<input type="number" id="filtro-min-perdida" placeholder="Mín. Importe €" min="0" />`;
+      break;
+    case 'ordenar':
+      filtroExtra.innerHTML = `
+        <select id="ordenar-por" class="filtro-select">
+          <option value="fecha-desc">Fecha ↓ (más recientes)</option>
+          <option value="fecha-asc">Fecha ↑ (más antiguas)</option>
+          <option value="ganancia-desc">Ganancia ↓</option>
+          <option value="ganancia-asc">Ganancia ↑</option>
+          <option value="stake-desc">Importe ↓</option>
+          <option value="stake-asc">Importe ↑</option>
+        </select>`;
+      break;
   }
-  // "095" → 9.5 (con cero inicial, tenemos 1 decimal)
-  if (raw.length >= 3 && raw.startsWith('0')) {
-    return parseFloat(raw.slice(1, -1) + '.' + raw.slice(-1));
+});
+
+btnFiltrar.addEventListener('click', () => {
+  const tipo = filtroPrincipal.value;
+  filtrosActivos = {};
+  if (tipo === 'estado')   filtrosActivos.estado      = document.getElementById('filtro-estado')?.value;
+  if (tipo === 'ganancia') filtrosActivos.minGanancia = document.getElementById('filtro-min-ganancia')?.value;
+  if (tipo === 'perdida')  filtrosActivos.minPerdida  = document.getElementById('filtro-min-perdida')?.value;
+  if (tipo === 'ordenar')  filtrosActivos.ordenar     = document.getElementById('ordenar-por')?.value;
+  if (tipo === 'fecha') {
+    const rango = (document.getElementById('filtro-rango-fecha')?.value || '').split(' a ');
+    filtrosActivos.fechaInicio = rango[0] || '';
+    filtrosActivos.fechaFin   = rango[1] || '';
   }
-  // "25" → 2.5 ; "105" → 10.5 ; "35" → 3.5
-  if (raw.length >= 2) {
-    return parseFloat(raw.slice(0, -1) + '.' + raw.slice(-1));
+  render();
+});
+
+btnLimpiar.addEventListener('click', () => {
+  filtroPrincipal.value = '';
+  filtroExtra.innerHTML = '';
+  filtrosActivos = {};
+  render();
+});
+
+/* =========================================================
+  TABS
+  ========================================================= */
+tabButtons.forEach(btn => {
+  btn.addEventListener('click', () => {
+    tabButtons.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentTab = btn.dataset.tab;
+    filtrosDiv.style.display = currentTab === 'todas' ? '' : 'none';
+    render();
+  });
+});
+
+/* =========================================================
+  AUTH → suscripción en tiempo real
+  ========================================================= */
+auth.onAuthStateChanged(user => {
+  if (!user) {
+    container.innerHTML = renderEmptyState('🔒', 'Inicia sesión', 'Debes iniciar sesión para ver tus apuestas.');
+    document.getElementById('stats-apuestas').style.display = 'none';
+    return;
   }
-  return parseFloat(raw);
+  currentUser = user;
+  suscribirApuestas(user.uid);
+});
+
+async function suscribirApuestas(uid) {
+  if (unsubscribe) unsubscribe();
+  container.innerHTML = `
+    <div class="loading-spinner-wrap">
+      <div class="spinner-ring"></div>
+      <span>Cargando apuestas...</span>
+    </div>`;
+
+  unsubscribe = db.collection('apuestas')
+    .where('usuarioId', '==', uid)
+    .orderBy('fecha', 'desc')
+    .onSnapshot(async snap => {
+      apuestas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+      const ids = new Set();
+      apuestas.forEach(a => (a.bets || []).forEach(b => { if (b.partidoId) ids.add(String(b.partidoId)); }));
+
+      const idsNuevos = [...ids].filter(id => !partidoCache[id]);
+      if (idsNuevos.length) {
+        await Promise.all(idsNuevos.map(async id => {
+          let doc = await db.collection('partidos').doc(id).get();
+          if (!doc.exists) doc = await db.collection('historial').doc(id).get();
+          if (doc.exists) partidoCache[id] = doc.data();
+        }));
+      }
+
+      actualizarStats();
+      actualizarContadores();
+      render();
+    }, err => {
+      console.error('Error suscripción:', err);
+      container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">⚠️</div><div class="empty-state-title">Error al cargar</div></div>`;
+    });
 }
 
-/* ─────────────────────────────────────────────────────────────
-   HELPER: leer líneas over/under dinámicas
-─────────────────────────────────────────────────────────────── */
-function leerLineasOU(c, prefOver, prefUnder, mercadoId, labelOver, labelUnder) {
-  const lineas = new Set();
-  for (const key of Object.keys(c)) {
-    if (key.startsWith(prefOver))  lineas.add(key.slice(prefOver.length));
-    if (key.startsWith(prefUnder)) lineas.add(key.slice(prefUnder.length));
-  }
-  const sorted = [...lineas].sort((a, b) => parseLineKey(a) - parseLineKey(b));
-  const opts = [];
-  for (const raw of sorted) {
-    const line = parseLineKey(raw);
-    if (line === null || line <= 0) continue; // ignorar líneas inválidas (p.ej. cornersUnder0)
-    if (c[prefOver  + raw] != null) opts.push({ label: labelOver(line),  cuota: c[prefOver  + raw], tipo: labelOver(line),  mercado: mercadoId });
-    if (c[prefUnder + raw] != null) opts.push({ label: labelUnder(line), cuota: c[prefUnder + raw], tipo: labelUnder(line), mercado: mercadoId });
-  }
-  return opts;
+/* =========================================================
+  STATS
+  ========================================================= */
+function actualizarStats() {
+  const el = document.getElementById('stats-apuestas');
+  if (!el) return;
+  el.style.display = apuestas.length ? 'flex' : 'none';
+
+  const ganadas    = apuestas.filter(a => a.estado === 'ganada');
+  const resueltas  = apuestas.filter(a => a.estado === 'ganada' || a.estado === 'perdida');
+  const pendientes = apuestas.filter(a => a.estado === 'pendiente');
+
+  const totalApostado = apuestas.reduce((s, a) => s + (a.stake || 0), 0);
+  const totalCobrado  = ganadas.reduce((s, a) => s + (a.ganancia || a.potentialWin || 0), 0);
+  const pct = resueltas.length ? Math.round((ganadas.length / resueltas.length) * 100) : null;
+
+  document.getElementById('stat-apostado').textContent  = fmt(totalApostado);
+  document.getElementById('stat-ganancias').textContent = fmt(totalCobrado);
+  document.getElementById('stat-pendiente').textContent = pendientes.length;
+  document.getElementById('stat-acierto').textContent   = pct !== null ? `${pct}%` : '—';
 }
 
-/* ─────────────────────────────────────────────────────────────
-   DETERMINAR GANADORES (para partidos FT)
-─────────────────────────────────────────────────────────────── */
-function obtenerGanadores(mercadoId, p, c) {
-  const gl   = p.golesLocal       ?? null;
-  const gv   = p.golesVisitante   ?? null;
-  const htL  = p.golesLocalHT     ?? p.htGolesLocal     ?? null;
-  const htV  = p.golesVisitanteHT ?? p.htGolesVisitante ?? null;
-  const tot  = (gl !== null && gv !== null) ? gl + gv : null;
-  const totHT = (htL !== null && htV !== null) ? htL + htV : null;
-  const g = new Set();
-
-  switch (mercadoId) {
-
-    case 'resultado': {
-      if (gl === null || gv === null) break;
-      if (gl > gv)   g.add(p.local);
-      if (gl === gv) g.add('Empate');
-      if (gv > gl)   g.add(p.visitante);
-      break;
-    }
-
-    case 'doble': {
-      if (gl === null || gv === null) break;
-      if (gl >= gv)  g.add(`${p.local} o Empate`);
-      if (gl !== gv) g.add(`${p.local} o ${p.visitante}`);
-      if (gv >= gl)  g.add(`Empate o ${p.visitante}`);
-      break;
-    }
-
-    case 'dnb':
-    case 'dnbExtra': {
-      if (gl === null || gv === null) break;
-      if (gl > gv) { g.add(`DNB: ${p.local}`);     g.add(p.local); }
-      if (gv > gl) { g.add(`DNB: ${p.visitante}`); g.add(p.visitante); }
-      break;
-    }
-
-    case 'btts': {
-      if (gl === null || gv === null) break;
-      const am = gl > 0 && gv > 0;
-      if (am)  { g.add('Sí'); g.add('Yes'); }
-      if (!am) { g.add('No'); }
-      break;
-    }
-
-    case 'totalgoles':
-    case 'asianTotals': {
-      if (tot === null) break;
-      for (const key of Object.keys(c)) {
-        const isOver = key.startsWith('over') || key.startsWith('aOver');
-        const isUnder = key.startsWith('under') || key.startsWith('aUnder');
-        if (!isOver && !isUnder) continue;
-        const pref = isOver
-          ? (key.startsWith('aOver') ? 'aOver' : 'over')
-          : (key.startsWith('aUnder') ? 'aUnder' : 'under');
-        const raw  = key.slice(pref.length);
-        const line = parseLineKey(raw);
-        if (line === null) continue;
-        const labelO = mercadoId === 'asianTotals' ? `Más de ${line} (Asian)` : `Más de ${line} goles`;
-        const labelU = mercadoId === 'asianTotals' ? `Menos de ${line} (Asian)` : `Menos de ${line} goles`;
-        if (isOver  && tot > line) g.add(labelO);
-        if (!isOver && tot < line) g.add(labelU);
-      }
-      break;
-    }
-
-    case 'imparPar': {
-      if (tot === null) break;
-      if (tot % 2 === 0) g.add('Par');
-      else               g.add('Impar');
-      break;
-    }
-
-    case 'htResult': {
-      if (htL === null || htV === null) break;
-      if (htL > htV)   g.add(p.local);
-      if (htL === htV) g.add('Empate');
-      if (htV > htL)   g.add(p.visitante);
-      break;
-    }
-
-    case 'totalsHT': {
-      if (totHT === null) break;
-      for (const key of Object.keys(c)) {
-        if (!key.startsWith('htOver') && !key.startsWith('htUnder')) continue;
-        const isOver = key.startsWith('htOver');
-        const raw    = key.slice(isOver ? 6 : 7);
-        const line   = parseLineKey(raw);
-        if (line === null) continue;
-        if (isOver  && totHT > line) g.add(`Más de ${line} (1ª parte)`);
-        if (!isOver && totHT < line) g.add(`Menos de ${line} (1ª parte)`);
-      }
-      break;
-    }
-
-    case 'htImparPar': {
-      if (totHT === null) break;
-      if (totHT % 2 === 0) g.add('Par');
-      else                  g.add('Impar');
-      break;
-    }
-
-    case 'ht2': {
-      if (gl === null || gv === null || htL === null || htV === null) break;
-      const h2L = gl - htL, h2V = gv - htV;
-      if (h2L > h2V)   g.add(`HT2: ${p.local}`);
-      if (h2L === h2V) g.add('HT2: Empate');
-      if (h2V > h2L)   g.add(`HT2: ${p.visitante}`);
-      break;
-    }
-
-    case 'htft': {
-      if (gl === null || gv === null || htL === null || htV === null) break;
-      const resHT = htL > htV ? '1' : htV > htL ? '2' : 'x';
-      const resFT = gl  > gv  ? '1' : gv  > gl  ? '2' : 'x';
-      g.add(`htft_${resHT}_${resFT}`);
-      break;
-    }
-
-    case 'correctScore': {
-      if (gl === null || gv === null) break;
-      const key = `cs${gl}${gv}`;
-      if (c[key] != null) g.add(key);
-      else                g.add('csOther');
-      break;
-    }
-
-    case 'teamTotalHome': {
-      if (gl === null) break;
-      for (const key of Object.keys(c)) {
-        if (!key.startsWith('ttHomeOver') && !key.startsWith('ttHomeUnder')) continue;
-        const isOver = key.startsWith('ttHomeOver');
-        const raw    = key.slice(isOver ? 10 : 11);
-        const line   = parseLineKey(raw);
-        if (line === null) continue;
-        if (isOver  && gl > line) g.add(`${p.local} más de ${line}`);
-        if (!isOver && gl < line) g.add(`${p.local} menos de ${line}`);
-      }
-      break;
-    }
-
-    case 'teamTotalAway': {
-      if (gv === null) break;
-      for (const key of Object.keys(c)) {
-        if (!key.startsWith('ttAwayOver') && !key.startsWith('ttAwayUnder')) continue;
-        const isOver = key.startsWith('ttAwayOver');
-        const raw    = key.slice(isOver ? 10 : 11);
-        const line   = parseLineKey(raw);
-        if (line === null) continue;
-        if (isOver  && gv > line) g.add(`${p.visitante} más de ${line}`);
-        if (!isOver && gv < line) g.add(`${p.visitante} menos de ${line}`);
-      }
-      break;
-    }
-
-    case 'htTotalHome': {
-      if (htL === null) break;
-      for (const key of Object.keys(c)) {
-        if (!key.startsWith('htTtHomeOver') && !key.startsWith('htTtHomeUnder')) continue;
-        const isOver = key.startsWith('htTtHomeOver');
-        const raw    = key.slice(isOver ? 12 : 13);
-        const line   = parseLineKey(raw);
-        if (line === null) continue;
-        if (isOver  && htL > line) g.add(`${p.local} más de ${line} (1ª)`);
-        if (!isOver && htL < line) g.add(`${p.local} menos de ${line} (1ª)`);
-      }
-      break;
-    }
-
-    case 'htTotalAway': {
-      if (htV === null) break;
-      for (const key of Object.keys(c)) {
-        if (!key.startsWith('htTtAwayOver') && !key.startsWith('htTtAwayUnder')) continue;
-        const isOver = key.startsWith('htTtAwayOver');
-        const raw    = key.slice(isOver ? 12 : 13);
-        const line   = parseLineKey(raw);
-        if (line === null) continue;
-        if (isOver  && htV > line) g.add(`${p.visitante} más de ${line} (1ª)`);
-        if (!isOver && htV < line) g.add(`${p.visitante} menos de ${line} (1ª)`);
-      }
-      break;
-    }
-
-    case 'cleanSheetHome': {
-      if (gv === null) break;
-      if (gv === 0) g.add('csHomeYes');
-      else          g.add('csHomeNo');
-      break;
-    }
-
-    case 'cleanSheetAway': {
-      if (gl === null) break;
-      if (gl === 0) g.add('csAwayYes');
-      else          g.add('csAwayNo');
-      break;
-    }
-
-    case 'winNil': {
-      if (gl === null || gv === null) break;
-      if (gl > gv && gv === 0) g.add('winNilHome');
-      if (gv > gl && gl === 0) g.add('winNilAway');
-      break;
-    }
-
-    // firstScore, nextGoal, asianHandicap → no resolvemos automáticamente
-    case 'firstScore':
-    case 'nextGoal':
-    case 'asianHandicap':
-    case 'ehResult':
-    case 'cornersTotal':
-    case 'cornersHT':
-    case 'bookingsTotal':
-      break;
-  }
-  return g;
+function actualizarContadores() {
+  const pendientesN = apuestas.filter(a => a.estado === 'pendiente').length;
+  const listasN     = apuestas.filter(a => (a.estado === 'ganada' || a.estado === 'perdida' || a.estado === 'devuelta') && !a.aceptadaPorUsuario).length;
+  const elP = document.getElementById('count-pendientes');
+  const elL = document.getElementById('count-listas');
+  if (elP) elP.textContent = pendientesN;
+  if (elL) { elL.textContent = listasN; elL.classList.toggle('alerta', listasN > 0); }
 }
 
-/* ─────────────────────────────────────────────────────────────
-   RENDER PRINCIPAL
-─────────────────────────────────────────────────────────────── */
-window.renderMercados = function(p) {
-  const wrap = document.getElementById('mercados-wrap');
-  const c    = p.cuotas;
+/* =========================================================
+  RENDER PRINCIPAL
+  ========================================================= */
+function render() {
+  let lista = [];
+  switch (currentTab) {
+    case 'pendientes':
+      lista = apuestas.filter(a => a.estado === 'pendiente');
+      break;
+    case 'listas':
+      lista = apuestas.filter(a => (a.estado === 'ganada' || a.estado === 'perdida' || a.estado === 'devuelta') && !a.aceptadaPorUsuario);
+      break;
+    case 'terminadas':
+      lista = apuestas.filter(a => a.aceptadaPorUsuario === true);
+      break;
+    case 'todas':
+      lista = [...apuestas];
+      if (filtrosActivos.estado)      lista = lista.filter(a => a.estado === filtrosActivos.estado);
+      if (filtrosActivos.fechaInicio) {
+        const ts = new Date(filtrosActivos.fechaInicio + 'T00:00:00Z').getTime() / 1000;
+        lista = lista.filter(a => (a.fecha?.seconds ?? 0) >= ts);
+      }
+      if (filtrosActivos.fechaFin) {
+        const ts = new Date(filtrosActivos.fechaFin + 'T23:59:59Z').getTime() / 1000;
+        lista = lista.filter(a => (a.fecha?.seconds ?? 0) <= ts);
+      }
+      if (filtrosActivos.minGanancia) lista = lista.filter(a => (a.potentialWin || 0) >= Number(filtrosActivos.minGanancia));
+      if (filtrosActivos.minPerdida)  lista = lista.filter(a => (a.stake || 0) >= Number(filtrosActivos.minPerdida));
+      switch (filtrosActivos.ordenar) {
+        case 'fecha-desc':    lista.sort((a, b) => (b.fecha?.seconds||0) - (a.fecha?.seconds||0)); break;
+        case 'fecha-asc':     lista.sort((a, b) => (a.fecha?.seconds||0) - (b.fecha?.seconds||0)); break;
+        case 'ganancia-desc': lista.sort((a, b) => (b.potentialWin||0) - (a.potentialWin||0)); break;
+        case 'ganancia-asc':  lista.sort((a, b) => (a.potentialWin||0) - (b.potentialWin||0)); break;
+        case 'stake-desc':    lista.sort((a, b) => (b.stake||0) - (a.stake||0)); break;
+        case 'stake-asc':     lista.sort((a, b) => (a.stake||0) - (b.stake||0)); break;
+      }
+      break;
+  }
 
-  const ESTADOS_FT = ['FT', 'AET', 'PEN'];
-  const terminado  = ESTADOS_FT.includes(p.estado);
-
-  if (!c) {
-    wrap.innerHTML = `
-      <div class="sin-cuotas-aviso">
-        <i class="fas fa-lock"></i>
-        Las cuotas para este partido aún no están disponibles.
-      </div>`;
+  if (!lista.length) {
+    const msgs = {
+      pendientes: ['⏳', 'Sin apuestas en curso', 'Cuando apuestes, aparecerán aquí mientras esperan resultado.'],
+      listas:     ['🔔', 'Nada pendiente de confirmar', 'Cuando una apuesta se resuelva, aparecerá aquí para que la confirmes.'],
+      terminadas: ['📁', 'Sin historial', 'Las apuestas que confirmes se guardarán aquí.'],
+      todas:      ['🎯', 'Sin resultados', 'No hay apuestas que coincidan con los filtros aplicados.'],
+    };
+    const [ico, tit, sub] = msgs[currentTab] || ['🎯', 'Sin apuestas', ''];
+    container.innerHTML = renderEmptyState(ico, tit, sub);
     return;
   }
 
-  const mercados = [];
+  container.innerHTML = '';
+  lista.forEach((apuesta, i) => {
+    const card = document.createElement('div');
+    card.innerHTML = buildTarjeta(apuesta);
+    card.querySelector('.apuesta-card').style.animationDelay = `${i * 0.04}s`;
+    container.appendChild(card.firstElementChild);
+  });
+}
 
-  /* ── 1. Resultado 1X2 ────────────────────────────────────── */
-  if (c.local != null || c.empate != null || c.visitante != null) {
-    mercados.push({
-      id: 'resultado', titulo: '⚽ Resultado del partido (1X2)', cols: 3,
-      opciones: [
-        { label: p.local,     cuota: c.local,     tipo: p.local,     mercado: 'resultado' },
-        { label: 'Empate',    cuota: c.empate,    tipo: 'Empate',    mercado: 'resultado' },
-        { label: p.visitante, cuota: c.visitante, tipo: p.visitante, mercado: 'resultado' },
-      ]
-    });
+/* =========================================================
+  BUILD TARJETA APUESTA
+  ========================================================= */
+function buildTarjeta(a) {
+  const bets      = a.bets || [];
+  const esSimple  = bets.length === 1;
+  const esSistema = a.tipo === 'sistema';
+
+  const tipoBadge = esSimple
+    ? `<span class="ac-tipo-badge">Simple</span>`
+    : esSistema
+    ? `<span class="ac-tipo-badge sistema">${a.sistema?.k}/${a.sistema?.n} Sistema</span>`
+    : `<span class="ac-tipo-badge combinada">Combinada · ${bets.length} sel.</span>`;
+
+  const estadoBadge = {
+    pendiente: `<span class="ac-estado-badge pendiente"><span class="live-dot"></span> En curso</span>`,
+    ganada:    `<span class="ac-estado-badge ganada">✓ Ganada</span>`,
+    perdida:   `<span class="ac-estado-badge perdida">✗ Perdida</span>`,
+    devuelta:  `<span class="ac-estado-badge devuelta">↩ Devuelta</span>`,
+  }[a.estado] || `<span class="ac-estado-badge">${a.estado}</span>`;
+
+  const fechaApuesta = a.fecha?.toDate
+    ? `<span class="ac-fecha"><i class="far fa-calendar-alt"></i> ${fmtFechaApuesta(a.fecha.toDate())}</span>`
+    : '';
+
+  const betsHTML  = bets.map(b => buildBetRow(b, a)).join('');
+  const stake     = a.stake || 0;
+  const ganancia  = a.ganancia ?? a.potentialWin ?? 0;
+
+  let resultadoLabel = '', resultadoVal = '', resultadoClass = '';
+  if (a.estado === 'ganada')        { resultadoLabel = 'Cobrado';        resultadoVal = `+${fmt(ganancia)}`; resultadoClass = 'ganada'; }
+  else if (a.estado === 'perdida')  { resultadoLabel = 'Perdido';        resultadoVal = `-${fmt(stake)}`;    resultadoClass = 'perdida'; }
+  else if (a.estado === 'devuelta') { resultadoLabel = 'Devuelto';       resultadoVal = fmt(stake);           resultadoClass = 'devuelta'; }
+  else                              { resultadoLabel = 'Gan. potencial'; resultadoVal = fmt(ganancia);        resultadoClass = 'pendiente'; }
+
+  let banner = '';
+  if (a.estado === 'ganada')        banner = `<div class="ac-banner ganada"><i class="fas fa-trophy"></i> ¡Apuesta ganadora! · Ganancia: <strong>${fmt(ganancia)}</strong>${a.motivo ? `<span class="ac-banner-motivo">· ${a.motivo}</span>` : ''}</div>`;
+  else if (a.estado === 'perdida')  banner = `<div class="ac-banner perdida"><i class="fas fa-times-circle"></i> Apuesta no ganadora${a.motivo ? `<span class="ac-banner-motivo">· ${a.motivo}</span>` : ''}</div>`;
+  else if (a.estado === 'devuelta') banner = `<div class="ac-banner devuelta"><i class="fas fa-undo"></i> Apuesta devuelta${a.motivo ? `<span class="ac-banner-motivo">· ${a.motivo}</span>` : ''}</div>`;
+
+  let acciones = '';
+  if (currentTab === 'listas') {
+    if (a.estado === 'ganada')        acciones = `<div class="ac-acciones"><button class="btn-confirmar cobrar"   onclick="aceptarApuesta('${a.id}', 'ganada',   ${ganancia})"><i class="fas fa-check"></i> Confirmar cobro <span class="btn-confirmar-amount">${fmt(ganancia)}</span></button></div>`;
+    else if (a.estado === 'perdida')  acciones = `<div class="ac-acciones"><button class="btn-confirmar perder"   onclick="aceptarApuesta('${a.id}', 'perdida',  0)"><i class="fas fa-times"></i> Confirmar pérdida <span class="btn-confirmar-amount">-${fmt(stake)}</span></button></div>`;
+    else if (a.estado === 'devuelta') acciones = `<div class="ac-acciones"><button class="btn-confirmar devuelta" onclick="aceptarApuesta('${a.id}', 'devuelta', ${stake})"><i class="fas fa-undo"></i> Confirmar devolución <span class="btn-confirmar-amount">${fmt(stake)}</span></button></div>`;
   }
 
-  /* ── 2. Doble oportunidad ────────────────────────────────── */
-  const dc1X = c.dc1X ?? c.double_chance_1X;
-  const dc12 = c.dc12 ?? c.double_chance_12;
-  const dcX2 = c.dcX2 ?? c.double_chance_X2;
-  if (dc1X != null || dc12 != null || dcX2 != null) {
-    mercados.push({
-      id: 'doble', titulo: '🔄 Doble oportunidad', cols: 3,
-      opciones: [
-        { label: `${p.local} o Empate`,        cuota: dc1X, tipo: `${p.local} o Empate`,        mercado: 'dobleoportunidad' },
-        { label: `${p.local} o ${p.visitante}`, cuota: dc12, tipo: `${p.local} o ${p.visitante}`, mercado: 'dobleoportunidad' },
-        { label: `Empate o ${p.visitante}`,      cuota: dcX2, tipo: `Empate o ${p.visitante}`,      mercado: 'dobleoportunidad' },
-      ]
-    });
+  return `
+    <div class="apuesta-card estado-${a.estado}">
+      <div class="ac-header">
+        <div class="ac-header-left">${tipoBadge}<span class="ac-total-odds">${(a.totalOdds || 0).toFixed(2)}</span>${fechaApuesta}</div>
+        ${estadoBadge}
+      </div>
+      <div class="ac-bets">${betsHTML}</div>
+      <div class="ac-footer">
+        <div class="ac-footer-izq"><div><span class="ac-importe-label">Importe</span><span class="ac-importe-val">${fmt(stake)}</span></div></div>
+        <div class="ac-resultado-bloque"><span class="ac-resultado-label">${resultadoLabel}</span><span class="ac-resultado-val ${resultadoClass}">${resultadoVal}</span></div>
+      </div>
+      ${banner}
+      ${acciones}
+    </div>`;
+}
+
+/* =========================================================
+  HELPERS INTERNOS PARA calcularResultadoBet
+  ========================================================= */
+function _normM(m) {
+  return (m || '').toLowerCase().replace(/[\s\-_]/g, '');
+}
+
+function _extraerLinea(tipo) {
+  const m = (tipo || '').match(/(\d+(?:[.,]\d+)?)/);
+  return m ? parseFloat(m[1].replace(',', '.')) : null;
+}
+
+function _esOver(tipo) {
+  const t = (tipo || '').toLowerCase();
+  return t.startsWith('+') || t.includes('más de') || t.includes('mas de') || t.includes('over');
+}
+
+function _esUnder(tipo) {
+  const t = (tipo || '').toLowerCase();
+  return t.startsWith('-') || t.includes('menos de') || t.includes('under');
+}
+
+/* =========================================================
+  CALCULAR RESULTADO DE UNA SELECCIÓN INDIVIDUAL
+  Devuelve: 'ganada' | 'perdida' | 'devuelta' | null
+  ========================================================= */
+function calcularResultadoBet(b, p) {
+  if (!p || p.estado !== 'FT') return null;
+
+  const gl   = p.golesLocal       ?? 0;
+  const gv   = p.golesVisitante   ?? 0;
+  const glHT = p.golesLocalHT     ?? p.htGolesLocal     ?? null;
+  const gvHT = p.golesVisitanteHT ?? p.htGolesVisitante ?? null;
+
+  const local     = (p.local     || '').trim().toLowerCase();
+  const visitante = (p.visitante || '').trim().toLowerCase();
+
+  const mercado = _normM(b.mercado || b.tipoApuesta || '');
+  const tipo    = (b.tipo || '').trim();
+  const tipoL   = tipo.toLowerCase();
+
+  const resTC = gl > gv ? 'local' : gv > gl ? 'visitante' : 'empate';
+  const resHT = (glHT !== null && gvHT !== null)
+    ? (glHT > gvHT ? 'local' : gvHT > glHT ? 'visitante' : 'empate')
+    : null;
+  const totalGoles   = gl + gv;
+  const totalGolesHT = (glHT !== null && gvHT !== null) ? glHT + gvHT : null;
+
+  /* ── 1X2 resultado ── */
+  if (mercado === 'resultado') {
+    if (tipoL === 'empate')   return resTC === 'empate'    ? 'ganada' : 'perdida';
+    if (tipoL === local)      return resTC === 'local'     ? 'ganada' : 'perdida';
+    if (tipoL === visitante)  return resTC === 'visitante' ? 'ganada' : 'perdida';
+    if (tipoL === '1')        return resTC === 'local'     ? 'ganada' : 'perdida';
+    if (tipoL === 'x')        return resTC === 'empate'    ? 'ganada' : 'perdida';
+    if (tipoL === '2')        return resTC === 'visitante' ? 'ganada' : 'perdida';
+    return null;
   }
 
-  /* ── 3. Draw No Bet ──────────────────────────────────────── */
-  const dnbH = c.dnbLocal ?? c.dnbHome;
-  const dnbA = c.dnbVisitante ?? c.dnbAway;
-  if (dnbH != null || dnbA != null) {
-    mercados.push({
-      id: 'dnbExtra', titulo: '🚫 Sin empate (Draw No Bet)', cols: 2,
-      opciones: [
-        { label: p.local,     cuota: dnbH, tipo: `DNB: ${p.local}`,     mercado: 'dnb' },
-        { label: p.visitante, cuota: dnbA, tipo: `DNB: ${p.visitante}`, mercado: 'dnb' },
-      ]
-    });
+  /* ── Doble oportunidad ── */
+  if (mercado === 'dobleoportunidad') {
+    const t = tipoL.replace(/\s/g, '');
+    if (t === '1x' || t === 'x1') return (resTC === 'local'     || resTC === 'empate')    ? 'ganada' : 'perdida';
+    if (t === '12' || t === '21') return (resTC === 'local'     || resTC === 'visitante') ? 'ganada' : 'perdida';
+    if (t === '2x' || t === 'x2') return (resTC === 'visitante' || resTC === 'empate')    ? 'ganada' : 'perdida';
+    if (tipoL.includes(local)     && tipoL.includes('empate'))    return (resTC === 'local'     || resTC === 'empate')    ? 'ganada' : 'perdida';
+    if (tipoL.includes(visitante) && tipoL.includes('empate'))    return (resTC === 'visitante' || resTC === 'empate')    ? 'ganada' : 'perdida';
+    if (tipoL.includes(local)     && tipoL.includes(visitante))   return (resTC === 'local'     || resTC === 'visitante') ? 'ganada' : 'perdida';
+    return null;
   }
 
-  /* ── 4. Ambos marcan (BTTS) ──────────────────────────────── */
-  const bttsY = c.ambosMarcanSi ?? c.bttsYes;
-  const bttsN = c.ambosMarcanNo ?? c.bttsNo;
-  if (bttsY != null || bttsN != null) {
-    mercados.push({
-      id: 'btts', titulo: '🎯 Ambos equipos marcan', cols: 2,
-      opciones: [
-        { label: 'Sí', cuota: bttsY, tipo: 'Sí', mercado: 'ambosmarcan' },
-        { label: 'No', cuota: bttsN, tipo: 'No', mercado: 'ambosmarcan' },
-      ]
-    });
+  /* ── DNB (sin empate) ── */
+  if (mercado === 'dnb') {
+    if (resTC === 'empate') return 'devuelta';
+    const t = tipoL.replace(/^dnb:\s*/i, '').trim();
+    if (t === local)     return resTC === 'local'     ? 'ganada' : 'perdida';
+    if (t === visitante) return resTC === 'visitante' ? 'ganada' : 'perdida';
+    return null;
   }
 
-  /* ── 5. Total goles (Over/Under) ─────────────────────────── */
-  const golesLineas = leerLineasOU(c, 'over', 'under', 'totalgoles',
-    line => `Más de ${line} goles`, line => `Menos de ${line} goles`);
-  if (golesLineas.length) {
-    mercados.push({ id: 'totalgoles', titulo: '📊 Total goles', cols: 2, opciones: golesLineas });
+  /* ── Ambos marcan (BTTS) ── */
+  if (mercado === 'ambosmarcan' || mercado === 'btts') {
+    const ambosMarcaron = gl > 0 && gv > 0;
+    if (tipoL === 'sí' || tipoL === 'si' || tipoL === 'yes') return ambosMarcaron  ? 'ganada' : 'perdida';
+    if (tipoL === 'no')                                       return !ambosMarcaron ? 'ganada' : 'perdida';
+    return null;
   }
 
-  /* ── 6. Asian Totals ─────────────────────────────────────── */
-  const asianLineas = leerLineasOU(c, 'aOver', 'aUnder', 'asianTotals',
-    line => `Más de ${line} (Asian)`, line => `Menos de ${line} (Asian)`);
-  if (asianLineas.length) {
-    mercados.push({
-      id: 'asianTotals', titulo: '🀄 Totales asiáticos', cols: 2,
-      opciones: asianLineas, collapsed: true,
-    });
+  /* ── Total goles (over/under) ── */
+  if (mercado === 'totalgoles') {
+    const linea = _extraerLinea(tipo);
+    if (linea === null) return null;
+    if (_esOver(tipo))  return totalGoles > linea  ? 'ganada' : 'perdida';
+    if (_esUnder(tipo)) return totalGoles < linea  ? 'ganada' : (totalGoles === linea ? 'devuelta' : 'perdida');
+    return null;
   }
 
-  /* ── 7. Impar / Par total ────────────────────────────────── */
-  if (c.totalOdd != null || c.totalEven != null) {
-    mercados.push({
-      id: 'imparPar', titulo: '🔢 Impar / Par (total goles)', cols: 2,
-      opciones: [
-        { label: 'Impar', cuota: c.totalOdd,  tipo: 'Impar', mercado: 'imparPar' },
-        { label: 'Par',   cuota: c.totalEven, tipo: 'Par',   mercado: 'imparPar' },
-      ], collapsed: true,
-    });
+  /* ── Descanso / Resultado 1ª mitad ── */
+  if (mercado === 'descanso' || mercado === 'htresult') {
+    if (resHT === null) return null;
+    const t = tipoL.replace(/^ht1?:\s*/i, '').trim();
+    if (t === 'empate')   return resHT === 'empate'    ? 'ganada' : 'perdida';
+    if (t === local)      return resHT === 'local'     ? 'ganada' : 'perdida';
+    if (t === visitante)  return resHT === 'visitante' ? 'ganada' : 'perdida';
+    if (t === '1')        return resHT === 'local'     ? 'ganada' : 'perdida';
+    if (t === 'x')        return resHT === 'empate'    ? 'ganada' : 'perdida';
+    if (t === '2')        return resHT === 'visitante' ? 'ganada' : 'perdida';
+    const linea = _extraerLinea(t);
+    if (linea !== null && totalGolesHT !== null) {
+      if (_esOver(t))  return totalGolesHT > linea  ? 'ganada' : 'perdida';
+      if (_esUnder(t)) return totalGolesHT < linea  ? 'ganada' : (totalGolesHT === linea ? 'devuelta' : 'perdida');
+    }
+    return null;
   }
 
-  /* ── 8. Resultado 1ª mitad ───────────────────────────────── */
-  const htHome = c.htLocal ?? c.htHome;
-  const htDraw = c.htEmpate ?? c.htDraw;
-  const htAway = c.htVisitante ?? c.htAway;
-  if (htHome != null || htDraw != null || htAway != null) {
-    mercados.push({
-      id: 'htResult', titulo: '⏱ Resultado 1ª mitad', cols: 3,
-      opciones: [
-        { label: p.local,     cuota: htHome, tipo: p.local,     mercado: 'descanso' },
-        { label: 'Empate',    cuota: htDraw, tipo: 'Empate',    mercado: 'descanso' },
-        { label: p.visitante, cuota: htAway, tipo: p.visitante, mercado: 'descanso' },
-      ]
-    });
+  /* ── Resultado 2ª mitad ── */
+  if (mercado === 'segunda') {
+    if (glHT === null || gvHT === null) return null;
+    const gl2  = gl - glHT;
+    const gv2  = gv - gvHT;
+    const res2 = gl2 > gv2 ? 'local' : gv2 > gl2 ? 'visitante' : 'empate';
+    const tot2 = gl2 + gv2;
+    const t    = tipoL.replace(/^ht2?:\s*/i, '').trim();
+    if (t === 'empate')  return res2 === 'empate'    ? 'ganada' : 'perdida';
+    if (t === local)     return res2 === 'local'     ? 'ganada' : 'perdida';
+    if (t === visitante) return res2 === 'visitante' ? 'ganada' : 'perdida';
+    const linea = _extraerLinea(t);
+    if (linea !== null) {
+      if (_esOver(t))  return tot2 > linea  ? 'ganada' : 'perdida';
+      if (_esUnder(t)) return tot2 < linea  ? 'ganada' : (tot2 === linea ? 'devuelta' : 'perdida');
+    }
+    return null;
   }
 
-  /* ── 9. Over/Under 1ª mitad ──────────────────────────────── */
-  const totHTLineas = leerLineasOU(c, 'htOver', 'htUnder', 'totalsHT',
-    line => `Más de ${line} (1ª parte)`, line => `Menos de ${line} (1ª parte)`);
-  if (totHTLineas.length) {
-    mercados.push({
-      id: 'totalsHT', titulo: '📊 Goles 1ª mitad (Over/Under)', cols: 2,
-      opciones: totHTLineas, collapsed: true,
-    });
+  /* ── Helper líneas asiáticas (quarter lines) ── */
+  function _resolverOU(val, linea, esOver, esUnder) {
+    if (!esOver && !esUnder) return null;
+    const dec = Math.abs(linea % 1);
+    // Línea entera o .5 → sin devolución parcial
+    if (dec === 0 || dec === 0.5) {
+      if (esOver)  return val > linea  ? 'ganada' : (val === linea && dec === 0 ? 'devuelta' : 'perdida');
+      if (esUnder) return val < linea  ? 'ganada' : (val === linea && dec === 0 ? 'devuelta' : 'perdida');
+    }
+    // Línea quarter (.25 / .75) → split bet
+    if (dec === 0.25 || dec === 0.75) {
+      const l1 = linea - 0.25, l2 = linea + 0.25;
+      const r1 = esOver ? (val > l1 ? 'ganada' : val === l1 ? 'devuelta' : 'perdida')
+                        : (val < l1 ? 'ganada' : val === l1 ? 'devuelta' : 'perdida');
+      const r2 = esOver ? (val > l2 ? 'ganada' : val === l2 ? 'devuelta' : 'perdida')
+                        : (val < l2 ? 'ganada' : val === l2 ? 'devuelta' : 'perdida');
+      if (r1 === 'ganada'  && r2 === 'ganada')  return 'ganada';
+      if (r1 === 'perdida' && r2 === 'perdida') return 'perdida';
+      return 'devuelta'; // mitad ganada/perdida → devuelta como aproximación visual
+    }
+    return null;
   }
 
-  /* ── 10. Impar/Par 1ª mitad ──────────────────────────────── */
-  if (c.htOdd != null || c.htEven != null) {
-    mercados.push({
-      id: 'htImparPar', titulo: '🔢 Impar / Par (1ª mitad)', cols: 2,
-      opciones: [
-        { label: 'Impar', cuota: c.htOdd,  tipo: 'Impar', mercado: 'htImparPar' },
-        { label: 'Par',   cuota: c.htEven, tipo: 'Par',   mercado: 'htImparPar' },
-      ], collapsed: true,
-    });
+  /* ── Over/Under 1ª mitad ── */
+  if (mercado === 'totalsht') {
+    if (totalGolesHT === null) return null;
+    const linea = _extraerLinea(tipo);
+    if (linea === null) return null;
+    return _resolverOU(totalGolesHT, linea, _esOver(tipo), _esUnder(tipo));
   }
 
-  /* ── 11. Resultado 2ª mitad ──────────────────────────────── */
-  if (c.h2Local != null || c.h2Empate != null || c.h2Visitante != null) {
-    mercados.push({
-      id: 'ht2', titulo: '⏱ Resultado 2ª mitad', cols: 3,
-      opciones: [
-        { label: p.local,     cuota: c.h2Local,     tipo: `HT2: ${p.local}`,     mercado: 'segunda' },
-        { label: 'Empate',    cuota: c.h2Empate,    tipo: 'HT2: Empate',         mercado: 'segunda' },
-        { label: p.visitante, cuota: c.h2Visitante, tipo: `HT2: ${p.visitante}`, mercado: 'segunda' },
-      ]
-    });
+  /* ── Team Total Local ── */
+  if (mercado === 'teamtotalhome') {
+    const linea = _extraerLinea(tipo);
+    if (linea === null) return null;
+    return _resolverOU(gl, linea, _esOver(tipo), _esUnder(tipo));
   }
 
-  /* ── 12. HT/FT Doble resultado ───────────────────────────── */
-  const HTFT_KEYS = [
-    ['htft_1_1','1ª: Local / FT: Local'],
-    ['htft_1_x','1ª: Local / FT: Empate'],
-    ['htft_1_2','1ª: Local / FT: Visitante'],
-    ['htft_x_1','1ª: Empate / FT: Local'],
-    ['htft_x_x','1ª: Empate / FT: Empate'],
-    ['htft_x_2','1ª: Empate / FT: Visitante'],
-    ['htft_2_1','1ª: Visitante / FT: Local'],
-    ['htft_2_x','1ª: Visitante / FT: Empate'],
-    ['htft_2_2','1ª: Visitante / FT: Visitante'],
-  ].filter(([k]) => c[k] != null);
-  if (HTFT_KEYS.length) {
-    mercados.push({
-      id: 'htft', titulo: '🔀 Descanso / Final (HT/FT)', cols: 3,
-      opciones: HTFT_KEYS.map(([k, label]) => ({ label, cuota: c[k], tipo: k, mercado: 'htft' })),
-      collapsed: true,
-    });
+  /* ── Team Total Visitante ── */
+  if (mercado === 'teamtotalaway') {
+    const linea = _extraerLinea(tipo);
+    if (linea === null) return null;
+    return _resolverOU(gv, linea, _esOver(tipo), _esUnder(tipo));
   }
 
-  /* ── 13. Marcador exacto (Correct Score) ─────────────────── */
-  const CS_MAP = [
-    ['cs00','0-0'],['cs10','1-0'],['cs01','0-1'],
-    ['cs11','1-1'],['cs20','2-0'],['cs02','0-2'],
-    ['cs21','2-1'],['cs12','1-2'],['cs22','2-2'],
-    ['cs30','3-0'],['cs03','0-3'],['cs31','3-1'],
-    ['cs13','1-3'],['cs32','3-2'],['cs23','2-3'],
-    ['cs33','3-3'],['cs40','4-0'],['cs04','0-4'],
-    ['cs41','4-1'],['cs14','1-4'],['cs42','4-2'],
-    ['cs24','2-4'],['csOther','Otro resultado'],
-  ].filter(([k]) => c[k] != null);
-  if (CS_MAP.length) {
-    mercados.push({
-      id: 'correctScore', titulo: '🎯 Marcador exacto', cols: 3,
-      opciones: CS_MAP.map(([k, label]) => ({ label, cuota: c[k], tipo: k, mercado: 'correctScore' })),
-      collapsed: true,
-    });
+  /* ── HT Team Total Local ── */
+  if (mercado === 'httotalhome') {
+    if (glHT === null) return null;
+    const linea = _extraerLinea(tipo);
+    if (linea === null) return null;
+    return _resolverOU(glHT, linea, _esOver(tipo), _esUnder(tipo));
   }
 
-  /* ── 14. Total goles local ───────────────────────────────── */
-  const ttHomeOpts = leerLineasOU(c, 'ttHomeOver', 'ttHomeUnder', 'teamTotalHome',
-    line => `${p.local} más de ${line}`, line => `${p.local} menos de ${line}`);
-  if (ttHomeOpts.length) {
-    mercados.push({
-      id: 'teamTotalHome', titulo: `🏠 Goles ${p.local}`, cols: 2,
-      opciones: ttHomeOpts, collapsed: true,
-    });
+  /* ── HT Team Total Visitante ── */
+  if (mercado === 'httotalaway') {
+    if (gvHT === null) return null;
+    const linea = _extraerLinea(tipo);
+    if (linea === null) return null;
+    return _resolverOU(gvHT, linea, _esOver(tipo), _esUnder(tipo));
   }
 
-  /* ── 15. Total goles visitante ───────────────────────────── */
-  const ttAwayOpts = leerLineasOU(c, 'ttAwayOver', 'ttAwayUnder', 'teamTotalAway',
-    line => `${p.visitante} más de ${line}`, line => `${p.visitante} menos de ${line}`);
-  if (ttAwayOpts.length) {
-    mercados.push({
-      id: 'teamTotalAway', titulo: `✈️ Goles ${p.visitante}`, cols: 2,
-      opciones: ttAwayOpts, collapsed: true,
-    });
+  /* ── Impar / Par total ── */
+  if (mercado === 'imparpar' || mercado === 'golesimparpar') {
+    if (tipoL === 'par')   return totalGoles % 2 === 0 ? 'ganada' : 'perdida';
+    if (tipoL === 'impar') return totalGoles % 2 !== 0 ? 'ganada' : 'perdida';
+    return null;
   }
 
-  /* ── 16. Total goles local 1ª mitad ─────────────────────── */
-  const htTtHomeOpts = leerLineasOU(c, 'htTtHomeOver', 'htTtHomeUnder', 'htTotalHome',
-    line => `${p.local} más de ${line} (1ª)`, line => `${p.local} menos de ${line} (1ª)`);
-  if (htTtHomeOpts.length) {
-    mercados.push({
-      id: 'htTotalHome', titulo: `🏠 Goles ${p.local} — 1ª mitad`, cols: 2,
-      opciones: htTtHomeOpts, collapsed: true,
-    });
+  /* ── Impar / Par 1ª mitad ── */
+  if (mercado === 'htimparpar') {
+    if (totalGolesHT === null) return null;
+    if (tipoL === 'par')   return totalGolesHT % 2 === 0 ? 'ganada' : 'perdida';
+    if (tipoL === 'impar') return totalGolesHT % 2 !== 0 ? 'ganada' : 'perdida';
+    return null;
   }
 
-  /* ── 17. Total goles visitante 1ª mitad ──────────────────── */
-  const htTtAwayOpts = leerLineasOU(c, 'htTtAwayOver', 'htTtAwayUnder', 'htTotalAway',
-    line => `${p.visitante} más de ${line} (1ª)`, line => `${p.visitante} menos de ${line} (1ª)`);
-  if (htTtAwayOpts.length) {
-    mercados.push({
-      id: 'htTotalAway', titulo: `✈️ Goles ${p.visitante} — 1ª mitad`, cols: 2,
-      opciones: htTtAwayOpts, collapsed: true,
-    });
+  /* ── Portería a cero local ── */
+  if (mercado === 'cleansheethome') {
+    if (tipo === 'csHomeYes') return gv === 0 ? 'ganada' : 'perdida';
+    if (tipo === 'csHomeNo')  return gv > 0   ? 'ganada' : 'perdida';
+    return null;
   }
 
-  /* ── 18. Asian Handicap ──────────────────────────────────── */
-  const ahLineas = new Set();
-  for (const key of Object.keys(c)) {
-    if (key.startsWith('ahHome') || key.startsWith('ahAway')) {
-      ahLineas.add(key.slice(6)); // "Home25" → "25", eliminar prefijo "ahHome"/"ahAway"
+  /* ── Portería a cero visitante ── */
+  if (mercado === 'cleansheetaway') {
+    if (tipo === 'csAwayYes') return gl === 0 ? 'ganada' : 'perdida';
+    if (tipo === 'csAwayNo')  return gl > 0   ? 'ganada' : 'perdida';
+    return null;
+  }
+
+  /* ── Win to Nil ── */
+  if (mercado === 'winnil') {
+    if (tipo === 'winNilHome') return (gl > gv && gv === 0) ? 'ganada' : 'perdida';
+    if (tipo === 'winNilAway') return (gv > gl && gl === 0) ? 'ganada' : 'perdida';
+    return null;
+  }
+
+  /* ── Marcador exacto ── */
+  if (mercado === 'correctscore') {
+    const expected = `cs${gl}${gv}`;
+    if (tipo === 'csOther') {
+      const knownScores = [
+        'cs00','cs10','cs01','cs11','cs20','cs02','cs21','cs12',
+        'cs22','cs30','cs03','cs31','cs13','cs32','cs23','cs33',
+        'cs40','cs04','cs41','cs14','cs42','cs24',
+      ];
+      return !knownScores.includes(expected) ? 'ganada' : 'perdida';
+    }
+    return tipo === expected ? 'ganada' : 'perdida';
+  }
+
+  /* ── HT/FT ── */
+  if (mercado === 'htft') {
+    if (resHT === null) return null;
+    const htRes = glHT > gvHT ? '1' : glHT < gvHT ? '2' : 'x';
+    const ftRes = gl   > gv   ? '1' : gl   < gv   ? '2' : 'x';
+    const parts = (tipo || '').split('_');
+    if (parts.length !== 3) return null;
+    return (htRes === parts[1] && ftRes === parts[2]) ? 'ganada' : 'perdida';
+  }
+
+  /* ── Hándicap europeo ── */
+  if (mercado === 'ehresult') {
+    const ehMatch = tipo.replace(/^EH:\s*/i, '').trim().match(/^([+-]?\d+(?:\.\d+)?)\s*(.*)/);
+    if (!ehMatch) return null;
+    const hdp    = parseFloat(ehMatch[1]);
+    const equipo = ehMatch[2].trim().toLowerCase();
+    if (isNaN(hdp)) return null;
+    let ajustado;
+    if (equipo === local)     ajustado = (gl + hdp) - gv;
+    else if (equipo === visitante) ajustado = (gv + hdp) - gl;
+    else if (equipo === 'empate' || equipo === 'x') return ((gl + hdp) - gv) === 0 ? 'ganada' : 'perdida';
+    else return null;
+    if (ajustado > 0) return 'ganada';
+    if (ajustado < 0) return 'perdida';
+    return 'devuelta';
+  }
+
+  /* ── Hándicap asiático ── */
+  if (mercado === 'asianhandicap') {
+    const ahRaw   = tipo.replace(/^AH:\s*/i, '').trim();
+    const ahMatch = ahRaw.match(/^([+-]?\d+(?:\.\d+)?)\s*(.*)/);
+    if (!ahMatch) return null;
+    const hdp    = parseFloat(ahMatch[1]);
+    const equipo = ahMatch[2].trim().toLowerCase();
+    if (isNaN(hdp)) return null;
+    let diff;
+    if (equipo === local)          diff = gl - gv + hdp;
+    else if (equipo === visitante) diff = gv - gl + hdp;
+    else return null;
+    const dec = Math.abs(hdp % 1);
+    if (dec === 0 || dec === 0.5) {
+      if (diff > 0) return 'ganada';
+      if (diff < 0) return 'perdida';
+      return dec === 0 ? 'devuelta' : 'perdida';
+    }
+    if (dec === 0.25 || dec === 0.75) {
+      const r1 = (diff - 0.25) > 0 ? 'ganada' : (diff - 0.25) < 0 ? 'perdida' : 'devuelta';
+      const r2 = (diff + 0.25) > 0 ? 'ganada' : (diff + 0.25) < 0 ? 'perdida' : 'devuelta';
+      if (r1 === 'ganada'  && r2 === 'ganada')   return 'ganada';
+      if (r1 === 'perdida' && r2 === 'perdida')  return 'perdida';
+      return 'devuelta'; // mitad ganada/perdida → mostramos devuelta como aproximación visual
+    }
+    return null;
+  }
+
+  /* ── Mercados sin resolución automática (stats no disponibles) ── */
+  // corners, bookings, goleadores, firstScore, nextGoal → el worker tampoco los resuelve
+  return null;
+}
+
+/* =========================================================
+  BUILD BET ROW
+  ========================================================= */
+function buildBetRow(b, apuesta) {
+  const partidoData  = b.partidoId ? partidoCache[String(b.partidoId)] : null;
+  const enVivo       = partidoData && ['1H','HT','2H','ET','P'].includes(partidoData.estado);
+  const terminado    = partidoData && partidoData.estado === 'FT';
+
+  const selNombre     = fmtSeleccion(b, partidoData);
+  const localNombre   = partidoData?.local     || '';
+  const visitNombre   = partidoData?.visitante || '';
+  const partidoNombre = partidoData ? `${localNombre} <span>vs</span> ${visitNombre}` : (b.partido || '');
+  const mercadoTag    = fmtMercadoTag(b.mercado || b.tipoApuesta);
+  const fechaP        = partidoData?.fecha ? `<span class="ac-bet-fecha">${fmtFechaPartido(partidoData.fecha)}</span>` : '';
+
+  /* ── Determinar color del indicador ── */
+  let indicatorClass = '';
+
+  if (b.resultado === 'ganada') {
+    indicatorClass = 'ganada';
+  } else if (b.resultado === 'perdida') {
+    indicatorClass = 'perdida';
+  } else if (b.resultado === 'devuelta') {
+    indicatorClass = 'devuelta';
+  } else if (enVivo) {
+    indicatorClass = 'en-curso';
+  } else if (terminado) {
+    const res = calcularResultadoBet(b, partidoData);
+    if      (res === 'ganada')   indicatorClass = 'ganada';
+    else if (res === 'perdida')  indicatorClass = 'perdida';
+    else if (res === 'devuelta') indicatorClass = 'devuelta';
+    else                         indicatorClass = 'en-curso';
+  } else if (apuesta.estado !== 'pendiente') {
+    if ((apuesta.bets || []).length === 1) {
+      if (apuesta.estado === 'ganada')   indicatorClass = 'ganada';
+      if (apuesta.estado === 'perdida')  indicatorClass = 'perdida';
+      if (apuesta.estado === 'devuelta') indicatorClass = 'devuelta';
     }
   }
-  // Recopilar por clave real (ahHomeXX, ahAwayXX)
-  const ahOpts = [];
-  for (const raw of [...ahLineas].sort()) {
-    const line = parseLineKey(raw);
-    if (c[`ahHome${raw}`] != null) ahOpts.push({ label: `${p.local} (${line > 0 ? '+' : ''}${line})`, cuota: c[`ahHome${raw}`], tipo: `AH: ${p.local} ${line > 0 ? '+' : ''}${line}`, mercado: 'asianHandicap' });
-    if (c[`ahAway${raw}`] != null) ahOpts.push({ label: `${p.visitante} (${line > 0 ? '+' : ''}${line})`, cuota: c[`ahAway${raw}`], tipo: `AH: ${p.visitante} ${line > 0 ? '+' : ''}${line}`, mercado: 'asianHandicap' });
-  }
-  if (ahOpts.length) {
-    mercados.push({
-      id: 'asianHandicap', titulo: '⚖️ Hándicap asiático', cols: 2,
-      opciones: ahOpts, collapsed: true,
-    });
+
+  let estadoPartido = '';
+  if (enVivo) {
+    const minuto   = partidoData.minuto ? `${partidoData.minuto}'` : '';
+    const marcador = (partidoData.golesLocal ?? 0) + ' - ' + (partidoData.golesVisitante ?? 0);
+    estadoPartido = `<div class="ac-bet-live"><span class="live-indicator"><span class="live-dot"></span> En vivo ${minuto}</span><span class="ac-bet-marcador">⚽ ${marcador}</span></div>`;
+  } else if (terminado) {
+    const marcador = (partidoData.golesLocal ?? 0) + ' - ' + (partidoData.golesVisitante ?? 0);
+    estadoPartido = `<div class="ac-bet-ft">FT: <strong>${marcador}</strong></div>`;
   }
 
-  /* ── 19. Hándicap europeo ────────────────────────────────── */
-  if (c.ehHome != null || c.ehDraw != null || c.ehAway != null) {
-    mercados.push({
-      id: 'ehResult', titulo: '⚖️ Hándicap europeo', cols: 3,
-      opciones: [
-        { label: p.local,     cuota: c.ehHome, tipo: `EH: ${p.local}`,     mercado: 'ehResult' },
-        { label: 'Empate',    cuota: c.ehDraw, tipo: 'EH: Empate',         mercado: 'ehResult' },
-        { label: p.visitante, cuota: c.ehAway, tipo: `EH: ${p.visitante}`, mercado: 'ehResult' },
-      ], collapsed: true,
-    });
-  }
-
-  /* ── 20. Portería a cero — Local ─────────────────────────── */
-  if (c.csHomeYes != null || c.csHomeNo != null) {
-    mercados.push({
-      id: 'cleanSheetHome', titulo: `🧤 Portería a cero — ${p.local}`, cols: 2,
-      opciones: [
-        { label: 'Sí', cuota: c.csHomeYes, tipo: 'csHomeYes', mercado: 'cleanSheetHome' },
-        { label: 'No', cuota: c.csHomeNo,  tipo: 'csHomeNo',  mercado: 'cleanSheetHome' },
-      ], collapsed: true,
-    });
-  }
-
-  /* ── 21. Portería a cero — Visitante ─────────────────────── */
-  if (c.csAwayYes != null || c.csAwayNo != null) {
-    mercados.push({
-      id: 'cleanSheetAway', titulo: `🧤 Portería a cero — ${p.visitante}`, cols: 2,
-      opciones: [
-        { label: 'Sí', cuota: c.csAwayYes, tipo: 'csAwayYes', mercado: 'cleanSheetAway' },
-        { label: 'No', cuota: c.csAwayNo,  tipo: 'csAwayNo',  mercado: 'cleanSheetAway' },
-      ], collapsed: true,
-    });
-  }
-
-  /* ── 22. Primer equipo en marcar ─────────────────────────── */
-  if (c.firstScoreHome != null || c.firstScoreNone != null || c.firstScoreAway != null) {
-    mercados.push({
-      id: 'firstScore', titulo: '🥇 Primer equipo en marcar', cols: 3,
-      opciones: [
-        { label: p.local,       cuota: c.firstScoreHome, tipo: 'firstScoreHome', mercado: 'firstScore' },
-        { label: 'Sin goles',   cuota: c.firstScoreNone, tipo: 'firstScoreNone', mercado: 'firstScore' },
-        { label: p.visitante,   cuota: c.firstScoreAway, tipo: 'firstScoreAway', mercado: 'firstScore' },
-      ], collapsed: true,
-    });
-  }
-
-  /* ── 23. Próximo gol ─────────────────────────────────────── */
-  if (c.nextGoalHome != null || c.nextGoalNone != null || c.nextGoalAway != null) {
-    mercados.push({
-      id: 'nextGoal', titulo: '⚡ Próximo gol', cols: 3,
-      opciones: [
-        { label: p.local,     cuota: c.nextGoalHome, tipo: 'nextGoalHome', mercado: 'nextGoal' },
-        { label: 'Sin gol',   cuota: c.nextGoalNone, tipo: 'nextGoalNone', mercado: 'nextGoal' },
-        { label: p.visitante, cuota: c.nextGoalAway, tipo: 'nextGoalAway', mercado: 'nextGoal' },
-      ], collapsed: true,
-    });
-  }
-
-  /* ── 24. Sin encajar y ganar (Win to Nil) ────────────────── */
-  if (c.winNilHome != null || c.winNilAway != null) {
-    mercados.push({
-      id: 'winNil', titulo: '🔒 Ganar sin encajar (Win to Nil)', cols: 2,
-      opciones: [
-        { label: p.local,     cuota: c.winNilHome, tipo: 'winNilHome', mercado: 'winNil' },
-        { label: p.visitante, cuota: c.winNilAway, tipo: 'winNilAway', mercado: 'winNil' },
-      ], collapsed: true,
-    });
-  }
-
-  /* ── 25. Córners — Total partido ─────────────────────────── */
-  const cornersOpts = leerLineasOU(c, 'cornersOver', 'cornersUnder', 'cornersTotal',
-    line => `Córners más de ${line}`, line => `Córners menos de ${line}`);
-  if (cornersOpts.length) {
-    mercados.push({
-      id: 'cornersTotal', titulo: '📐 Córners', cols: 2,
-      opciones: cornersOpts, collapsed: true,
-    });
-  }
-
-  /* ── 26. Córners — 1ª mitad ──────────────────────────────── */
-  const cornersHTOpts = leerLineasOU(c, 'cornersHTOver', 'cornersHTUnder', 'cornersHT',
-    line => `Córners más de ${line} (1ª)`, line => `Córners menos de ${line} (1ª)`);
-  if (cornersHTOpts.length) {
-    mercados.push({
-      id: 'cornersHT', titulo: '📐 Córners — 1ª mitad', cols: 2,
-      opciones: cornersHTOpts, collapsed: true,
-    });
-  }
-
-  /* ── 27. Tarjetas ────────────────────────────────────────── */
-  const bookingsOpts = leerLineasOU(c, 'bookingsOver', 'bookingsUnder', 'bookingsTotal',
-    line => `Tarjetas más de ${line}`, line => `Tarjetas menos de ${line}`);
-  if (bookingsOpts.length) {
-    mercados.push({
-      id: 'bookingsTotal', titulo: '🟨 Tarjetas', cols: 2,
-      opciones: bookingsOpts, collapsed: true,
-    });
-  }
-
-  /* ── Sin mercados ─────────────────────────────────────────── */
-  if (!mercados.length) {
-    wrap.innerHTML = `
-      <div class="sin-cuotas-aviso">
-        <i class="fas fa-lock"></i>
-        Las cuotas para este partido aún no están disponibles.
-      </div>`;
-    return;
-  }
-
-  /* ── Banner partido terminado ─────────────────────────────── */
-  const bannerFT = terminado ? `
-    <div class="ft-mercados-banner">
-      <i class="fas fa-flag-checkered"></i>
-      Partido finalizado · Solo consulta · No se aceptan apuestas
-    </div>` : '';
-
-  /* ── Render HTML ──────────────────────────────────────────── */
-  wrap.innerHTML = bannerFT + mercados.map(m => {
-    const ganadores = terminado ? obtenerGanadores(m.id, p, c) : new Set();
-    const colapsado = m.collapsed ? ' collapsed' : '';
-
-    return `
-      <div class="mercado-section${colapsado}" id="sec-${m.id}">
-        <div class="mercado-header" onclick="toggleMercado('${m.id}')">
-          <span class="mercado-titulo">${m.titulo}</span>
-          <i class="fas fa-chevron-down mercado-chevron"></i>
+  return `
+    <div class="ac-bet-row">
+      <div class="ac-bet-indicator ${indicatorClass}"></div>
+      <div class="ac-bet-body">
+        <div class="ac-bet-top">
+          <span class="ac-bet-seleccion">${selNombre}</span>
+          <span class="ac-bet-cuota">${parseFloat(b.cuota || 1).toFixed(2)}</span>
         </div>
-        <div class="mercado-body">
-          <div class="opciones-grid cols-${m.cols}">
-            ${m.opciones.map(o => {
-              const tieneValor = o.cuota != null && o.cuota !== '-';
-              const esGanadora = ganadores.has(o.tipo);
-              let clases = 'opcion-btn';
-              if (!tieneValor) clases += ' sin-cuota';
-              if (terminado)   clases += ' ft-bloqueada';
-              if (esGanadora)  clases += ' ft-ganadora';
-              return `
-                <button class="${clases}"
-                        data-tipo="${o.tipo}"
-                        data-cuota="${tieneValor ? o.cuota : '-'}"
-                        data-mercado="${o.mercado}"
-                        onclick="handleOpcion(this)"
-                        ${terminado ? 'title="Partido finalizado"' : ''}>
-                  <span class="opcion-label">${o.label}</span>
-                  <span class="opcion-cuota">${tieneValor ? parseFloat(o.cuota).toFixed(2) : '—'}</span>
-                  ${esGanadora ? '<span class="ft-ganadora-badge">✓ Ganadora</span>' : ''}
-                </button>`;
-            }).join('')}
-          </div>
+        <div class="ac-bet-meta">
+          <span class="ac-bet-partido-nombre">${partidoNombre}</span>
+          <span class="ac-bet-mercado-tag">${mercadoTag}</span>
+          ${fechaP}
         </div>
-      </div>`;
-  }).join('');
+        ${estadoPartido}
+      </div>
+    </div>`;
+}
 
-  window.actualizarBotones?.();
+/* =========================================================
+  ACEPTAR APUESTA
+  ========================================================= */
+window.aceptarApuesta = async function(id, estado, importe) {
+  const btn = event?.target?.closest('button');
+  if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; }
+  try {
+    const apuestaRef = db.collection('apuestas').doc(id);
+    const apuestaDoc = await apuestaRef.get();
+    if (!apuestaDoc.exists) throw new Error('Apuesta no encontrada');
+    const apuesta = apuestaDoc.data();
+    if (apuesta.aceptadaPorUsuario) { console.warn('[aceptar] Ya aceptada, ignorando.'); return; }
+    const batch = db.batch();
+    batch.update(apuestaRef, { aceptadaPorUsuario: true });
+    if (importe > 0 && apuesta.usuarioId) {
+      const usuarioRef = db.collection('usuarios').doc(apuesta.usuarioId);
+      batch.update(usuarioRef, { saldo: firebase.firestore.FieldValue.increment(importe) });
+    }
+    await batch.commit();
+
+    if (importe > 0) {
+      const usuarioSnap = await db.collection('usuarios').doc(apuesta.usuarioId).get();
+      const nuevoSaldo = parseFloat(usuarioSnap.data()?.saldo || 0);
+      window._saldoUsuario = nuevoSaldo;
+      const elSaldoVal = document.getElementById('hdr-saldo-val');
+      if (elSaldoVal) elSaldoVal.textContent = `${nuevoSaldo.toFixed(2)} €`;
+      const elDdSaldo = document.querySelector('.hdr-dd-saldo');
+      if (elDdSaldo) elDdSaldo.textContent = `${nuevoSaldo.toFixed(2)} €`;
+    }
+  } catch (e) {
+    console.error('[aceptar] Error:', e);
+    alert('Error al confirmar la apuesta. Inténtalo de nuevo.');
+    if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
+  }
 };
+
+/* =========================================================
+  UTILIDADES DE FORMATO
+  ========================================================= */
+function fmt(n) { return `${(parseFloat(n) || 0).toFixed(2).replace('.', ',')} €`; }
+
+function fmtFechaApuesta(date) {
+  const dias  = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  const meses = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  return `${dias[date.getDay()]} ${String(date.getDate()).padStart(2,'0')} ${meses[date.getMonth()]} · ${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
+}
+
+function fmtFechaPartido(fechaStr) {
+  if (!fechaStr) return '';
+  try {
+    const d    = new Date(fechaStr);
+    const dias = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+    return `${dias[d.getDay()]} ${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  } catch { return ''; }
+}
+
+function fmtSeleccion(b, partido) {
+  const m    = (b.mercado || b.tipoApuesta || '').toLowerCase().replace(/[\s-]/g,'');
+  const tipo = b.tipo || '';
+  const local     = partido?.local     || '';
+  const visitante = partido?.visitante || '';
+  if (m === 'resultado') {
+    if (tipo.toLowerCase() === 'empate') return 'Empate (X)';
+    if (tipo === local)     return `Gana ${local} (1)`;
+    if (tipo === visitante) return `Gana ${visitante} (2)`;
+    return `Gana ${tipo}`;
+  }
+  if (m === 'dobleoportunidad') return tipo;
+  if (m === 'dnb')         return tipo.replace(/^dnb:\s*/i,'') + ' (sin empate)';
+  if (m === 'ambosmarcan') return `Ambos marcan: ${tipo}`;
+  if (m === 'totalgoles')  return tipo;
+  if (m === 'descanso')    return `1ª mitad: ${tipo.replace(/^ht1?:\s*/i,'')}`;
+  if (m === 'segunda')     return `2ª mitad: ${tipo.replace(/^ht2?:\s*/i,'')}`;
+  if (m === 'totalsht')    return `1ª mitad (goles): ${tipo}`;
+  if (m === 'teamtotalhome') return `🏠 Goles local: ${tipo}`;
+  if (m === 'teamtotalaway') return `✈️ Goles visitante: ${tipo}`;
+  if (m === 'httotalhome')   return `🏠 Goles local 1ª mitad: ${tipo}`;
+  if (m === 'httotalaway')   return `✈️ Goles visitante 1ª mitad: ${tipo}`;
+  if (m === 'imparpar')    return `Goles ${tipo}`;
+  if (m === 'htimparpar')  return `Goles ${tipo} (1ª mitad)`;
+  if (m === 'cleansheethome') return tipo === 'csHomeYes' ? `🧤 ${local} sin encajar: Sí` : `🧤 ${local} sin encajar: No`;
+  if (m === 'cleansheetaway') return tipo === 'csAwayYes' ? `🧤 ${visitante} sin encajar: Sí` : `🧤 ${visitante} sin encajar: No`;
+  if (m === 'winnil') return tipo === 'winNilHome' ? `🔒 ${local} gana sin encajar` : `🔒 ${visitante} gana sin encajar`;
+  if (m === 'correctscore') {
+    if (tipo === 'csOther') return 'Marcador exacto: Otro';
+    const raw = tipo.replace('cs', '');
+    return `Marcador: ${raw.slice(0,-1)}-${raw.slice(-1)}`;
+  }
+  if (m === 'htft') {
+    const HTFT_LABELS = {
+      htft_1_1:'1ª: Local / FT: Local', htft_1_x:'1ª: Local / FT: Empate',
+      htft_1_2:'1ª: Local / FT: Visitante', htft_x_1:'1ª: Empate / FT: Local',
+      htft_x_x:'1ª: Empate / FT: Empate', htft_x_2:'1ª: Empate / FT: Visitante',
+      htft_2_1:'1ª: Visitante / FT: Local', htft_2_x:'1ª: Visitante / FT: Empate',
+      htft_2_2:'1ª: Visitante / FT: Visitante',
+    };
+    return HTFT_LABELS[tipo] || tipo;
+  }
+  if (m === 'ehresult')      return tipo.replace(/^EH:\s*/i, 'Hándicap europeo: ');
+  if (m === 'asianhandicap') return tipo.replace(/^AH:\s*/i, 'H. Asiático: ');
+  if (m === 'cornerstotal' || m === 'corners') return `📐 ${tipo}`;
+  if (m === 'cornersht')     return `📐 ${tipo} (1ª mitad)`;
+  if (m === 'bookingstotal' || m === 'tarjetas') return `🟨 ${tipo}`;
+  if (m === 'firstscore') {
+    if (tipo === 'firstScoreHome') return `🥇 Primer gol: ${local}`;
+    if (tipo === 'firstScoreNone') return '🥇 Sin goles';
+    if (tipo === 'firstScoreAway') return `🥇 Primer gol: ${visitante}`;
+  }
+  if (m === 'nextgoal') {
+    if (tipo === 'nextGoalHome') return `⚡ Próx. gol: ${local}`;
+    if (tipo === 'nextGoalNone') return '⚡ Sin gol';
+    if (tipo === 'nextGoalAway') return `⚡ Próx. gol: ${visitante}`;
+  }
+  if (m === 'goleadores' || b.esGoleador) return `Gol de ${tipo}`;
+  if (m === 'corners')    return tipo;
+  if (m === 'tarjetas')   return fmtTarjeta(tipo);
+  return tipo;
+}
+
+function fmtTarjeta(tipo) { return tipo.replace(/\(.*?\)/g,'').replace(/\s{2,}/g,' ').trim(); }
+
+function fmtMercadoTag(mercado) {
+  const tags = {
+    resultado:'1X2', dobleoportunidad:'Doble op.', dnb:'Sin empate',
+    ambosmarcan:'BTTS', totalgoles:'Goles', descanso:'1ª Mitad',
+    segunda:'2ª Mitad', totalsht:'Goles 1ª M.', teamtotalhome:'Goles Local',
+    teamtotalaway:'Goles Visit.', httotalhome:'Goles Local 1ª', httotalaway:'Goles Visit. 1ª', imparpar:'Impar/Par', htimparpar:'Impar/Par 1ª',
+    goleadores:'Goleador', corners:'Córners', cornerstotal:'Córners',
+    cornersht:'Córners 1ª', tarjetas:'Tarjetas', bookingstotal:'Tarjetas',
+    cleansheethome:'P. a cero', cleansheetaway:'P. a cero', winnil:'Win to Nil',
+    correctscore:'Marcador', htft:'HT/FT', ehresult:'H. Europeo',
+    asianhandicap:'H. Asiático', firstscore:'1er Gol', nextgoal:'Próx. Gol',
+  };
+  const key = (mercado || '').toLowerCase().replace(/[\s-]/g,'');
+  return tags[key] || mercado || 'Apuesta';
+}
+
+function renderEmptyState(icon, title, sub) {
+  return `<div class="empty-state"><div class="empty-state-icon">${icon}</div><div class="empty-state-title">${title}</div><div class="empty-state-sub">${sub}</div></div>`;
+}

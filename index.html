@@ -92,9 +92,6 @@
       position: sticky; top: 80px;
       display: flex; flex-direction: column; gap: 18px;
     }
-    .ad-mobile { display: none; margin: 10px 0 4px; }
-    @media (max-width: 900px) { .ad-mobile { display: block; } }
-    @media (min-width: 901px) { .ad-mobile { display: none; } }
 
     /* ══════════════════════════════════════════════
        WIDGET TIPS DE APUESTAS
@@ -196,15 +193,15 @@
 
     <!-- ══════════════════════════════════════════
          COLUMNA IZQUIERDA
-         1. Native Ad (Adsterra)
+         1. Native Ad (Adsterra) — solo desktop
          2. Banner 300x250 (Adsterra)
          3. Widget Tips de Apuestas
     ══════════════════════════════════════════ -->
     <div class="column column-left">
       <div class="sidebar-sticky">
 
-        <!-- 1 · Native Ad -->
-        <div>
+        <!-- 1 · Native Ad (solo desktop, oculto en móvil via CSS) -->
+        <div style="display:none;" class="desktop-only-ad">
           <span class="ad-label">Publicidad</span>
           <div class="ad-block">
             <script async="async" data-cfasync="false"
@@ -277,13 +274,7 @@
         <button class="liga-btn" data-liga="Ligue 1">Ligue 1</button>
       </div>
 
-      <!-- Anuncio móvil: entre filtros y partidos -->
-      <div class="ad-mobile">
-        <span class="ad-label">Publicidad</span>
-        <div class="ad-block">
-          <div id="container-4a33511adbf3c3aff8bfede6873f7e14-mobile"></div>
-        </div>
-      </div>
+      <!-- Anuncio móvil ELIMINADO — ya no aparece el Native Banner en móvil -->
 
       <div id="partidos-container">
         <div class="partidos-loading">
@@ -455,9 +446,9 @@
 
 <!-- JS principal -->
 <script src="assets/js/firebase-init.js"></script>
+<script src="assets/js/notifications.js"></script>
 <script src="assets/js/header.js"></script>
 <script src="assets/js/daily-reward.js"></script>
-<script src="assets/js/push-notifications.js"></script>
 <script src="assets/js/favoritos.js"></script>
 <script src="assets/js/betslip-core.js"></script>
 <script src="assets/js/main.js"></script>
@@ -554,17 +545,19 @@
 })();
 
 /* ════════════════════════════════════════════════════
-   ADSTERRA — Clonar native al contenedor móvil
+   NATIVE AD — Solo mostrar en desktop (>900px)
+   El script ya está cargado en el sidebar izquierdo,
+   pero ocultamos el bloque entero en móvil via JS
+   como refuerzo adicional al display:none del HTML.
 ════════════════════════════════════════════════════ */
 (function () {
-  function sincronizar() {
-    const src  = document.getElementById('container-4a33511adbf3c3aff8bfede6873f7e14');
-    const dest = document.getElementById('container-4a33511adbf3c3aff8bfede6873f7e14-mobile');
-    if (!src || !dest) return;
-    if (src.children.length === 0) { setTimeout(sincronizar, 800); return; }
-    dest.innerHTML = src.innerHTML;
+  var adBlock = document.querySelector('.desktop-only-ad');
+  if (!adBlock) return;
+  function checkWidth() {
+    adBlock.style.display = window.innerWidth > 900 ? 'block' : 'none';
   }
-  window.addEventListener('load', () => setTimeout(sincronizar, 1200));
+  checkWidth();
+  window.addEventListener('resize', checkWidth);
 })();
 
 /* ════════════════════════════════════════════════════

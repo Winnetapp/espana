@@ -41,9 +41,13 @@
         /* ── USUARIO + NOTIFICACIONES (derecha) ── */
         hRight.innerHTML = `
           <div class="hdr-right-wrap">
-            <button id="_notif-btn-placeholder" class="hdr-notif-btn" title="Notificaciones" aria-label="Notificaciones">
-              🔕
+
+            <!-- Botón campana — Centro de Notificaciones -->
+            <button id="notif-bell-trigger" class="notif-bell-btn" title="Notificaciones" aria-label="Notificaciones">
+              <i class="fas fa-bell"></i>
+              <span class="notif-badge" id="notif-badge">0</span>
             </button>
+
             <div class="hdr-user-menu" id="_userMenuWrap">
               <button class="hdr-user-trigger" id="_userMenuTrigger" aria-haspopup="true" aria-expanded="false">
                 <span class="hdr-avatar" aria-hidden="true">${inicial}</span>
@@ -73,6 +77,7 @@
                 </button>
               </div>
             </div>
+
           </div>`;
 
         /* ── Dropdown toggle ── */
@@ -100,9 +105,26 @@
         const btnAdmin = document.getElementById('btn-admin-panel');
         if (btnAdmin && ud.rol === 'admin') btnAdmin.style.display = 'flex';
 
-        /* ── Avisar a push-notifications.js que el header está listo ──
-           Guardamos también en window por si push-notifications.js
-           carga después de que este evento ya se haya disparado.       ── */
+        /* ── Inicializar Centro de Notificaciones ──────────────────
+           WinnetNotifications.init() necesita db y auth.
+           Lo llamamos aquí porque es el único sitio donde tenemos
+           garantía de que el botón #notif-bell-trigger ya existe
+           en el DOM y el usuario está autenticado.
+           Si notifications.js no está cargado aún esperamos a que
+           lo esté (puede pasar si los scripts cargan en paralelo).
+        ────────────────────────────────────────────────────────── */
+        if (window.WinnetNotifications) {
+          window.WinnetNotifications.init(db, auth);
+        } else {
+          // Esperar a que notifications.js termine de cargar
+          window.addEventListener('load', () => {
+            if (window.WinnetNotifications) {
+              window.WinnetNotifications.init(db, auth);
+            }
+          });
+        }
+
+        /* ── Avisar a otros scripts que el header está listo ── */
         window._headerReadyFired = true;
         window._headerReadyUid   = user.uid;
         window.dispatchEvent(new CustomEvent('header-ready', { detail: { uid: user.uid } }));
