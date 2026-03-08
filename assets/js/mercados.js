@@ -1,6 +1,10 @@
 /* =============================================================
-   mercados.js  —  v4.0
+   mercados.js  —  v4.1
    Renderiza todos los mercados de apuestas.
+
+   CAMBIOS v4.1:
+   · Tabla de goles: columna "Línea" ahora muestra "2.5 goles"
+     en lugar de "+2.5".
 
    CAMBIOS v4.0:
    · Bloque GOLES completamente rediseñado al estilo Bet365:
@@ -221,7 +225,7 @@ function _renderTablaGU(comboId, lineas, mercado, ganadores, terminado) {
     };
 
     return `<tr>
-      <td class="gu-linea-label">+${line}</td>
+      <td class="gu-linea-label">${line} goles</td>
       ${mkCell({ cuota: over,  esG: esGO, dir: 'over'  })}
       ${mkCell({ cuota: under, esG: esGU, dir: 'under' })}
     </tr>`;

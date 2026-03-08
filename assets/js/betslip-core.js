@@ -1,6 +1,22 @@
 /* =============================================================
-   betslip-core.js  —  v4.2
+   betslip-core.js  —  v4.3
    Módulo compartido de carrito entre index.html y partido.html
+
+   CAMBIOS v4.3:
+   · resolverConflictoGoles(): nueva función que gestiona la
+     lógica de reemplazo inteligente en el mercado totalgoles
+     cuando ya existe una selección del mismo tipo (over/under)
+     en el mismo partido:
+       – Dos "over"  → gana la de línea más alta (más restrictiva
+         y cuota más alta). Reemplaza automáticamente.
+       – Dos "under" → gana la de línea más baja (más restrictiva
+         y cuota más alta). Reemplaza automáticamente.
+       – Over + Under compatibles (over < under) → coexisten.
+       – Over + Under incompatibles (over >= under) → bloqueado
+         (ya manejado por esIncompatible).
+     Se muestra un toast explicativo cuando hay reemplazo.
+     Aplica también a totalsht, teamtotalhome, teamtotalaway,
+     httotalhome, httotalaway (todos los mercados de totales).
 
    CAMBIOS v4.2:
    · partidoNoApostable(): renombrada y ampliada. Antes solo
@@ -26,7 +42,7 @@
    FIX 6 · actualizarBotones() con clase incompatible-bloqueada
    FIX 7 · realizarApuesta() con segunda validación
 
-   Mantiene compatibilidad con mercados.js v3.4 y worker.js v6.5
+   Mantiene compatibilidad con mercados.js v4.1 y worker.js v6.6
    ============================================================= */
 
 (function () {
@@ -61,8 +77,6 @@
 
   /* ─────────────────────────────────────────────────────────
      v4.2 · partidoNoApostable
-     Devuelve true si el partido ya ha comenzado o finalizado.
-     Bloquea tanto partidos en vivo como terminados.
   ───────────────────────────────────────────────────────── */
   async function partidoNoApostable(partidoId) {
     if (!partidoId) return false;
@@ -72,15 +86,13 @@
       let snap = await db.collection('partidos').doc(partidoId).get();
       if (snap.exists) {
         const estado = snap.data()?.estado;
-        // Si el estado es conocido y NO está en la lista apostable → bloqueado
         if (estado) return !ESTADOS_APOSTABLE.includes(estado);
         return false;
       }
-      // Si está en historial, definitivamente terminado
       snap = await db.collection('historial').doc(partidoId).get();
       if (snap.exists) return true;
       return false;
-    } catch { return true; } // en caso de error, bloquear por seguridad
+    } catch { return true; }
   }
 
   /* ─────────────────────────────────────────────────────────
@@ -155,6 +167,10 @@
   const esEH       = m => m === 'ehresult';
   const esAsian    = m => m === 'asiantotals';
 
+  // Todos los mercados de totales de goles (aplica lógica de reemplazo inteligente)
+  const esMercadoTotales = m =>
+    esGoles(m) || esTotalHT(m) || esTTHome(m) || esTTAway(m) || esHTTHome(m) || esHTTAway(m);
+
   /* ─────────────────────────────────────────────────────────
      claveExclusion
   ───────────────────────────────────────────────────────── */
@@ -194,6 +210,75 @@
   }
 
   /* ─────────────────────────────────────────────────────────
+     v4.3 · resolverConflictoGoles
+     Gestiona la lógica de reemplazo inteligente cuando se añade
+     una selección de un mercado de totales y ya existe otra del
+     mismo mercado y partido con la misma dirección (over/over
+     o under/under).
+
+     Retorna:
+       { accion: 'ninguna' }          → no hay conflicto, añadir normal
+       { accion: 'reemplazar', idx }  → reemplazar la existente en bets[idx]
+       { accion: 'descartar' }        → la nueva es redundante, descartar silenciosamente
+                                        (la existente ya es más restrictiva)
+  ───────────────────────────────────────────────────────── */
+  function resolverConflictoGoles(betNuevo, betsActuales) {
+    const mNuevo = normM(betNuevo.mercado);
+    if (!esMercadoTotales(mNuevo)) return { accion: 'ninguna' };
+
+    const dirNueva  = betNuevo.dir  || direccion(betNuevo.tipo);
+    const lineaNueva = betNuevo.line ?? valorNum(betNuevo.tipo);
+
+    if (dirNueva === null || lineaNueva === null) return { accion: 'ninguna' };
+
+    const pidNuevo = (betNuevo.partidoId || '').toString().trim();
+
+    // Buscar todas las selecciones del mismo partido y mismo mercado de totales
+    for (let i = 0; i < betsActuales.length; i++) {
+      const b = betsActuales[i];
+      if ((b.partidoId || '').toString().trim() !== pidNuevo) continue;
+      if (normM(b.mercado) !== mNuevo) continue;
+
+      const dirExistente   = b.dir  || direccion(b.tipo);
+      const lineaExistente = b.line ?? valorNum(b.tipo);
+
+      if (dirExistente === null || lineaExistente === null) continue;
+
+      // Solo aplica la lógica cuando la dirección es la misma (over+over o under+under)
+      if (dirNueva !== dirExistente) continue;
+
+      if (dirNueva === 'over') {
+        // Dos "over": gana la de línea más alta (más restrictiva, cuota más alta)
+        if (lineaNueva > lineaExistente) {
+          // La nueva es más restrictiva → reemplaza la existente
+          return { accion: 'reemplazar', idx: i };
+        } else if (lineaNueva < lineaExistente) {
+          // La existente ya es más restrictiva → descartar la nueva
+          return { accion: 'descartar' };
+        } else {
+          // Misma línea → toggle normal (se elimina si ya estaba)
+          return { accion: 'ninguna' };
+        }
+      }
+
+      if (dirNueva === 'under') {
+        // Dos "under": gana la de línea más baja (más restrictiva, cuota más alta)
+        if (lineaNueva < lineaExistente) {
+          // La nueva es más restrictiva → reemplaza la existente
+          return { accion: 'reemplazar', idx: i };
+        } else if (lineaNueva > lineaExistente) {
+          // La existente ya es más restrictiva → descartar la nueva
+          return { accion: 'descartar' };
+        } else {
+          return { accion: 'ninguna' };
+        }
+      }
+    }
+
+    return { accion: 'ninguna' };
+  }
+
+  /* ─────────────────────────────────────────────────────────
      esIncompatible
   ───────────────────────────────────────────────────────── */
   function esIncompatible(a, b) {
@@ -220,6 +305,13 @@
       if (nA !== null && nB !== null && nA === nB) {
         if ((dA === 'over' && dB === 'under') || (dA === 'under' && dB === 'over'))
           return { incompatible: true, motivo: `Over ${nA} y Under ${nA} del mismo mercado son incompatibles` };
+      }
+      // Over >= Under en el mismo mercado también es incompatible
+      if (nA !== null && nB !== null && dA !== null && dB !== null && dA !== dB) {
+        const overLine  = dA === 'over'  ? nA : nB;
+        const underLine = dA === 'under' ? nA : nB;
+        if (overLine >= underLine)
+          return { incompatible: true, motivo: `Over ${overLine} y Under ${underLine} son incompatibles: el over debe ser menor que el under` };
       }
     }
 
@@ -451,7 +543,7 @@
   function guardar() { localStorage.setItem(STORAGE_KEY, JSON.stringify(bets)); }
 
   /* ─────────────────────────────────────────────────────────
-     addBet — v4.2: usa partidoNoApostable en lugar de partidoEnVivo
+     addBet — v4.3: incluye resolverConflictoGoles
   ───────────────────────────────────────────────────────── */
   async function addBet({ partido, tipo, cuota, partidoId, mercado, line, dir }) {
     const pid   = (partidoId || '').toString().trim();
@@ -476,6 +568,35 @@
     const dnbCheck = validarDNBEnCarrito(betNuevo, bets);
     if (!dnbCheck.ok) { toast(`🚫 ${dnbCheck.motivo}`, 'error'); return; }
 
+    // v4.3: Resolver conflictos de totales (over/over o under/under del mismo mercado)
+    const conflicto = resolverConflictoGoles(betNuevo, bets);
+
+    if (conflicto.accion === 'reemplazar') {
+      const existente = bets[conflicto.idx];
+      const dirLabel  = (betNuevo.dir || direccion(betNuevo.tipo)) === 'over' ? 'Más de' : 'Menos de';
+      const lineaAntigua = existente.line ?? valorNum(existente.tipo);
+      const lineaNueva   = betNuevo.line  ?? valorNum(betNuevo.tipo);
+      bets[conflicto.idx] = betNuevo;
+      guardar(); notificar();
+      toast(`🔄 Selección actualizada: ${dirLabel} ${lineaNueva} goles (sustituye a ${dirLabel} ${lineaAntigua})`, 'ok');
+      return;
+    }
+
+    if (conflicto.accion === 'descartar') {
+      const existente    = bets.find((b, i) => {
+        if ((b.partidoId || '').toString().trim() !== pid) return false;
+        if (normM(b.mercado) !== mNorm) return false;
+        const dEx = b.dir || direccion(b.tipo);
+        const dNu = betNuevo.dir || direccion(betNuevo.tipo);
+        return dEx === dNu;
+      });
+      const dirLabel     = (betNuevo.dir || direccion(betNuevo.tipo)) === 'over' ? 'Más de' : 'Menos de';
+      const lineaActual  = existente ? (existente.line ?? valorNum(existente.tipo)) : '?';
+      const lineaNueva   = betNuevo.line ?? valorNum(betNuevo.tipo);
+      toast(`ℹ Ya tienes ${dirLabel} ${lineaActual} goles, que es más restrictivo que ${dirLabel} ${lineaNueva}`, 'info');
+      return;
+    }
+
     // Validar incompatibilidades con selecciones del mismo partido
     const delMismoPartido = bets.filter(b =>
       (b.partidoId || '').toString().trim() === pid && pid !== ''
@@ -499,6 +620,7 @@
       return;
     }
 
+    // Toggle: si ya está exactamente la misma selección, eliminarla
     const idx = bets.findIndex(b =>
       (b.partidoId || '').toString().trim() === pid &&
       claveExclusion(normM(b.mercado), b.tipo) === clave
@@ -799,7 +921,7 @@
   }
 
   /* ─────────────────────────────────────────────────────────
-     realizarApuesta — v4.2: bloquea partidos comenzados/terminados
+     realizarApuesta
   ───────────────────────────────────────────────────────── */
   async function realizarApuesta() {
     const auth = window.auth, db = window.db;
@@ -808,7 +930,6 @@
     if (!user)        { toast('Debes iniciar sesión para apostar', 'error'); return; }
     if (!bets.length) { toast('No hay apuestas en el carrito', 'error');    return; }
 
-    // Validación final de incompatibilidades
     const porPartido = {};
     bets.forEach(b => {
       const pid = (b.partidoId || '').toString().trim();
@@ -828,7 +949,6 @@
       if (!check.ok) { toast(`🚫 ${check.motivo}`, 'error'); return; }
     }
 
-    // v4.2: Bloquear partidos que ya han comenzado O terminado
     const pidsBloqueados = [];
     const idsUnicos = [...new Set(bets.map(b => (b.partidoId || '').toString().trim()).filter(Boolean))];
     for (const pid of idsUnicos) {
