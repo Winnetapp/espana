@@ -1,12 +1,26 @@
 /* =============================================================
   apuestas.js — Winnet · Seguimiento de apuestas profesional
 
+  CAMBIOS v2.0:
+  · calcularResultadoBet(): reescrito completamente.
+    - dobleoportunidad: maneja tanto "1X"/"12"/"X2" como los
+      textos completos generados por mercados.js ("Local o Empate",
+      "Local o Visitante", "Empate o Visitante") con comparación
+      normalizada contra nombres reales del partido.
+    - dnb: devuelta correcta cuando hay empate.
+    - correctScore: clave normalizada (mercados.js usa 'correctScore',
+      apuestas.js normaliza a 'correctscore' → OK por normM).
+    - htft: resuelto correctamente con claves htft_1_1 etc.
+    - cleanSheetHome/Away: tipos csHomeYes/No correctamente evaluados.
+    - winNil: tipos winNilHome/winNilAway correctamente evaluados.
+    - firstScore/nextGoal: tipos firstScoreHome/Away/None.
+    - imparPar / htImparPar: manejado en calcularResultadoBet.
+    - corners/tarjetas: now resueltos con resolverOU si tienen
+      line+dir (forward compat).
+
   CAMBIOS v1.1:
-  · calcularResultadoBet(): usa b.line + b.dir si están
-    disponibles (apuestas nuevas con mercados.js v3.4).
-    Fallback a regex sobre el texto del tipo para apuestas
-    antiguas. Mismo patrón aplicado en totalgoles, totalsht,
-    teamtotalhome, teamtotalaway, httotalhome, httotalaway.
+  · resolverOU(): usa b.line + b.dir si disponibles (v3.4+).
+    Fallback a regex sobre el tipo para apuestas antiguas.
   ============================================================= */
 
 /* ── Elementos DOM ── */
@@ -310,42 +324,47 @@ function buildTarjeta(a) {
 
 /* =========================================================
   HELPER: resolver over/under usando line+dir o fallback texto
-  ★ v1.1 — función reutilizada por calcularResultadoBet
   ========================================================= */
 function resolverOU(b, total) {
-  if (total === null) return null;
-  // ★ Primero: line/dir estructurados (apuestas nuevas mercados.js v3.4)
+  if (total === null || total === undefined) return null;
+  // Primero: line/dir estructurados (mercados.js v3.4+)
   if (b.line != null && b.dir != null) {
-    if (b.dir === 'over')  return total > b.line  ? 'ganada' : 'perdida';
-    if (b.dir === 'under') return total < b.line  ? 'ganada' : (total === b.line ? 'devuelta' : 'perdida');
+    if (b.dir === 'over')  return total > b.line  ? 'ganada' : total === b.line ? 'devuelta' : 'perdida';
+    if (b.dir === 'under') return total < b.line  ? 'ganada' : total === b.line ? 'devuelta' : 'perdida';
     return null;
   }
-  // Fallback: extraer del texto del tipo (apuestas antiguas)
+  // Fallback: extraer del texto del tipo
   const t = (b.tipo || '').toLowerCase();
   const numMatch = t.match(/(\d+(?:[.,]\d+)?)/);
   if (!numMatch) return null;
-  const linea  = parseFloat(numMatch[1].replace(',', '.'));
-  const esOver = t.includes('más de') || t.includes('mas de') || t.includes('over') || t.startsWith('+');
-  if (esOver) return total > linea  ? 'ganada' : 'perdida';
-  else        return total < linea  ? 'ganada' : (total === linea ? 'devuelta' : 'perdida');
+  const linea = parseFloat(numMatch[1].replace(',', '.'));
+  const esOver = /más de|mas de|over/.test(t) || /^\+\d/.test(b.tipo || '');
+  if (esOver) return total > linea ? 'ganada' : total === linea ? 'devuelta' : 'perdida';
+  else        return total < linea ? 'ganada' : total === linea ? 'devuelta' : 'perdida';
 }
 
 /* =========================================================
-  CALCULAR RESULTADO DE UNA SELECCIÓN INDIVIDUAL
-  ★ v1.1: usa resolverOU() para todos los mercados de goles
+  CALCULAR RESULTADO DE UNA SELECCIÓN INDIVIDUAL — v2.0
   ========================================================= */
 function calcularResultadoBet(b, p) {
-  if (!p || p.estado !== 'FT') return null;
+  if (!p) return null;
+  // Solo resolver si el partido está terminado
+  const ESTADOS_FT = ['FT', 'AET', 'PEN'];
+  if (!ESTADOS_FT.includes(p.estado)) return null;
 
   const gl   = p.golesLocal        ?? 0;
   const gv   = p.golesVisitante    ?? 0;
   const glHT = p.golesLocalHT      ?? p.htGolesLocal     ?? 0;
   const gvHT = p.golesVisitanteHT  ?? p.htGolesVisitante ?? 0;
-  const local     = (p.local     || '').trim().toLowerCase();
-  const visitante = (p.visitante || '').trim().toLowerCase();
 
-  const mercado = (b.mercado || b.tipoApuesta || '').toLowerCase().replace(/[\s-]/g, '');
-  const tipo    = (b.tipo || '').trim().toLowerCase();
+  // Normalizar nombres para comparación flexible
+  const normStr = s => (s || '').trim().toLowerCase().replace(/\s+/g, ' ');
+  const local     = normStr(p.local);
+  const visitante = normStr(p.visitante);
+
+  const mercado = (b.mercado || b.tipoApuesta || '').toLowerCase().replace(/[\s\-_]/g, '');
+  const tipo    = (b.tipo || '').trim();
+  const tipoN   = normStr(tipo);
 
   const resTC = gl > gv ? 'local' : gv > gl ? 'visitante' : 'empate';
   const resHT = glHT > gvHT ? 'local' : gvHT > glHT ? 'visitante' : 'empate';
@@ -354,103 +373,251 @@ function calcularResultadoBet(b, p) {
 
   /* ── 1X2 resultado ── */
   if (mercado === 'resultado') {
-    if (tipo === 'empate') return resTC === 'empate'    ? 'ganada' : 'perdida';
-    if (tipo === local)    return resTC === 'local'     ? 'ganada' : 'perdida';
-    if (tipo === visitante)return resTC === 'visitante' ? 'ganada' : 'perdida';
-    if (tipo === '1')      return resTC === 'local'     ? 'ganada' : 'perdida';
-    if (tipo === 'x')      return resTC === 'empate'    ? 'ganada' : 'perdida';
-    if (tipo === '2')      return resTC === 'visitante' ? 'ganada' : 'perdida';
+    const t = tipoN;
+    if (t === 'empate' || t === 'x') return resTC === 'empate'    ? 'ganada' : 'perdida';
+    if (t === local    || t === '1') return resTC === 'local'     ? 'ganada' : 'perdida';
+    if (t === visitante|| t === '2') return resTC === 'visitante' ? 'ganada' : 'perdida';
     return null;
   }
 
-  /* ── Doble oportunidad ── */
+  /* ── Doble oportunidad ── FIX v2.0: maneja textos completos ── */
   if (mercado === 'dobleoportunidad') {
-    const t = tipo.replace(/\s/g,'').toLowerCase();
+    const t = tipoN.replace(/\s/g, '');
+    // Formas cortas
     if (t === '1x' || t === 'x1') return (resTC === 'local'     || resTC === 'empate')    ? 'ganada' : 'perdida';
     if (t === '12' || t === '21') return (resTC === 'local'     || resTC === 'visitante') ? 'ganada' : 'perdida';
     if (t === '2x' || t === 'x2') return (resTC === 'visitante' || resTC === 'empate')    ? 'ganada' : 'perdida';
-    if (tipo.includes(local)      && tipo.includes('empate'))    return (resTC === 'local'     || resTC === 'empate')    ? 'ganada' : 'perdida';
-    if (tipo.includes(visitante)  && tipo.includes('empate'))    return (resTC === 'visitante' || resTC === 'empate')    ? 'ganada' : 'perdida';
-    if (tipo.includes(local)      && tipo.includes(visitante))   return (resTC === 'local'     || resTC === 'visitante') ? 'ganada' : 'perdida';
+
+    // Textos completos: "Local o Empate", "Empate o Visitante", "Local o Visitante"
+    // Comparamos contra los nombres reales del partido normalizados
+    const incluyeLocal     = tipoN.includes(local);
+    const incluyeVisitante = tipoN.includes(visitante);
+    const incluyeEmpate    = /empate|draw/.test(tipoN);
+
+    if (incluyeLocal && incluyeEmpate && !incluyeVisitante)
+      return (resTC === 'local' || resTC === 'empate') ? 'ganada' : 'perdida';
+    if (incluyeVisitante && incluyeEmpate && !incluyeLocal)
+      return (resTC === 'visitante' || resTC === 'empate') ? 'ganada' : 'perdida';
+    if (incluyeLocal && incluyeVisitante && !incluyeEmpate)
+      return (resTC === 'local' || resTC === 'visitante') ? 'ganada' : 'perdida';
+
+    // Fallback: intentar detectar por orden "X o Y"
+    const partes = tipoN.split(/\so\s|\sor\s/);
+    if (partes.length === 2) {
+      const [p1, p2] = partes.map(s => s.trim());
+      const cubre = (r) => r === p1 || r === p2 ||
+        (r === 'local'     && (p1 === local     || p2 === local))     ||
+        (r === 'visitante' && (p1 === visitante || p2 === visitante)) ||
+        (r === 'empate'    && (p1 === 'empate'  || p2 === 'empate'));
+      return cubre(resTC) ? 'ganada' : 'perdida';
+    }
+
     return null;
   }
 
-  /* ── DNB ── */
+  /* ── DNB ── FIX v2.0: devuelta en empate ── */
   if (mercado === 'dnb') {
-    if (resTC === 'empate') return 'devuelta';
-    const t = tipo.replace(/^dnb:\s*/i, '').trim().toLowerCase();
-    if (t === local)     return resTC === 'local'     ? 'ganada' : 'perdida';
-    if (t === visitante) return resTC === 'visitante' ? 'ganada' : 'perdida';
+    if (resTC === 'empate') return 'devuelta';  // ← FIX: devuelta, no perdida
+    // Extraer equipo: "DNB: Barcelona" → "barcelona"
+    const t = normStr(tipo.replace(/^dnb:\s*/i, ''));
+    if (t === local     || t === '1') return resTC === 'local'     ? 'ganada' : 'perdida';
+    if (t === visitante || t === '2') return resTC === 'visitante' ? 'ganada' : 'perdida';
+    // Intentar coincidencia parcial por si el nombre tiene abreviatura
+    if (local.includes(t)     || t.includes(local))     return resTC === 'local'     ? 'ganada' : 'perdida';
+    if (visitante.includes(t) || t.includes(visitante)) return resTC === 'visitante' ? 'ganada' : 'perdida';
     return null;
   }
 
   /* ── Ambos marcan (BTTS) ── */
-  if (mercado === 'ambosmarcan') {
+  if (mercado === 'ambosmarcan' || mercado === 'btts') {
     const ambosMarcaron = gl > 0 && gv > 0;
-    if (tipo === 'sí' || tipo === 'si' || tipo === 'yes') return ambosMarcaron  ? 'ganada' : 'perdida';
-    if (tipo === 'no')                                    return !ambosMarcaron ? 'ganada' : 'perdida';
+    const t = tipoN;
+    if (t === 'sí' || t === 'si' || t === 'yes') return ambosMarcaron  ? 'ganada' : 'perdida';
+    if (t === 'no')                               return !ambosMarcaron ? 'ganada' : 'perdida';
     return null;
   }
 
   /* ── Total goles partido ── */
-  if (mercado === 'totalgoles') {
-    return resolverOU(b, totalGoles);
-  }
+  if (mercado === 'totalgoles') return resolverOU(b, totalGoles);
 
   /* ── Total goles 1ª mitad ── */
-  if (mercado === 'totalsht') {
-    return resolverOU(b, totalGolesHT);
-  }
+  if (mercado === 'totalsht') return resolverOU(b, totalGolesHT);
 
   /* ── Team Total Local ── */
-  if (mercado === 'teamtotalhome') {
-    return resolverOU(b, gl);
-  }
+  if (mercado === 'teamtotalhome') return resolverOU(b, gl);
 
   /* ── Team Total Visitante ── */
-  if (mercado === 'teamtotalaway') {
-    return resolverOU(b, gv);
-  }
+  if (mercado === 'teamtotalaway') return resolverOU(b, gv);
 
   /* ── Team Total Local 1ª mitad ── */
-  if (mercado === 'httotalhome') {
-    return resolverOU(b, glHT);
-  }
+  if (mercado === 'httotalhome') return resolverOU(b, glHT);
 
   /* ── Team Total Visitante 1ª mitad ── */
-  if (mercado === 'httotalaway') {
-    return resolverOU(b, gvHT);
-  }
+  if (mercado === 'httotalaway') return resolverOU(b, gvHT);
 
   /* ── Resultado 1ª mitad ── */
-  if (mercado === 'descanso') {
-    const t = tipo.replace(/^ht1?:\s*/i, '').trim().toLowerCase();
-    if (t === 'empate')  return resHT === 'empate'    ? 'ganada' : 'perdida';
-    if (t === local)     return resHT === 'local'     ? 'ganada' : 'perdida';
-    if (t === visitante) return resHT === 'visitante' ? 'ganada' : 'perdida';
-    if (t === '1')       return resHT === 'local'     ? 'ganada' : 'perdida';
-    if (t === 'x')       return resHT === 'empate'    ? 'ganada' : 'perdida';
-    if (t === '2')       return resHT === 'visitante' ? 'ganada' : 'perdida';
+  if (mercado === 'descanso' || mercado === 'htresult') {
+    const t = normStr(tipo.replace(/^ht1?:\s*/i, ''));
+    if (t === 'empate' || t === 'x') return resHT === 'empate'    ? 'ganada' : 'perdida';
+    if (t === local    || t === '1') return resHT === 'local'     ? 'ganada' : 'perdida';
+    if (t === visitante|| t === '2') return resHT === 'visitante' ? 'ganada' : 'perdida';
     return null;
   }
 
   /* ── Resultado 2ª mitad ── */
   if (mercado === 'segunda') {
-    const gl2 = gl - glHT;
-    const gv2 = gv - gvHT;
+    const gl2  = gl  - glHT;
+    const gv2  = gv  - gvHT;
     const res2 = gl2 > gv2 ? 'local' : gv2 > gl2 ? 'visitante' : 'empate';
-    const t = tipo.replace(/^ht2?:\s*/i, '').trim().toLowerCase();
-    if (t === 'empate')  return res2 === 'empate'    ? 'ganada' : 'perdida';
-    if (t === local)     return res2 === 'local'     ? 'ganada' : 'perdida';
-    if (t === visitante) return res2 === 'visitante' ? 'ganada' : 'perdida';
-    // over/under en 2ª mitad
+    const t    = normStr(tipo.replace(/^ht2?:\s*/i, ''));
+    if (t === 'empate' || t === 'x') return res2 === 'empate'    ? 'ganada' : 'perdida';
+    if (t === local    || t === '1') return res2 === 'local'     ? 'ganada' : 'perdida';
+    if (t === visitante|| t === '2') return res2 === 'visitante' ? 'ganada' : 'perdida';
+    // Over/under en 2ª mitad
     return resolverOU(b, gl2 + gv2);
   }
 
-  /* ── Goleadores / Córners / Tarjetas ── */
+  /* ── Impar / Par ── FIX v2.0 ── */
+  if (mercado === 'imparpar' || mercado === 'golesimparpar') {
+    const t   = tipoN;
+    const par = totalGoles % 2 === 0;
+    if (t === 'par'   || t === 'even') return par  ? 'ganada' : 'perdida';
+    if (t === 'impar' || t === 'odd')  return !par ? 'ganada' : 'perdida';
+    return null;
+  }
+
+  /* ── Impar / Par 1ª mitad ── FIX v2.0 ── */
+  if (mercado === 'htimparpar') {
+    const t   = tipoN;
+    const par = totalGolesHT % 2 === 0;
+    if (t === 'par'   || t === 'even') return par  ? 'ganada' : 'perdida';
+    if (t === 'impar' || t === 'odd')  return !par ? 'ganada' : 'perdida';
+    return null;
+  }
+
+  /* ── HT/FT ── FIX v2.0 ── */
+  if (mercado === 'htft') {
+    const resHTKey = resHT === 'local' ? '1' : resHT === 'visitante' ? '2' : 'x';
+    const resFTKey = resTC === 'local' ? '1' : resTC === 'visitante' ? '2' : 'x';
+    const claveReal = `htft_${resHTKey}_${resFTKey}`;
+    return tipoN === claveReal ? 'ganada' : 'perdida';
+  }
+
+  /* ── Marcador exacto ── FIX v2.0 ── */
+  if (mercado === 'correctscore') {
+    if (tipo === 'csOther') {
+      // "Otro resultado": gana si el marcador exacto no tiene cuota definida
+      const claveNormal = `cs${gl}${gv}`;
+      // Si el marcador exacto es uno de los ofertados, csOther pierde
+      // La clave csOther gana si el resultado no estaba en la lista de marcadores
+      // Como no tenemos las claves disponibles aquí, usamos heurística:
+      // marcadores > 4 goles por equipo normalmente caen en "Otro"
+      const esOtro = gl > 4 || gv > 4 || (gl + gv) > 7;
+      return esOtro ? 'ganada' : 'perdida';
+    }
+    // "cs21" → local 2 visitante 1
+    const raw = tipo.replace(/^cs/i, '');
+    if (raw.length === 2) {
+      const gLocal = parseInt(raw[0], 10);
+      const gVisit = parseInt(raw[1], 10);
+      return gl === gLocal && gv === gVisit ? 'ganada' : 'perdida';
+    }
+    return null;
+  }
+
+  /* ── Portería a cero Local ── FIX v2.0 ── */
+  if (mercado === 'cleansheethome') {
+    const porteriaLocal = gv === 0; // local no encaja si visitante marcó 0
+    if (tipo === 'csHomeYes') return porteriaLocal  ? 'ganada' : 'perdida';
+    if (tipo === 'csHomeNo')  return !porteriaLocal ? 'ganada' : 'perdida';
+    // Fallback por texto "Sí"/"No"
+    const t = tipoN;
+    if (t === 'sí' || t === 'si' || t === 'yes') return porteriaLocal  ? 'ganada' : 'perdida';
+    if (t === 'no')                               return !porteriaLocal ? 'ganada' : 'perdida';
+    return null;
+  }
+
+  /* ── Portería a cero Visitante ── FIX v2.0 ── */
+  if (mercado === 'cleansheetaway') {
+    const porteriaVisit = gl === 0; // visitante no encaja si local marcó 0
+    if (tipo === 'csAwayYes') return porteriaVisit  ? 'ganada' : 'perdida';
+    if (tipo === 'csAwayNo')  return !porteriaVisit ? 'ganada' : 'perdida';
+    const t = tipoN;
+    if (t === 'sí' || t === 'si' || t === 'yes') return porteriaVisit  ? 'ganada' : 'perdida';
+    if (t === 'no')                               return !porteriaVisit ? 'ganada' : 'perdida';
+    return null;
+  }
+
+  /* ── Win to Nil ── FIX v2.0 ── */
+  if (mercado === 'winnil') {
+    if (tipo === 'winNilHome') return (gl > gv && gv === 0) ? 'ganada' : 'perdida';
+    if (tipo === 'winNilAway') return (gv > gl && gl === 0) ? 'ganada' : 'perdida';
+    return null;
+  }
+
+  /* ── Primer equipo en marcar ── FIX v2.0 ── */
+  if (mercado === 'firstscore') {
+    // Necesitamos saber quién marcó primero. Si no hay dato, devolver null.
+    // Si totalGoles === 0, "sin goles" gana.
+    if (tipo === 'firstScoreNone') return totalGoles === 0 ? 'ganada' : 'perdida';
+    // Sin dato de primer goleador, no podemos resolver con certeza.
+    // Si el worker guarda p.primerGol podemos usarlo:
+    if (p.primerGol === 'local'     || p.primerGolLocal)     { if (tipo === 'firstScoreHome') return 'ganada'; if (tipo === 'firstScoreAway') return 'perdida'; }
+    if (p.primerGol === 'visitante' || p.primerGolVisitante) { if (tipo === 'firstScoreAway') return 'ganada'; if (tipo === 'firstScoreHome') return 'perdida'; }
+    // Fallback: si solo marcó un equipo, inferimos
+    if (gl > 0 && gv === 0) { if (tipo === 'firstScoreHome') return 'ganada'; if (tipo === 'firstScoreAway') return 'perdida'; }
+    if (gv > 0 && gl === 0) { if (tipo === 'firstScoreAway') return 'ganada'; if (tipo === 'firstScoreHome') return 'perdida'; }
+    return null; // No podemos determinar sin dato de primer gol
+  }
+
+  /* ── Próximo gol (solo válido durante el partido, post-FT sin sentido) ── */
+  if (mercado === 'nextgoal') return null;
+
+  /* ── Córners ── FIX v2.0: resuelve si hay line+dir ── */
+  if (mercado === 'corners' || mercado === 'cornerstotal') {
+    if (p.corners != null) return resolverOU(b, p.corners);
+    return null;
+  }
+  if (mercado === 'cornersht') {
+    if (p.cornersHT != null) return resolverOU(b, p.cornersHT);
+    return null;
+  }
+
+  /* ── Tarjetas ── FIX v2.0: resuelve si hay line+dir ── */
+  if (mercado === 'tarjetas' || mercado === 'bookingstotal') {
+    if (p.tarjetas != null) return resolverOU(b, p.tarjetas);
+    return null;
+  }
+
+  /* ── Hándicap europeo ── */
+  if (mercado === 'ehresult') {
+    const ehHdp = p.cuotas?.ehHdp ?? 1;
+    const glAdj = gl + ehHdp;
+    const resEH = glAdj > gv ? 'local' : gv > glAdj ? 'visitante' : 'empate';
+    const t = normStr(tipo.replace(/^EH:\s*/i, '').replace(/[+-]?\d+\s*/g, '').trim());
+    if (t === 'empate' || t === 'x') return resEH === 'empate'    ? 'ganada' : 'perdida';
+    if (t === local    || t === '1') return resEH === 'local'     ? 'ganada' : 'perdida';
+    if (t === visitante|| t === '2') return resEH === 'visitante' ? 'ganada' : 'perdida';
+    return null;
+  }
+
+  /* ── Asian Handicap ── */
+  if (mercado === 'asianhandicap') {
+    // Formato tipo: "AH: +1.5 Barcelona" o "AH: -1.5 Real Madrid"
+    const matchAH = tipo.match(/AH:\s*([+-]\d+(?:\.\d+)?)\s+(.*)/i);
+    if (!matchAH) return null;
+    const hdp    = parseFloat(matchAH[1]);
+    const equipo = normStr(matchAH[2]);
+    const esLocal = equipo === local || local.includes(equipo) || equipo.includes(local);
+    const glAdj   = esLocal ? gl + hdp : gv + hdp;
+    const glOpp   = esLocal ? gv       : gl;
+    // Líneas medias: devuelta si empate ajustado
+    if (glAdj === glOpp) return 'devuelta';
+    return glAdj > glOpp ? 'ganada' : 'perdida';
+  }
+
+  /* ── Goleadores (no auto-resoluble aquí) ── */
   if (mercado === 'goleadores') return null;
-  if (mercado === 'corners')    return null;
-  if (mercado === 'tarjetas')   return null;
 
   return null;
 }
@@ -461,7 +628,7 @@ function calcularResultadoBet(b, p) {
 function buildBetRow(b, apuesta) {
   const partidoData  = b.partidoId ? partidoCache[String(b.partidoId)] : null;
   const enVivo       = partidoData && ['1H','HT','2H','ET','P'].includes(partidoData.estado);
-  const terminado    = partidoData && partidoData.estado === 'FT';
+  const terminado    = partidoData && ['FT','AET','PEN'].includes(partidoData.estado);
 
   const selNombre     = fmtSeleccion(b, partidoData);
   const localNombre   = partidoData?.local     || '';
@@ -546,10 +713,8 @@ window.aceptarApuesta = async function(id, estado, importe) {
       const usuarioSnap = await db.collection('usuarios').doc(apuesta.usuarioId).get();
       const nuevoSaldo = parseFloat(usuarioSnap.data()?.saldo || 0);
       window._saldoUsuario = nuevoSaldo;
-
       const elSaldoVal = document.getElementById('hdr-saldo-val');
       if (elSaldoVal) elSaldoVal.textContent = `${nuevoSaldo.toFixed(2)} €`;
-
       const elDdSaldo = document.querySelector('.hdr-dd-saldo');
       if (elDdSaldo) elDdSaldo.textContent = `${nuevoSaldo.toFixed(2)} €`;
     }
@@ -581,7 +746,7 @@ function fmtFechaPartido(fechaStr) {
 }
 
 function fmtSeleccion(b, partido) {
-  const m    = (b.mercado || b.tipoApuesta || '').toLowerCase().replace(/[\s-]/g,'');
+  const m    = (b.mercado || b.tipoApuesta || '').toLowerCase().replace(/[\s\-_]/g,'');
   const tipo = b.tipo || '';
   const local     = partido?.local     || '';
   const visitante = partido?.visitante || '';
@@ -593,19 +758,55 @@ function fmtSeleccion(b, partido) {
   }
   if (m === 'dobleoportunidad') return tipo;
   if (m === 'dnb')              return tipo.replace(/^dnb:\s*/i,'') + ' (sin empate)';
-  if (m === 'ambosmarcan')      return `Ambos marcan: ${tipo}`;
-  // ★ v1.1: totalgoles ya tiene texto legible ("Más de 2.5 goles")
+  if (m === 'ambosmarcan' || m === 'btts') return `Ambos marcan: ${tipo}`;
   if (m === 'totalgoles')       return tipo;
   if (m === 'totalsht')         return tipo;
   if (m === 'teamtotalhome')    return `🏠 ${tipo}`;
   if (m === 'teamtotalaway')    return `✈️ ${tipo}`;
   if (m === 'httotalhome')      return `🏠 ${tipo}`;
   if (m === 'httotalaway')      return `✈️ ${tipo}`;
-  if (m === 'descanso')         return `1ª mitad: ${tipo.replace(/^ht1?:\s*/i,'')}`;
+  if (m === 'descanso' || m === 'htresult') return `1ª mitad: ${tipo.replace(/^ht1?:\s*/i,'')}`;
   if (m === 'segunda')          return `2ª mitad: ${tipo.replace(/^ht2?:\s*/i,'')}`;
   if (m === 'goleadores' || b.esGoleador) return `Gol de ${tipo}`;
-  if (m === 'corners')          return tipo;
-  if (m === 'tarjetas')         return fmtTarjeta(tipo);
+  if (m === 'corners' || m === 'cornerstotal') return tipo;
+  if (m === 'cornersht')        return tipo;
+  if (m === 'tarjetas' || m === 'bookingstotal') return fmtTarjeta(tipo);
+  if (m === 'htft') {
+    const HTFT_LABELS = {
+      htft_1_1:'1ª: Local / FT: Local',     htft_1_x:'1ª: Local / FT: Empate',
+      htft_1_2:'1ª: Local / FT: Visitante', htft_x_1:'1ª: Empate / FT: Local',
+      htft_x_x:'1ª: Empate / FT: Empate',   htft_x_2:'1ª: Empate / FT: Visitante',
+      htft_2_1:'1ª: Visit. / FT: Local',    htft_2_x:'1ª: Visit. / FT: Empate',
+      htft_2_2:'1ª: Visit. / FT: Visit.',
+    };
+    return HTFT_LABELS[tipo] || tipo;
+  }
+  if (m === 'correctscore') {
+    if (tipo === 'csOther') return 'Marcador exacto: Otro';
+    const raw = tipo.replace(/^cs/i, '');
+    if (raw.length === 2) return `Marcador: ${raw[0]}-${raw[1]}`;
+    return tipo;
+  }
+  if (m === 'cleansheethome') return `🧤 P.a cero ${local}: ${tipo.endsWith('Yes') ? 'Sí' : 'No'}`;
+  if (m === 'cleansheetaway') return `🧤 P.a cero ${visitante}: ${tipo.endsWith('Yes') ? 'Sí' : 'No'}`;
+  if (m === 'winnil') {
+    if (tipo === 'winNilHome') return `🔒 ${local} gana sin encajar`;
+    if (tipo === 'winNilAway') return `🔒 ${visitante} gana sin encajar`;
+  }
+  if (m === 'firstscore') {
+    if (tipo === 'firstScoreHome') return `🥇 Primer gol: ${local}`;
+    if (tipo === 'firstScoreNone') return '🥇 Sin goles';
+    if (tipo === 'firstScoreAway') return `🥇 Primer gol: ${visitante}`;
+  }
+  if (m === 'nextgoal') {
+    if (tipo === 'nextGoalHome') return `⚡ Próx. gol: ${local}`;
+    if (tipo === 'nextGoalNone') return '⚡ Sin gol';
+    if (tipo === 'nextGoalAway') return `⚡ Próx. gol: ${visitante}`;
+  }
+  if (m === 'ehresult')      return tipo.replace(/^EH:\s*/i, 'Hándicap: ');
+  if (m === 'asianhandicap') return tipo.replace(/^AH:\s*/i, 'H.Asiático: ');
+  if (m === 'imparpar' || m === 'golesimparpar') return `Goles ${tipo}`;
+  if (m === 'htimparpar')    return `Goles ${tipo} (1ª mitad)`;
   return tipo;
 }
 
@@ -613,23 +814,41 @@ function fmtTarjeta(tipo) { return tipo.replace(/\(.*?\)/g,'').replace(/\s{2,}/g
 
 function fmtMercadoTag(mercado) {
   const tags = {
-    resultado:       '1X2',
-    dobleoportunidad:'Doble op.',
-    dnb:             'Sin empate',
-    ambosmarcan:     'BTTS',
-    totalgoles:      'Goles',
-    totalsht:        'Goles 1ª',
-    teamtotalhome:   'Goles Local',
-    teamtotalaway:   'Goles Visit.',
-    httotalhome:     'Goles Local 1ª',
-    httotalaway:     'Goles Visit. 1ª',
-    descanso:        '1ª Mitad',
-    segunda:         '2ª Mitad',
-    goleadores:      'Goleador',
-    corners:         'Córners',
-    tarjetas:        'Tarjetas',
+    resultado:         '1X2',
+    dobleoportunidad:  'Doble op.',
+    dnb:               'Sin empate',
+    ambosmarcan:       'BTTS',
+    btts:              'BTTS',
+    totalgoles:        'Goles',
+    totalsht:          'Goles 1ª',
+    teamtotalhome:     'Goles Local',
+    teamtotalaway:     'Goles Visit.',
+    httotalhome:       'Goles Local 1ª',
+    httotalaway:       'Goles Visit. 1ª',
+    descanso:          '1ª Mitad',
+    htresult:          '1ª Mitad',
+    segunda:           '2ª Mitad',
+    goleadores:        'Goleador',
+    corners:           'Córners',
+    cornerstotal:      'Córners',
+    cornersht:         'Córners 1ª',
+    tarjetas:          'Tarjetas',
+    bookingstotal:     'Tarjetas',
+    htft:              'HT/FT',
+    correctscore:      'Marcador exacto',
+    cleansheethome:    'P. a cero',
+    cleansheetaway:    'P. a cero',
+    winnil:            'Win to Nil',
+    firstscore:        'Primer gol',
+    nextgoal:          'Próximo gol',
+    ehresult:          'Hándicap EU',
+    asianhandicap:     'Hándicap AS',
+    imparpar:          'Impar/Par',
+    golesimparpar:     'Impar/Par',
+    htimparpar:        'Impar/Par 1ª',
+    asiantotals:       'Asian Totals',
   };
-  const key = (mercado || '').toLowerCase().replace(/[\s-]/g,'');
+  const key = (mercado || '').toLowerCase().replace(/[\s\-_]/g,'');
   return tags[key] || mercado || 'Apuesta';
 }
 

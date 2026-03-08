@@ -1780,3 +1780,231 @@
     font-size: 0.95rem;
   }
 }
+
+/* ══════════════════════════════════════════════════════════
+   BLOQUE TOTAL DE GOLES — Estilo Bet365
+   Añadir a partidos-view.css (o al <style> de partido.html)
+   ══════════════════════════════════════════════════════════ */
+
+/* Controles superiores: los dos selects */
+.gu-controles {
+  display: flex;
+  gap: 8px;
+  padding: 12px 14px 10px;
+  border-bottom: 1px solid var(--borde);
+  flex-wrap: wrap;
+}
+
+/* Wrap de cada select (posiciona el icono de flecha) */
+.gu-select-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 120px;
+}
+
+.gu-select-wrap .gu-select {
+  width: 100%;
+  appearance: none;
+  -webkit-appearance: none;
+  background: #0e0f14;
+  border: 1px solid var(--borde-claro);
+  border-radius: 8px;
+  color: var(--texto);
+  font-family: 'Barlow', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 8px 32px 8px 12px;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.gu-select-wrap .gu-select:focus,
+.gu-select-wrap .gu-select:hover {
+  border-color: var(--rojo);
+}
+
+.gu-select-icon {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--texto-dim);
+  font-size: 0.7rem;
+  pointer-events: none;
+}
+
+/* Etiqueta fija cuando solo hay una opción (sin select) */
+.gu-select-single {
+  flex: 1;
+  min-width: 120px;
+  background: #0e0f14;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  color: var(--texto-dim);
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 8px 12px;
+  cursor: default;
+}
+
+/* Contenedor de la tabla */
+.gu-tabla-wrap {
+  padding: 0 14px 12px;
+}
+
+/* Tabla de líneas */
+.gu-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+/* Cabecera */
+.gu-tabla thead tr {
+  border-bottom: 1px solid var(--borde);
+}
+
+.gu-th-linea {
+  text-align: left;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--texto-dim);
+  padding: 0 0 8px 4px;
+  width: 30%;
+}
+
+.gu-th-dir {
+  text-align: center;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--texto-dim);
+  padding: 0 0 8px;
+  width: 35%;
+}
+
+/* Filas */
+.gu-tabla tbody tr {
+  border-bottom: 1px solid rgba(37, 40, 48, 0.6);
+}
+
+.gu-tabla tbody tr:last-child {
+  border-bottom: none;
+}
+
+/* Etiqueta de la línea: "+2.5 goles" */
+.gu-linea-label {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--texto-dim);
+  padding: 6px 4px;
+  white-space: nowrap;
+}
+
+/* Celda botón */
+.gu-tabla td {
+  padding: 4px 4px;
+}
+
+/* Botón de cuota dentro de la tabla */
+.gu-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 9px 6px;
+  background: #0e0f14;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.18s;
+  min-height: 40px;
+  position: relative;
+}
+
+.gu-cell:hover {
+  border-color: var(--rojo);
+  background: var(--rojo-dim);
+}
+
+.gu-cell.activa {
+  border-color: var(--rojo);
+  background: rgba(230, 48, 48, 0.15);
+  box-shadow: 0 0 0 1px var(--rojo);
+}
+
+.gu-cell.sin-cuota {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.gu-cell.sin-cuota:hover {
+  border-color: var(--borde);
+  background: #0e0f14;
+}
+
+.gu-cell.ft-bloqueada {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.gu-cell.ft-bloqueada:hover {
+  border-color: var(--borde);
+  background: #0e0f14;
+}
+
+.gu-cell.ft-ganadora {
+  border-color: var(--verde) !important;
+  background: var(--verde-dim) !important;
+}
+
+/* Cuota dentro del botón */
+.gu-cell-cuota {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--amarillo);
+  line-height: 1;
+}
+
+.gu-cell.activa .gu-cell-cuota {
+  color: #fff;
+}
+
+.gu-cell.sin-cuota .gu-cell-cuota {
+  color: var(--texto-dim);
+  font-size: 0.9rem;
+}
+
+.gu-cell.ft-ganadora .gu-cell-cuota {
+  color: var(--verde);
+}
+
+/* Badge ganadora */
+.gu-cell .ft-ganadora-badge {
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  font-size: 0.6rem;
+  color: var(--verde);
+  font-weight: 900;
+}
+
+/* Sin líneas */
+.gu-empty {
+  text-align: center;
+  padding: 20px;
+  color: var(--texto-dim);
+  font-size: 0.82rem;
+}
+
+/* Body del mercado goles: sin padding lateral propio
+   (lo gestiona internamente la tabla) */
+.gu-mercado-body {
+  padding: 0 !important;
+}

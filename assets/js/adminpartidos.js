@@ -2,7 +2,7 @@
 // Lógica completa del panel de administración de Winnet
 
 import { importar_partidos, actualizar_cuotas, archivar_partidos, actualizar_en_vivo } from "./admin_api.js";
-import { actualizar_cuotas_completas, actualizar_cuotas_apifootball } from "./admin_cuotas.js";
+import { actualizar_cuotas_completas, actualizar_cuotas_apifootball, actualizar_cuotas_extras } from "./admin_cuotas.js";
 import { resolver_apuestas }  from "./admin_resolver.js";
 import { rescatar_partidos }  from "./admin_rescatar.js";
 
@@ -22,8 +22,6 @@ const auth = firebase.auth();
 const LIGAS_IDS = [39, 140, 78, 135, 61, 2001, 88, 40, 94, 71, 2000, 2016];
 
 // ── Activar para diagnosticar "No encontrado" en el log ──────────────────────
-// Muestra los nombres exactos que devuelve The Odds API para cada liga.
-// Desactivar en producción.
 const DEBUG_NOMBRES = false;
 
 /* ═══════════════════════════════════════════════════════
@@ -215,7 +213,8 @@ function stopProgress(success = true) {
 /* ═══════════════════════════════════════════════════════
    HELPER — deshabilitar/habilitar todos los botones de cuotas
 ═══════════════════════════════════════════════════════ */
-const BTN_CUOTAS_IDS = ['btn-cuotas', 'btn-cuotas-full', 'btn-cuotas-afb'];
+// ── MODIFICADO: añadido 'btn-cuotas-extras' al array ──
+const BTN_CUOTAS_IDS = ['btn-cuotas', 'btn-cuotas-full', 'btn-cuotas-afb', 'btn-cuotas-extras'];
 
 function bloquearBotonesCuotas() {
   BTN_CUOTAS_IDS.forEach(id => {
@@ -313,7 +312,7 @@ document.getElementById('btn-importar').addEventListener('click', () =>
   ejecutar('btn-importar', importar_partidos, '📥 Importando 12 ligas...', '✅ Importación completada', true, 80)
 );
 
-// Cuotas top 5 — The Odds API, solo las 5 ligas principales
+// Cuotas top 5 — The Odds API
 document.getElementById('btn-cuotas').addEventListener('click', () =>
   ejecutarCuotas(
     'btn-cuotas',
@@ -323,7 +322,7 @@ document.getElementById('btn-cuotas').addEventListener('click', () =>
   )
 );
 
-// Cuotas completas — todas las ligas configuradas en ODDS_API_KEYS
+// Cuotas completas — todas las ligas
 document.getElementById('btn-cuotas-full').addEventListener('click', () =>
   ejecutarCuotas(
     'btn-cuotas-full',
@@ -333,13 +332,23 @@ document.getElementById('btn-cuotas-full').addEventListener('click', () =>
   )
 );
 
-// Cuotas ligas secundarias — API-Football eliminado, muestra aviso informativo
+// Cuotas ligas secundarias — legacy, muestra aviso
 document.getElementById('btn-cuotas-afb').addEventListener('click', () =>
   ejecutarCuotas(
     'btn-cuotas-afb',
     actualizar_cuotas_apifootball,
     '🌍 Cuotas ligas secundarias...',
     5
+  )
+);
+
+// ── NUEVO — Cuotas extras Bet365 (odds-api.io via worker) ──
+document.getElementById('btn-cuotas-extras').addEventListener('click', () =>
+  ejecutarCuotas(
+    'btn-cuotas-extras',
+    actualizar_cuotas_extras,
+    '🎲 Actualizando cuotas extras (BTTS · DC · DNB · O/U)...',
+    90  // puede tardar porque el worker hace pausas de 500ms entre requests
   )
 );
 

@@ -1,34 +1,47 @@
 /* =============================================================
-   betslip-core.js  —  v3.3
+   betslip-core.js  —  v4.2
    Módulo compartido de carrito entre index.html y partido.html
 
-   CAMBIOS v3.3:
-   · addBet() acepta un 4º parámetro `extra` con { line, dir }
-     que se almacena en el bet para que worker.js pueda resolver
-     sin regex (bet.line + bet.dir en lugar de parsear el tipo).
-   · window.addBet() (API pública de partido.html) también pasa
-     el extra recibido desde handleOpcion.
-   · formatTipo(): el handler de goles unificado ahora usa el
-     texto legible directamente ("Más de 2.5 goles") porque
-     mercados.js v3.4 ya genera ese texto en data-tipo.
-     Se mantiene el fallback de "+2.5"/"-2.5" por compatibilidad.
+   CAMBIOS v4.2:
+   · partidoNoApostable(): renombrada y ampliada. Antes solo
+     bloqueaba partidos en vivo (1H, HT, 2H, ET, P). Ahora
+     también bloquea partidos terminados (FT, AET, PEN) y
+     cualquier estado distinto de NS/TBD. Un partido que ha
+     comenzado —ya sea en juego o finalizado— no puede recibir
+     nuevas apuestas ni confirmar apuestas pendientes en carrito.
 
-   FIXES v3.2:
-   · formatTipo(): handler para "+2.5"/"-2.5".
+   CAMBIOS v4.1:
+   · validarDNBEnCarrito(): fix completo. DNB nunca puede
+     coexistir con ninguna otra selección en el carrito,
+     independientemente de si son del mismo partido o de
+     partidos distintos.
 
-   FIXES v3.1:
-   · claveExclusion(): todos los mercados con mayúsculas corregidos.
-   · parseLineKey() expuesto como helper interno.
+   CAMBIOS v4.0 — Reglas reales de casas de apuestas:
+   ─────────────────────────────────────────────────────────
+   FIX 1 · claveExclusion()
+   FIX 2 · esIncompatible()
+   FIX 3 · DNB solo en apuesta simple
+   FIX 4 · addBet() con validación previa
+   FIX 5 · factorCorrelacion() revisado
+   FIX 6 · actualizarBotones() con clase incompatible-bloqueada
+   FIX 7 · realizarApuesta() con segunda validación
+
+   Mantiene compatibilidad con mercados.js v3.4 y worker.js v6.5
    ============================================================= */
 
 (function () {
   'use strict';
 
-  const ESTADOS_VIVO = ['1H', 'HT', '2H', 'ET', 'P'];
+  // Estados en los que un partido ya NO acepta apuestas
+  const ESTADOS_NO_APOSTABLE = ['1H', 'HT', '2H', 'ET', 'P', 'FT', 'AET', 'PEN', 'SUSP', 'INT', 'ABD', 'AWD', 'WO'];
+  // Estados en los que el partido todavía acepta apuestas
+  const ESTADOS_APOSTABLE    = ['NS', 'TBD', 'PST'];
 
-  const normM = m => (m || '').toLowerCase().replace(/[\s-]/g, '');
+  const normM = m => (m || '').toLowerCase().replace(/[\s\-_]/g, '');
 
-  /* ── Toast ── */
+  /* ─────────────────────────────────────────────────────────
+     TOAST
+  ───────────────────────────────────────────────────────── */
   function crearToastDOM() {
     if (document.getElementById('bet-toast')) return;
     const t = document.createElement('div');
@@ -43,24 +56,36 @@
     el.className = tipo === 'error' ? 'toast-error' : tipo === 'ok' ? 'toast-ok' : '';
     el.classList.add('visible');
     clearTimeout(_toastTimer);
-    _toastTimer = setTimeout(() => el.classList.remove('visible'), 2800);
+    _toastTimer = setTimeout(() => el.classList.remove('visible'), 3400);
   }
 
-  /* ── Anti-trampas ── */
-  async function partidoEnVivo(partidoId) {
+  /* ─────────────────────────────────────────────────────────
+     v4.2 · partidoNoApostable
+     Devuelve true si el partido ya ha comenzado o finalizado.
+     Bloquea tanto partidos en vivo como terminados.
+  ───────────────────────────────────────────────────────── */
+  async function partidoNoApostable(partidoId) {
     if (!partidoId) return false;
     const db = window.db;
     if (!db) return false;
     try {
       let snap = await db.collection('partidos').doc(partidoId).get();
-      if (snap.exists) return ESTADOS_VIVO.includes(snap.data()?.estado);
+      if (snap.exists) {
+        const estado = snap.data()?.estado;
+        // Si el estado es conocido y NO está en la lista apostable → bloqueado
+        if (estado) return !ESTADOS_APOSTABLE.includes(estado);
+        return false;
+      }
+      // Si está en historial, definitivamente terminado
       snap = await db.collection('historial').doc(partidoId).get();
-      if (snap.exists) return ESTADOS_VIVO.includes(snap.data()?.estado);
+      if (snap.exists) return true;
       return false;
-    } catch { return true; }
+    } catch { return true; } // en caso de error, bloquear por seguridad
   }
 
-  /* ── parseLineKey ── */
+  /* ─────────────────────────────────────────────────────────
+     parseLineKey
+  ───────────────────────────────────────────────────────── */
   function parseLineKey(raw) {
     if (!raw) return null;
     if (raw.startsWith('m')) {
@@ -75,7 +100,9 @@
     return null;
   }
 
-  /* ── Helpers de correlación ── */
+  /* ─────────────────────────────────────────────────────────
+     HELPERS de correlación / clasificación
+  ───────────────────────────────────────────────────────── */
   function segmento(tipo) {
     const t = (tipo || '').toLowerCase();
     if (/1ª mitad|primera|1ª|ht/.test(t)) return 'primera';
@@ -84,150 +111,209 @@
   }
   function direccion(tipo) {
     const t = (tipo || '').toLowerCase();
-    if (/más de|mas de/.test(t)) return 'mas';
-    if (/menos de/.test(t))      return 'menos';
+    if (/más de|mas de|over/.test(t) || /^\+\d/.test(tipo)) return 'over';
+    if (/menos de|under/.test(t)     || /^-\d/.test(tipo))  return 'under';
     return null;
   }
   function valorNum(tipo) {
-    const m = (tipo || '').match(/(\d+(?:\.\d+)?)/);
-    return m ? parseFloat(m[1]) : null;
+    const m = (tipo || '').match(/(\d+(?:[.,]\d+)?)/);
+    return m ? parseFloat(m[1].replace(',', '.')) : null;
   }
   function opcionSiNo(tipo) {
     const t = (tipo || '').toLowerCase();
-    return /sí$|si$/.test(t) ? 'si' : /no$/.test(t) ? 'no' : null;
+    return /sí$|si$|yes$/.test(t) ? 'si' : /no$/.test(t) ? 'no' : null;
   }
 
-  /* ── claveExclusion ── */
+  /* ─────────────────────────────────────────────────────────
+     CLASIFICADORES de mercado
+  ───────────────────────────────────────────────────────── */
+  const esRes      = m => m === 'resultado';
+  const esDoble    = m => m === 'dobleoportunidad';
+  const esDNB      = m => m === 'dnb';
+  const esAmbos    = m => m === 'ambosmarcan' || m === 'btts';
+  const esGoles    = m => m === 'totalgoles';
+  const esTotalHT  = m => m === 'totalsht';
+  const esTTHome   = m => m === 'teamtotalhome';
+  const esTTAway   = m => m === 'teamtotalaway';
+  const esHTTHome  = m => m === 'httotalhome';
+  const esHTTAway  = m => m === 'httotalaway';
+  const esImpar    = m => m === 'golesimparpar' || m === 'imparpar';
+  const esHTImpar  = m => m === 'htimparpar';
+  const esHTResult = m => m === 'descanso' || m === 'htresult';
+  const esSegunda  = m => m === 'segunda';
+  const esHTFT     = m => m === 'htft';
+  const esCS       = m => m === 'correctscore';
+  const esCSHome   = m => m === 'cleansheethome';
+  const esCSAway   = m => m === 'cleansheetaway';
+  const esWinNil   = m => m === 'winnil';
+  const esFirst    = m => m === 'firstscore';
+  const esNext     = m => m === 'nextgoal';
+  const esCorn     = m => m === 'corners' || m === 'cornerstotal';
+  const esCornHT   = m => m === 'cornersht';
+  const esTarj     = m => m === 'tarjetas' || m === 'bookingstotal';
+  const esAH       = m => m === 'asianhandicap';
+  const esEH       = m => m === 'ehresult';
+  const esAsian    = m => m === 'asiantotals';
+
+  /* ─────────────────────────────────────────────────────────
+     claveExclusion
+  ───────────────────────────────────────────────────────── */
   function claveExclusion(mercado, tipo) {
     const m = normM(mercado);
 
-    if (m === 'resultado' || m === 'dobleoportunidad') return 'resultado_o_doble';
-    if (m === 'ambosmarcan' || m === 'btts')           return `ambosmarcan|${segmento(tipo)}`;
-    if (m === 'golesimparpar' || m === 'imparpar')     return 'imparpar|encuentro';
-    if (m === 'htimparpar')                            return 'imparpar|primera';
-    if (m === 'dnb')                                   return 'dnb';
-    if (m === 'descanso' || m === 'htresult')          return 'descanso';
-    if (m === 'segunda')                               return 'segunda';
-    if (m === 'totalsht')                              return `totalsHT|${valorNum(tipo) ?? 'x'}`;
-    if (m === 'asiantotals')                           return `asianTotals|${valorNum(tipo) ?? 'x'}`;
-    if (m === 'ehresult')                              return 'ehResult';
-    if (m === 'asianhandicap')                         return `asianHandicap|${tipo}`;
-    if (m === 'htft')                                  return 'htft';
-    if (m === 'correctscore')                          return 'correctScore';
-    if (m === 'cleansheethome')                        return 'cleanSheetHome';
-    if (m === 'cleansheetaway')                        return 'cleanSheetAway';
-    if (m === 'firstscore')                            return 'firstScore';
-    if (m === 'nextgoal')                              return 'nextGoal';
-    if (m === 'winnil')                                return 'winNil';
+    if (esRes(m))    return 'resultado';
+    if (esDoble(m))  return 'dobleoportunidad';
+    if (esDNB(m))    return 'dnb';
 
-    if (m === 'teamtotalhome') return `ttHome|${valorNum(tipo) ?? 'x'}`;
-    if (m === 'teamtotalaway') return `ttAway|${valorNum(tipo) ?? 'x'}`;
-    if (m === 'httotalhome')   return `htTtHome|${valorNum(tipo) ?? 'x'}`;
-    if (m === 'httotalaway')   return `htTtAway|${valorNum(tipo) ?? 'x'}`;
-
-    if (m === 'corners' || m === 'cornerstotal') {
-      const t  = (tipo || '').toLowerCase();
-      const eq = t.includes('local') ? 'local' : t.includes('visitante') ? 'visitante' : 'ambos';
-      return `corners|encuentro|${eq}`;
-    }
-    if (m === 'cornersht') return `corners|primera|ambos`;
-
-    if (m === 'tarjetas' || m === 'bookingstotal') {
-      const t  = (tipo || '').toLowerCase();
-      const eq = t.includes('local') ? 'local' : t.includes('visitante') ? 'visitante' : 'ambos';
-      return `tarjetas|${segmento(tipo)}|${eq}`;
-    }
-
-    if (m === 'totalgoles') return `totalgoles|${valorNum(tipo) ?? 'x'}|${direccion(tipo) ?? 'x'}`;
+    if (esAmbos(m))    return `ambosmarcan|${segmento(tipo)}`;
+    if (esImpar(m))    return 'imparpar|encuentro';
+    if (esHTImpar(m))  return 'imparpar|primera';
+    if (esHTResult(m)) return 'descanso';
+    if (esSegunda(m))  return 'segunda';
+    if (esTotalHT(m))  return `totalsHT|${valorNum(tipo) ?? 'x'}`;
+    if (esAsian(m))    return `asianTotals|${valorNum(tipo) ?? 'x'}`;
+    if (esEH(m))       return 'ehResult';
+    if (esAH(m))       return `asianHandicap|${tipo}`;
+    if (esHTFT(m))     return 'htft';
+    if (esCS(m))       return 'correctScore';
+    if (esCSHome(m))   return 'cleanSheetHome';
+    if (esCSAway(m))   return 'cleanSheetAway';
+    if (esFirst(m))    return 'firstScore';
+    if (esNext(m))     return 'nextGoal';
+    if (esWinNil(m))   return 'winNil';
+    if (esTTHome(m))   return `ttHome|${valorNum(tipo) ?? 'x'}`;
+    if (esTTAway(m))   return `ttAway|${valorNum(tipo) ?? 'x'}`;
+    if (esHTTHome(m))  return `htTtHome|${valorNum(tipo) ?? 'x'}`;
+    if (esHTTAway(m))  return `htTtAway|${valorNum(tipo) ?? 'x'}`;
+    if (esCorn(m))     return `corners|encuentro`;
+    if (esCornHT(m))   return `corners|primera`;
+    if (esTarj(m))     return `tarjetas|encuentro`;
+    if (esGoles(m))    return `totalgoles|${valorNum(tipo) ?? 'x'}|${direccion(tipo) ?? 'x'}`;
 
     return m;
   }
 
-  /* ── factorCorrelacion ── */
-  function factorCorrelacion(a, b) {
+  /* ─────────────────────────────────────────────────────────
+     esIncompatible
+  ───────────────────────────────────────────────────────── */
+  function esIncompatible(a, b) {
     const mA = normM(a.mercado), mB = normM(b.mercado);
-    const tA = (a.tipo || '').toLowerCase(), tB = (b.tipo || '').toLowerCase();
+    const tA = (a.tipo || '').toLowerCase();
+    const tB = (b.tipo || '').toLowerCase();
 
-    const esRes      = m => m === 'resultado' || m === 'dobleoportunidad';
-    const esAmbos    = m => m === 'ambosmarcan' || m === 'btts';
-    const esImpar    = m => m === 'golesimparpar' || m === 'imparpar';
-    const esHTImpar  = m => m === 'htimparpar';
-    const esCorn     = m => m === 'corners' || m === 'cornerstotal';
-    const esCornHT   = m => m === 'cornersht';
-    const esTarj     = m => m === 'tarjetas' || m === 'bookingstotal';
-    const esGoles    = m => m === 'totalgoles';
-    const esAsian    = m => m === 'asiantotals';
-    const esDNB      = m => m === 'dnb';
-    const esHTResult = m => m === 'descanso' || m === 'htresult';
-    const esTotalHT  = m => m === 'totalsht';
-    const esTTHome   = m => m === 'teamtotalhome';
-    const esTTAway   = m => m === 'teamtotalaway';
-    const esHTTHome  = m => m === 'httotalhome';
-    const esHTTAway  = m => m === 'httotalaway';
-    const esEH       = m => m === 'ehresult';
-    const esAH       = m => m === 'asianhandicap';
-    const esHTFT     = m => m === 'htft';
-    const esCS       = m => m === 'correctscore';
-    const esCSHome   = m => m === 'cleansheethome';
-    const esCSAway   = m => m === 'cleansheetaway';
-    const esWinNil   = m => m === 'winnil';
-    const esFirst    = m => m === 'firstscore';
-    const esNext     = m => m === 'nextgoal';
+    if ((esRes(mA) && esDoble(mB)) || (esDoble(mA) && esRes(mB)))
+      return { incompatible: true, motivo: 'Resultado (1X2) y Doble oportunidad son incompatibles en el mismo partido' };
 
-    if (esRes(mA) && esRes(mB)) return 0.5;
+    if ((esRes(mA) && esDNB(mB)) || (esDNB(mA) && esRes(mB)))
+      return { incompatible: true, motivo: 'Resultado (1X2) y Sin empate (DNB) son incompatibles en el mismo partido' };
+
+    if ((esDoble(mA) && esDNB(mB)) || (esDNB(mA) && esDoble(mB)))
+      return { incompatible: true, motivo: 'Doble oportunidad y Sin empate (DNB) son incompatibles en el mismo partido' };
+
+    const esGolA = esGoles(mA) || esTotalHT(mA) || esTTHome(mA) || esTTAway(mA) || esHTTHome(mA) || esHTTAway(mA) || esAsian(mA);
+    const esGolB = esGoles(mB) || esTotalHT(mB) || esTTHome(mB) || esTTAway(mB) || esHTTHome(mB) || esHTTAway(mB) || esAsian(mB);
+    if (esGolA && esGolB && mA === mB) {
+      const dA = a.dir || direccion(tA);
+      const dB = b.dir || direccion(tB);
+      const nA = a.line ?? valorNum(tA);
+      const nB = b.line ?? valorNum(tB);
+      if (nA !== null && nB !== null && nA === nB) {
+        if ((dA === 'over' && dB === 'under') || (dA === 'under' && dB === 'over'))
+          return { incompatible: true, motivo: `Over ${nA} y Under ${nA} del mismo mercado son incompatibles` };
+      }
+    }
 
     if (esAmbos(mA) && esAmbos(mB)) {
-      const [opA, opB] = [opcionSiNo(tA), opcionSiNo(tB)];
-      if (opA === opB && opA === 'no') return 0.5;
-      return 1;
+      const opA = opcionSiNo(tA), opB = opcionSiNo(tB);
+      if (opA !== null && opB !== null && opA !== opB)
+        return { incompatible: true, motivo: 'Ambos marcan Sí y No son incompatibles en el mismo partido' };
     }
-    if ((esAmbos(mA) && esRes(mB) && opcionSiNo(tA) === 'si') ||
-        (esAmbos(mB) && esRes(mA) && opcionSiNo(tB) === 'si')) return 0.5;
+
+    if ((esCS(mA) && !esCS(mB)) || (!esCS(mA) && esCS(mB)))
+      return { incompatible: true, motivo: 'El marcador exacto no puede combinarse con otros mercados del mismo partido' };
+
+    if ((esHTFT(mA) && !esHTFT(mB)) || (!esHTFT(mA) && esHTFT(mB)))
+      return { incompatible: true, motivo: 'Descanso/Final (HT/FT) no puede combinarse con otros mercados del mismo partido' };
+
+    if ((esRes(mA) && esWinNil(mB)) || (esWinNil(mA) && esRes(mB)))
+      return { incompatible: true, motivo: 'Resultado (1X2) y Ganar sin encajar son incompatibles en el mismo partido' };
+
+    if (esDNB(mA) && esAmbos(mB) && opcionSiNo(tB) === 'no')
+      return { incompatible: true, motivo: 'Sin empate (DNB) y Ambos marcan No son incompatibles en el mismo partido' };
+    if (esDNB(mB) && esAmbos(mA) && opcionSiNo(tA) === 'no')
+      return { incompatible: true, motivo: 'Sin empate (DNB) y Ambos marcan No son incompatibles en el mismo partido' };
+
+    return { incompatible: false, motivo: '' };
+  }
+
+  /* ─────────────────────────────────────────────────────────
+     validarDNBEnCarrito (v4.1)
+  ───────────────────────────────────────────────────────── */
+  function validarDNBEnCarrito(betNuevo, betsActuales) {
+    const mNuevo = normM(betNuevo.mercado);
+
+    if (esDNB(mNuevo)) {
+      if (betsActuales.length > 0)
+        return { ok: false, motivo: 'Sin empate (DNB) solo se puede apostar como apuesta simple, sin combinar con ninguna otra selección' };
+    } else {
+      const hayDNB = betsActuales.some(b => esDNB(normM(b.mercado)));
+      if (hayDNB)
+        return { ok: false, motivo: 'No se puede añadir más selecciones: el carrito ya tiene una apuesta Sin empate (DNB) que solo puede ir como simple' };
+    }
+    return { ok: true };
+  }
+
+  /* ─────────────────────────────────────────────────────────
+     factorCorrelacion
+  ───────────────────────────────────────────────────────── */
+  function factorCorrelacion(a, b) {
+    const mA = normM(a.mercado), mB = normM(b.mercado);
+    const tA = (a.tipo || '').toLowerCase();
+    const tB = (b.tipo || '').toLowerCase();
+
+    const { incompatible } = esIncompatible(a, b);
+    if (incompatible) return 0;
+
+    if (esRes(mA) && esAmbos(mB) && opcionSiNo(tB) === 'si') return 0.4;
+    if (esAmbos(mA) && esRes(mB) && opcionSiNo(tA) === 'si') return 0.4;
+    if (esRes(mA) && esAmbos(mB) && opcionSiNo(tB) === 'no') return 0.5;
+    if (esAmbos(mA) && esRes(mB) && opcionSiNo(tA) === 'no') return 0.5;
+    if (esRes(mA) && esGoles(mB)) return 0.5;
+    if (esGoles(mA) && esRes(mB)) return 0.5;
+    if (esDoble(mA) && esAmbos(mB)) return 0.5;
+    if (esAmbos(mA) && esDoble(mB)) return 0.5;
+    if (esDNB(mA) && esGoles(mB)) return 0.5;
+    if (esGoles(mA) && esDNB(mB)) return 0.5;
+    if (esDNB(mA) && esHTResult(mB)) return 0.7;
+    if (esHTResult(mA) && esDNB(mB)) return 0.7;
 
     if (esGoles(mA) && esGoles(mB)) {
-      // ★ v3.3: usar dir/line del bet si disponibles, si no fallback a texto
       const dA = a.dir || direccion(tA), dB = b.dir || direccion(tB);
       const nA = a.line ?? valorNum(tA),  nB = b.line ?? valorNum(tB);
-      if (dA === 'over'  && dB === 'under' && nA === nB) return 0;
-      if (dA === 'under' && dB === 'over'  && nA === nB) return 0;
-      if (dA === 'mas'   && dB === 'menos' && nA === nB) return 0;
-      if (dA === 'menos' && dB === 'mas'   && nA === nB) return 0;
-      if ((dA === dB || (dA === 'over' && dB === 'mas') || (dA === 'mas' && dB === 'over')) && nA !== null && nB !== null) return 0.7;
+      if (nA !== null && nB !== null && nA === nB && dA !== null && dB !== null) return 0;
+      if (dA === dB) return 0.7;
+      if (nA !== null && nB !== null && nA !== nB) return 0.8;
+      return 0.7;
     }
 
     if (esAsian(mA) && esAsian(mB)) {
-      const [dA, dB] = [direccion(tA), direccion(tB)];
-      const [nA, nB] = [valorNum(tA), valorNum(tB)];
-      if (dA === 'mas' && dB === 'menos' && nA === nB) return 0;
-      if (dA === 'menos' && dB === 'mas' && nA === nB) return 0;
+      const dA = a.dir || direccion(tA), dB = b.dir || direccion(tB);
+      const nA = a.line ?? valorNum(tA),  nB = b.line ?? valorNum(tB);
+      if (nA !== null && nB !== null && nA === nB && dA !== null && dB !== null) return 0;
       if (dA === dB) return 0.7;
+      return 0.8;
     }
 
     if ((esGoles(mA) && esAsian(mB)) || (esGoles(mB) && esAsian(mA))) return 0.7;
-
-    if (esDNB(mA) && esRes(mB)) return 0.5;
-    if (esDNB(mB) && esRes(mA)) return 0.5;
-
-    if (esCS(mA) && esRes(mB)) return 0.3;
-    if (esCS(mB) && esRes(mA)) return 0.3;
-    if (esCS(mA) && esCS(mB))  return 0;
-
-    if (esHTFT(mA) && esRes(mB)) return 0.4;
-    if (esHTFT(mB) && esRes(mA)) return 0.4;
-
-    if ((esCSHome(mA) || esCSAway(mA) || esWinNil(mA)) && esRes(mB)) return 0.5;
-    if ((esCSHome(mB) || esCSAway(mB) || esWinNil(mB)) && esRes(mA)) return 0.5;
-    if (esWinNil(mA) && (esCSHome(mB) || esCSAway(mB))) return 0.5;
-    if (esWinNil(mB) && (esCSHome(mA) || esCSAway(mA))) return 0.5;
-
-    if ((esFirst(mA) || esNext(mA)) && esRes(mB)) return 0.5;
-    if ((esFirst(mB) || esNext(mB)) && esRes(mA)) return 0.5;
-    if (esFirst(mA) && esNext(mB)) return 0.6;
-    if (esFirst(mB) && esNext(mA)) return 0.6;
-
+    if (esAmbos(mA) && esAmbos(mB)) return 0.6;
+    if (esAmbos(mA) && esGoles(mB) && opcionSiNo(tA) === 'si') return 0.4;
+    if (esGoles(mA) && esAmbos(mB) && opcionSiNo(tB) === 'si') return 0.4;
+    if (esAmbos(mA) && esGoles(mB) && opcionSiNo(tA) === 'no') return 0.5;
+    if (esGoles(mA) && esAmbos(mB) && opcionSiNo(tB) === 'no') return 0.5;
+    if (esHTResult(mA) && esRes(mB)) return 0.6;
+    if (esHTResult(mB) && esRes(mA)) return 0.6;
     if (esHTResult(mA) && esTotalHT(mB)) return 0.5;
     if (esHTResult(mB) && esTotalHT(mA)) return 0.5;
-
     if (esImpar(mA) && esGoles(mB)) return 0.5;
     if (esImpar(mB) && esGoles(mA)) return 0.5;
     if (esHTImpar(mA) && esTotalHT(mB)) return 0.5;
@@ -235,65 +321,83 @@
     if (esImpar(mA) && esImpar(mB)) return 0;
 
     if (esTTHome(mA) && esTTHome(mB)) {
-      const [dA, dB] = [a.dir || direccion(tA), b.dir || direccion(tB)];
-      const [nA, nB] = [a.line ?? valorNum(tA),  b.line ?? valorNum(tB)];
-      if ((dA === 'over' || dA === 'mas') && (dB === 'under' || dB === 'menos') && nA === nB) return 0;
-      if ((dA === 'under'|| dA === 'menos') && (dB === 'over' || dB === 'mas') && nA === nB) return 0;
+      const dA = a.dir || direccion(tA), dB = b.dir || direccion(tB);
+      const nA = a.line ?? valorNum(tA),  nB = b.line ?? valorNum(tB);
+      if (nA !== null && nB !== null && nA === nB && dA !== dB) return 0;
       if (dA === dB) return 0.7;
+      return 0.8;
     }
     if (esTTAway(mA) && esTTAway(mB)) {
-      const [dA, dB] = [a.dir || direccion(tA), b.dir || direccion(tB)];
-      const [nA, nB] = [a.line ?? valorNum(tA),  b.line ?? valorNum(tB)];
-      if ((dA === 'over' || dA === 'mas') && (dB === 'under' || dB === 'menos') && nA === nB) return 0;
-      if ((dA === 'under'|| dA === 'menos') && (dB === 'over' || dB === 'mas') && nA === nB) return 0;
+      const dA = a.dir || direccion(tA), dB = b.dir || direccion(tB);
+      const nA = a.line ?? valorNum(tA),  nB = b.line ?? valorNum(tB);
+      if (nA !== null && nB !== null && nA === nB && dA !== dB) return 0;
       if (dA === dB) return 0.7;
+      return 0.8;
     }
 
+    if ((esTTHome(mA) || esTTAway(mA)) && esGoles(mB)) return 0.6;
+    if (esGoles(mA) && (esTTHome(mB) || esTTAway(mB))) return 0.6;
     if (esHTTHome(mA) && esHTTHome(mB)) return 0.7;
     if (esHTTAway(mA) && esHTTAway(mB)) return 0.7;
-
-    if (esCorn(mA) && esCorn(mB)) return 0.5;
-    if (esCornHT(mA) && esCornHT(mB)) return 0.5;
-    if (esCorn(mA) && esCornHT(mB)) return 0.5;
-    if (esCorn(mB) && esCornHT(mA)) return 0.5;
-
-    if (esTarj(mA) && esTarj(mB)) return 0.5;
-
-    if (esEH(mA) && esRes(mB)) return 0.5;
-    if (esEH(mB) && esRes(mA)) return 0.5;
-    if (esAH(mA) && esRes(mB)) return 0.5;
-    if (esAH(mB) && esRes(mA)) return 0.5;
+    if ((esCSHome(mA) || esCSAway(mA)) && esRes(mB)) return 0.5;
+    if ((esCSHome(mB) || esCSAway(mB)) && esRes(mA)) return 0.5;
+    if (esWinNil(mA) && (esCSHome(mB) || esCSAway(mB))) return 0.5;
+    if (esWinNil(mB) && (esCSHome(mA) || esCSAway(mA))) return 0.5;
+    if ((esFirst(mA) || esNext(mA)) && esRes(mB)) return 0.5;
+    if ((esFirst(mB) || esNext(mB)) && esRes(mA)) return 0.5;
+    if (esFirst(mA) && esNext(mB)) return 0.6;
+    if (esFirst(mB) && esNext(mA)) return 0.6;
+    if (esCorn(mA) && esCorn(mB)) return 0.6;
+    if (esCornHT(mA) && esCornHT(mB)) return 0.6;
+    if ((esCorn(mA) && esCornHT(mB)) || (esCorn(mB) && esCornHT(mA))) return 0.6;
+    if (esTarj(mA) && esTarj(mB)) return 0.6;
+    if ((esEH(mA) || esAH(mA)) && esRes(mB)) return 0.5;
+    if ((esEH(mB) || esAH(mB)) && esRes(mA)) return 0.5;
+    if (esSegunda(mA) && esRes(mB)) return 0.7;
+    if (esSegunda(mB) && esRes(mA)) return 0.7;
 
     return 1;
   }
 
+  /* ─────────────────────────────────────────────────────────
+     calcularCuotaCombinada
+  ───────────────────────────────────────────────────────── */
   function calcularCuotaCombinada(bets) {
     if (!bets || !bets.length) return 1;
     if (bets.length === 1)     return parseFloat(bets[0].cuota) || 1;
+
     const porPartido = {};
     bets.forEach(b => {
       const pid = (b.partidoId || b.partido || '').toString().trim();
       if (!porPartido[pid]) porPartido[pid] = [];
       porPartido[pid].push(b);
     });
+
     let total = 1;
     for (const grupo of Object.values(porPartido)) {
       if (grupo.length === 1) { total *= parseFloat(grupo[0].cuota) || 1; continue; }
+
       const absorbidas = new Set();
       for (let i = 0; i < grupo.length; i++)
         for (let j = i + 1; j < grupo.length; j++)
           if (factorCorrelacion(grupo[i], grupo[j]) === 0) {
-            const ci = parseFloat(grupo[i].cuota) || 1, cj = parseFloat(grupo[j].cuota) || 1;
+            const ci = parseFloat(grupo[i].cuota) || 1;
+            const cj = parseFloat(grupo[j].cuota) || 1;
             absorbidas.add(ci <= cj ? i : j);
           }
+
       const activas = grupo.filter((_, i) => !absorbidas.has(i));
       if (!activas.length) continue;
       if (activas.length === 1) { total *= parseFloat(activas[0].cuota) || 1; continue; }
+
       let cuotaPartido = parseFloat(activas[0].cuota) || 1;
       for (let i = 1; i < activas.length; i++) {
         const cuotaNueva = parseFloat(activas[i].cuota) || 1;
         let factorMin = 1;
-        for (let j = 0; j < i; j++) { const f = factorCorrelacion(activas[j], activas[i]); if (f < factorMin) factorMin = f; }
+        for (let j = 0; j < i; j++) {
+          const f = factorCorrelacion(activas[j], activas[i]);
+          if (f < factorMin) factorMin = f;
+        }
         if (factorMin > 0 && factorMin < 1) cuotaPartido *= 1 + (cuotaNueva - 1) * factorMin;
         else if (factorMin === 1)            cuotaPartido *= cuotaNueva;
       }
@@ -333,7 +437,9 @@
     return { combos: combos.length, cuotaMedia: retorno / combos.length, retornoTotal: retorno };
   }
 
-  /* ── Almacén ── */
+  /* ─────────────────────────────────────────────────────────
+     ALMACÉN
+  ───────────────────────────────────────────────────────── */
   const STORAGE_KEY = 'carritoApuestas';
   let bets = [];
   function cargar() {
@@ -344,18 +450,53 @@
   }
   function guardar() { localStorage.setItem(STORAGE_KEY, JSON.stringify(bets)); }
 
-  /* ── addBet ─────────────────────────────────────────────────
-     ★ v3.3: acepta extra = { line, dir } para mercados de goles
-  ─────────────────────────────────────────────────────────────*/
+  /* ─────────────────────────────────────────────────────────
+     addBet — v4.2: usa partidoNoApostable en lugar de partidoEnVivo
+  ───────────────────────────────────────────────────────── */
   async function addBet({ partido, tipo, cuota, partidoId, mercado, line, dir }) {
     const pid   = (partidoId || '').toString().trim();
     const mNorm = normM(mercado);
     const cStr  = (cuota || '').toString().trim();
     const clave = claveExclusion(mNorm, tipo);
 
+    // Bloqueo: partido ya comenzado o terminado
     if (pid) {
-      const enVivo = await partidoEnVivo(pid);
-      if (enVivo) { toast('⚠ No se puede apostar en partidos en vivo', 'error'); return; }
+      const noApostable = await partidoNoApostable(pid);
+      if (noApostable) {
+        toast('⚠ Este partido ya ha comenzado o finalizado, no se aceptan apuestas', 'error');
+        return;
+      }
+    }
+
+    const betNuevo = { partido, tipo, cuota: cStr, partidoId: pid, mercado: mNorm };
+    if (line != null) betNuevo.line = line;
+    if (dir  != null) betNuevo.dir  = dir;
+
+    // Validar restricción DNB
+    const dnbCheck = validarDNBEnCarrito(betNuevo, bets);
+    if (!dnbCheck.ok) { toast(`🚫 ${dnbCheck.motivo}`, 'error'); return; }
+
+    // Validar incompatibilidades con selecciones del mismo partido
+    const delMismoPartido = bets.filter(b =>
+      (b.partidoId || '').toString().trim() === pid && pid !== ''
+    );
+    for (const existing of delMismoPartido) {
+      if (claveExclusion(normM(existing.mercado), existing.tipo) === clave) continue;
+      const { incompatible, motivo } = esIncompatible(existing, betNuevo);
+      if (incompatible) { toast(`🚫 ${motivo}`, 'error'); return; }
+    }
+
+    const esSoloEnPartido = esCS(mNorm) || esHTFT(mNorm);
+    if (esSoloEnPartido && delMismoPartido.length > 0) {
+      bets = bets.filter(b => (b.partidoId || '').toString().trim() !== pid);
+      toast('⚠ Este mercado reemplaza otras selecciones del mismo partido', 'info');
+    }
+    const tieneUnico = delMismoPartido.some(b => {
+      const mb = normM(b.mercado); return esCS(mb) || esHTFT(mb);
+    });
+    if (tieneUnico && !esSoloEnPartido) {
+      toast('🚫 No se puede combinar este mercado con Marcador exacto o HT/FT del mismo partido', 'error');
+      return;
     }
 
     const idx = bets.findIndex(b =>
@@ -363,29 +504,29 @@
       claveExclusion(normM(b.mercado), b.tipo) === clave
     );
 
-    // ★ Construir el objeto bet con line/dir si están presentes
-    const betObj = { partido, tipo, cuota: cStr, partidoId: pid, mercado: mNorm };
-    if (line != null) betObj.line = line;
-    if (dir  != null) betObj.dir  = dir;
-
     if (idx !== -1) {
       const ant = bets[idx];
       if (normM(ant.mercado) === mNorm &&
           (ant.tipo  || '').toLowerCase() === (tipo  || '').toLowerCase() &&
           (ant.cuota || '').toString()     === cStr) {
-        bets.splice(idx, 1); guardar(); notificar(); toast('Selección eliminada', 'info'); return;
+        bets.splice(idx, 1);
+        guardar(); notificar(); toast('Selección eliminada', 'info');
+        return;
       }
-      bets[idx] = betObj;
-      guardar(); notificar(); toast('Selección reemplazada ✓', 'ok'); return;
+      bets[idx] = betNuevo;
+      guardar(); notificar(); toast('Selección reemplazada ✓', 'ok');
+      return;
     }
 
-    bets.push(betObj);
+    bets.push(betNuevo);
     guardar(); notificar(); toast('Apuesta añadida ✓', 'ok');
   }
 
   function vaciar() { bets = []; guardar(); notificar(); }
 
-  /* ── Render ── */
+  /* ─────────────────────────────────────────────────────────
+     RENDER
+  ───────────────────────────────────────────────────────── */
   function render() {
     renderListas(); renderSistema(); renderFooter(); renderMobileBtn();
     actualizarBotones(); actualizarPestanas();
@@ -429,20 +570,60 @@
       if (!grupos[pid]) { grupos[pid] = []; orden.push(pid); }
       grupos[pid].push({ ...b, _idx: i });
     });
+
     return orden.map(pid => {
       const grupo = grupos[pid];
+
       if (grupo.length === 1) {
         const { partido, tipo, cuota, mercado, _idx } = grupo[0];
-        return `<li class="bs-item"><div class="bs-top"><span class="bs-tipo">${formatTipo(tipo, mercado)}</span><span class="bs-cuota">${parseFloat(cuota).toFixed(2)}</span><button class="bs-remove" data-idx="${_idx}" title="Eliminar">✕</button></div><div class="bs-info">${partido}</div></li>`;
+        return `<li class="bs-item">
+          <div class="bs-top">
+            <span class="bs-tipo">${formatTipo(tipo, mercado)}</span>
+            <span class="bs-cuota">${parseFloat(cuota).toFixed(2)}</span>
+            <button class="bs-remove" data-idx="${_idx}" title="Eliminar">✕</button>
+          </div>
+          <div class="bs-info">${partido}</div>
+        </li>`;
       }
+
+      const avisos = [];
+      for (let i = 0; i < grupo.length; i++) {
+        for (let j = i + 1; j < grupo.length; j++) {
+          const f = factorCorrelacion(grupo[i], grupo[j]);
+          if (f === 0)       avisos.push('⚠ Selecciones incompatibles detectadas');
+          else if (f <= 0.4) avisos.push('↘ Correlación fuerte: cuota reducida significativamente');
+          else if (f <= 0.6) avisos.push('↘ Correlación moderada: cuota reducida');
+        }
+      }
+      const avisosHTML = [...new Set(avisos)].map(a =>
+        `<div class="bs-corr-aviso">${a}</div>`
+      ).join('');
+
       const cuotaGrupo = calcularCuotaCombinada(grupo);
       const subItems   = grupo.map(({ tipo, cuota, mercado, _idx }) => {
         const factor = infoCorrelacion(bets, _idx);
-        const badge  = factor === 0    ? `<span class="bs-corr-badge bs-corr-incompatible">⚠ Absorbida</span>`
-                     : factor < 1      ? `<span class="bs-corr-badge bs-corr-reducida">↘ Correlada</span>` : '';
-        return `<li class="bs-item bs-item-sub"><div class="bs-top"><span class="bs-tipo">${formatTipo(tipo, mercado)}</span><span class="bs-cuota bs-cuota-sub">${parseFloat(cuota).toFixed(2)}</span><button class="bs-remove" data-idx="${_idx}" title="Eliminar">✕</button></div>${badge}</li>`;
+        const badge  = factor === 0  ? `<span class="bs-corr-badge bs-corr-incompatible">⚠ Absorbida</span>`
+                     : factor <= 0.4 ? `<span class="bs-corr-badge bs-corr-reducida">↘ Muy correlada</span>`
+                     : factor <= 0.6 ? `<span class="bs-corr-badge bs-corr-reducida">↘ Correlada</span>`
+                     : '';
+        return `<li class="bs-item bs-item-sub">
+          <div class="bs-top">
+            <span class="bs-tipo">${formatTipo(tipo, mercado)}</span>
+            <span class="bs-cuota bs-cuota-sub">${parseFloat(cuota).toFixed(2)}</span>
+            <button class="bs-remove" data-idx="${_idx}" title="Eliminar">✕</button>
+          </div>
+          ${badge}
+        </li>`;
       }).join('');
-      return `<li class="bs-item bs-item-grupo-header"><div class="bs-top"><span class="bs-tipo bs-grupo-nombre">⚽ ${grupo[0].partido}</span><span class="bs-cuota bs-grupo-cuota">${cuotaGrupo.toFixed(2)}</span></div><div class="bs-info">${grupo.length} selecciones · cuota combinada ajustada</div></li>${subItems}`;
+
+      return `<li class="bs-item bs-item-grupo-header">
+        <div class="bs-top">
+          <span class="bs-tipo bs-grupo-nombre">⚽ ${grupo[0].partido}</span>
+          <span class="bs-cuota bs-grupo-cuota">${cuotaGrupo.toFixed(2)}</span>
+        </div>
+        <div class="bs-info">${grupo.length} selecciones · cuota combinada ajustada</div>
+        ${avisosHTML}
+      </li>${subItems}`;
     }).join('');
   }
 
@@ -466,13 +647,25 @@
     let html = `<div class="sistema-info">Sistema de ${n} selecciones</div><div class="sistema-opciones">`;
     for (let k = 2; k < n; k++) {
       const { combos, cuotaMedia, retornoTotal } = calcularSistema(selecciones, k);
-      html += `<label class="sistema-opcion" for="sis-${k}"><div class="sis-radio-wrap"><input type="radio" name="sistema-tipo" id="sis-${k}" value="${k}" class="sis-radio" ${k === 2 ? 'checked' : ''}><div class="sis-info"><span class="sis-titulo">${k}/${n} — ${combos} combinaciones</span><span class="sis-detalle">Cuota media <strong>${cuotaMedia.toFixed(2)}</strong></span></div></div><span class="sis-retorno">×${retornoTotal.toFixed(1)}</span></label>`;
+      html += `<label class="sistema-opcion" for="sis-${k}">
+        <div class="sis-radio-wrap">
+          <input type="radio" name="sistema-tipo" id="sis-${k}" value="${k}" class="sis-radio" ${k === 2 ? 'checked' : ''}>
+          <div class="sis-info">
+            <span class="sis-titulo">${k}/${n} — ${combos} combinaciones</span>
+            <span class="sis-detalle">Cuota media <strong>${cuotaMedia.toFixed(2)}</strong></span>
+          </div>
+        </div>
+        <span class="sis-retorno">×${retornoTotal.toFixed(1)}</span>
+      </label>`;
     }
     html += `</div>`;
     const stakeVal = parseFloat(document.querySelector('.stake-input input')?.value || 5) || 5;
     const kSel     = parseInt(wrap.querySelector('input[name="sistema-tipo"]:checked')?.value || 2);
     const { combos: ca } = calcularSistema(selecciones, kSel);
-    html += `<div class="sistema-footer"><div class="sis-detalle-apuesta"><span class="sis-label">Importe por combinación</span><span class="sis-valor">${stakeVal.toFixed(2)} €</span></div><div class="sis-detalle-apuesta"><span class="sis-label">Total apostado</span><span class="sis-valor">${(stakeVal * ca).toFixed(2)} €</span></div></div>`;
+    html += `<div class="sistema-footer">
+      <div class="sis-detalle-apuesta"><span class="sis-label">Importe por combinación</span><span class="sis-valor">${stakeVal.toFixed(2)} €</span></div>
+      <div class="sis-detalle-apuesta"><span class="sis-label">Total apostado</span><span class="sis-valor">${(stakeVal * ca).toFixed(2)} €</span></div>
+    </div>`;
     wrap.innerHTML = html;
     wrap.querySelectorAll('.sis-radio').forEach(r => r.addEventListener('change', renderSistema));
   }
@@ -546,7 +739,12 @@
     );
   }
 
+  /* ─────────────────────────────────────────────────────────
+     actualizarBotones
+  ───────────────────────────────────────────────────────── */
   function actualizarBotones() {
+    const pidActual = window._partidoId || '';
+
     document.querySelectorAll('.cuota-btn').forEach(btn => {
       const activa = bets.some(b =>
         (b.partidoId || '').toString() === btn.dataset.partidoid &&
@@ -555,13 +753,40 @@
       );
       btn.closest('.cuota')?.classList.toggle('activa', activa);
     });
+
     document.querySelectorAll('.opcion-btn').forEach(btn => {
       const activa = bets.some(b =>
-        b.partidoId === (window._partidoId || '') &&
+        b.partidoId === pidActual &&
         b.tipo      === btn.dataset.tipo &&
         normM(b.mercado) === normM(btn.dataset.mercado)
       );
       btn.classList.toggle('activa', activa);
+
+      if (activa) { btn.classList.remove('incompatible-bloqueada'); return; }
+
+      const betPrueba = {
+        partidoId: pidActual,
+        tipo:      btn.dataset.tipo || '',
+        mercado:   btn.dataset.mercado || '',
+        line:      btn.dataset.line ? parseFloat(btn.dataset.line) : null,
+        dir:       btn.dataset.dir  || null,
+      };
+
+      const dnbCheck = validarDNBEnCarrito(betPrueba, bets);
+      if (!dnbCheck.ok) { btn.classList.add('incompatible-bloqueada'); return; }
+
+      const clavePrueba = claveExclusion(normM(betPrueba.mercado), betPrueba.tipo);
+      const delMismoPartido = bets.filter(b =>
+        (b.partidoId || '').toString().trim() === pidActual &&
+        claveExclusion(normM(b.mercado), b.tipo) !== clavePrueba
+      );
+
+      let bloqueado = false;
+      for (const existing of delMismoPartido) {
+        const { incompatible } = esIncompatible(existing, betPrueba);
+        if (incompatible) { bloqueado = true; break; }
+      }
+      btn.classList.toggle('incompatible-bloqueada', bloqueado);
     });
   }
 
@@ -573,7 +798,9 @@
     document.body.style.overflow = '';
   }
 
-  /* ── Realizar apuesta ── */
+  /* ─────────────────────────────────────────────────────────
+     realizarApuesta — v4.2: bloquea partidos comenzados/terminados
+  ───────────────────────────────────────────────────────── */
   async function realizarApuesta() {
     const auth = window.auth, db = window.db;
     if (!auth || !db) { toast('Error: Firebase no disponible', 'error'); return; }
@@ -581,10 +808,31 @@
     if (!user)        { toast('Debes iniciar sesión para apostar', 'error'); return; }
     if (!bets.length) { toast('No hay apuestas en el carrito', 'error');    return; }
 
+    // Validación final de incompatibilidades
+    const porPartido = {};
+    bets.forEach(b => {
+      const pid = (b.partidoId || '').toString().trim();
+      if (!porPartido[pid]) porPartido[pid] = [];
+      porPartido[pid].push(b);
+    });
+    for (const grupo of Object.values(porPartido)) {
+      for (let i = 0; i < grupo.length; i++) {
+        for (let j = i + 1; j < grupo.length; j++) {
+          const { incompatible, motivo } = esIncompatible(grupo[i], grupo[j]);
+          if (incompatible) { toast(`🚫 Apuesta inválida: ${motivo}`, 'error'); return; }
+        }
+      }
+    }
+    for (let i = 0; i < bets.length; i++) {
+      const check = validarDNBEnCarrito(bets[i], bets.filter((_, j) => j !== i));
+      if (!check.ok) { toast(`🚫 ${check.motivo}`, 'error'); return; }
+    }
+
+    // v4.2: Bloquear partidos que ya han comenzado O terminado
     const pidsBloqueados = [];
     const idsUnicos = [...new Set(bets.map(b => (b.partidoId || '').toString().trim()).filter(Boolean))];
     for (const pid of idsUnicos) {
-      if (await partidoEnVivo(pid)) {
+      if (await partidoNoApostable(pid)) {
         const nombre = bets.find(b => b.partidoId === pid)?.partido || pid;
         pidsBloqueados.push(nombre);
       }
@@ -594,8 +842,8 @@
       guardar(); render();
       toast(
         pidsBloqueados.length === 1
-          ? `⚠ "${pidsBloqueados[0]}" ya está en vivo y se ha eliminado del carrito`
-          : `⚠ ${pidsBloqueados.length} partidos están en vivo y se han eliminado del carrito`,
+          ? `⚠ "${pidsBloqueados[0]}" ya ha comenzado o finalizado y se ha eliminado del carrito`
+          : `⚠ ${pidsBloqueados.length} partidos ya han comenzado o finalizado y se han eliminado del carrito`,
         'error'
       );
       return;
@@ -614,12 +862,12 @@
     let apuestaData, totalDescontar;
 
     if (tabActual === 'sistema' && bets.length >= 3) {
-      const porPartido = {};
+      const porPartidoSis = {};
       bets.forEach(b => {
         const pid = b.partidoId;
-        if (!porPartido[pid]) porPartido[pid] = b;
+        if (!porPartidoSis[pid]) porPartidoSis[pid] = b;
       });
-      const sels = Object.values(porPartido);
+      const sels = Object.values(porPartidoSis);
       const k    = parseInt(document.querySelector('input[name="sistema-tipo"]:checked')?.value || 2);
       const { combos } = calcularSistema(sels, k);
       totalDescontar = stake * combos;
@@ -672,7 +920,9 @@
   const _subs = [];
   function notificar() { render(); _subs.forEach(fn => fn(bets)); }
 
-  /* ── Init ── */
+  /* ─────────────────────────────────────────────────────────
+     INIT
+  ───────────────────────────────────────────────────────── */
   function init() {
     cargar();
 
@@ -729,11 +979,12 @@
     render();
   }
 
-  /* ── API pública ── */
+  /* ─────────────────────────────────────────────────────────
+     API PÚBLICA
+  ───────────────────────────────────────────────────────── */
   window.BetSlip      = { addBet, vaciar, render, getBets: () => bets, onChange: fn => _subs.push(fn) };
   window.addBetToSlip = addBet;
 
-  // ★ v3.3: addBet global acepta extra { line, dir } como 4º param
   window.addBet = (tipo, cuota, mercado, extra = {}) => {
     const p = window._partidoData;
     addBet({
@@ -747,30 +998,31 @@
     });
   };
 
+  window._betslipEsIncompatible  = esIncompatible;
+  window._betslipValidarDNB      = validarDNBEnCarrito;
+  window._betslipNoApostable     = partidoNoApostable;
+
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 
-  /* ═══════════════════════════════════════════════════════════
-     formatTipo — convierte (tipo, mercado) en texto legible
-  ═══════════════════════════════════════════════════════════ */
+  /* ─────────────────────────────────────────────────────────
+     formatTipo
+  ───────────────────────────────────────────────────────── */
   function formatTipo(tipo, mercado) {
     const m = normM(mercado);
 
     if (m === 'resultado')        return tipo.toLowerCase() === 'empate' ? 'Empate' : `Gana ${tipo}`;
     if (m === 'dobleoportunidad') return tipo;
     if (m === 'goleadores')       return `Gol de ${tipo}`;
+    if (m === 'dnb')              return tipo.replace(/^DNB:\s*/i, 'Sin empate: ');
 
-    // ★ v3.4: totalgoles ya viene con texto legible desde mercados.js
-    // Si por algún motivo viene el formato antiguo "+2.5"/"-2.5", también se maneja
     if (m === 'totalgoles') {
       if (/^[+-]\d/.test(tipo)) {
         const dir = tipo.startsWith('+') ? 'Más de' : 'Menos de';
-        const val = tipo.slice(1);
-        return `${dir} ${val} goles`;
+        return `${dir} ${tipo.slice(1)} goles`;
       }
-      return tipo; // ya viene como "Más de 2.5 goles"
+      return tipo;
     }
-
     if (m === 'totalsht') {
       if (/^[+-]\d/.test(tipo)) {
         const dir = tipo.startsWith('+') ? 'Más de' : 'Menos de';
@@ -778,112 +1030,73 @@
       }
       return tipo.replace(/\s*\(1ª parte\)/i, '') + ' · 1ª parte';
     }
-
     if (m === 'teamtotalhome') {
-      if (/^[+-]\d/.test(tipo)) {
-        const dir = tipo.startsWith('+') ? 'Más de' : 'Menos de';
-        return `🏠 ${dir} ${tipo.slice(1)}`;
-      }
+      if (/^[+-]\d/.test(tipo)) { const d = tipo.startsWith('+') ? 'Más de' : 'Menos de'; return `🏠 ${d} ${tipo.slice(1)}`; }
       return `🏠 ${tipo}`;
     }
     if (m === 'teamtotalaway') {
-      if (/^[+-]\d/.test(tipo)) {
-        const dir = tipo.startsWith('+') ? 'Más de' : 'Menos de';
-        return `✈️ ${dir} ${tipo.slice(1)}`;
-      }
+      if (/^[+-]\d/.test(tipo)) { const d = tipo.startsWith('+') ? 'Más de' : 'Menos de'; return `✈️ ${d} ${tipo.slice(1)}`; }
       return `✈️ ${tipo}`;
     }
     if (m === 'httotalhome') {
-      if (/^[+-]\d/.test(tipo)) {
-        const dir = tipo.startsWith('+') ? 'Más de' : 'Menos de';
-        return `🏠 ${dir} ${tipo.slice(1)} (1ª)`;
-      }
+      if (/^[+-]\d/.test(tipo)) { const d = tipo.startsWith('+') ? 'Más de' : 'Menos de'; return `🏠 ${d} ${tipo.slice(1)} (1ª)`; }
       return `🏠 ${tipo}`;
     }
     if (m === 'httotalaway') {
-      if (/^[+-]\d/.test(tipo)) {
-        const dir = tipo.startsWith('+') ? 'Más de' : 'Menos de';
-        return `✈️ ${dir} ${tipo.slice(1)} (1ª)`;
-      }
+      if (/^[+-]\d/.test(tipo)) { const d = tipo.startsWith('+') ? 'Más de' : 'Menos de'; return `✈️ ${d} ${tipo.slice(1)} (1ª)`; }
       return `✈️ ${tipo}`;
     }
-
-    if (m === 'descanso' || m === 'htresult')
-      return `1ª mitad: ${tipo.replace(/^ht1?:\s*/i, '')}`;
-    if (m === 'segunda')
-      return `2ª mitad: ${tipo.replace(/^ht2?:\s*/i, '')}`;
-
-    if (m === 'dnb') return tipo.replace(/^DNB:\s*/i, 'Sin empate: ');
-
+    if (m === 'descanso' || m === 'htresult') return `1ª mitad: ${tipo.replace(/^ht1?:\s*/i, '')}`;
+    if (m === 'segunda')  return `2ª mitad: ${tipo.replace(/^ht2?:\s*/i, '')}`;
     if (m === 'ambosmarcan' || m === 'btts') {
       const v = tipo.toLowerCase();
       if (v === 'sí' || v === 'si' || v === 'yes') return 'Ambos marcan: Sí';
       if (v === 'no')                               return 'Ambos marcan: No';
       return `Ambos marcan: ${tipo}`;
     }
-
-    if (m === 'imparpar')   return `Goles ${tipo}`;
-    if (m === 'htimparpar') return `Goles ${tipo} (1ª mitad)`;
-
-    if (m === 'asiantotals') return tipo.replace(/\s*\(asian\)/i, '') + ' (Asian)';
-
+    if (m === 'imparpar')        return `Goles ${tipo}`;
+    if (m === 'htimparpar')      return `Goles ${tipo} (1ª mitad)`;
+    if (m === 'asiantotals')     return tipo.replace(/\s*\(asian\)/i, '') + ' (Asian)';
     if (m === 'cornerstotal' || m === 'corners') return `📐 ${tipo}`;
-    if (m === 'cornersht')    return `📐 ${tipo}`;
-
+    if (m === 'cornersht')       return `📐 ${tipo}`;
     if (m === 'bookingstotal' || m === 'tarjetas') return `🟨 ${tipo}`;
-
-    if (m === 'ehresult')      return tipo.replace(/^EH:\s*/i, 'Hándicap: ');
-    if (m === 'asianhandicap') return tipo.replace(/^AH:\s*/i, 'H. Asiático: ');
-
+    if (m === 'ehresult')        return tipo.replace(/^EH:\s*/i, 'Hándicap: ');
+    if (m === 'asianhandicap')   return tipo.replace(/^AH:\s*/i, 'H. Asiático: ');
     if (m === 'htft') {
       const HTFT_LABELS = {
-        htft_1_1: '1ª: Local / FT: Local',     htft_1_x: '1ª: Local / FT: Empate',
-        htft_1_2: '1ª: Local / FT: Visitante', htft_x_1: '1ª: Empate / FT: Local',
-        htft_x_x: '1ª: Empate / FT: Empate',   htft_x_2: '1ª: Empate / FT: Visitante',
-        htft_2_1: '1ª: Visitante / FT: Local', htft_2_x: '1ª: Visitante / FT: Empate',
-        htft_2_2: '1ª: Visitante / FT: Visitante',
+        htft_1_1:'1ª: Local / FT: Local',     htft_1_x:'1ª: Local / FT: Empate',
+        htft_1_2:'1ª: Local / FT: Visitante', htft_x_1:'1ª: Empate / FT: Local',
+        htft_x_x:'1ª: Empate / FT: Empate',   htft_x_2:'1ª: Empate / FT: Visitante',
+        htft_2_1:'1ª: Visitante / FT: Local', htft_2_x:'1ª: Visitante / FT: Empate',
+        htft_2_2:'1ª: Visitante / FT: Visitante',
       };
       return HTFT_LABELS[tipo] || tipo;
     }
-
     if (m === 'correctscore') {
       if (tipo === 'csOther') return 'Marcador exacto: Otro';
       const raw = tipo.replace('cs', '');
       return `Marcador: ${raw.slice(0, -1)}-${raw.slice(-1)}`;
     }
-
-    if (m === 'cleansheethome') {
-      const v = tipo.endsWith('Yes') ? 'Sí' : 'No';
-      return `🧤 Portería a cero local: ${v}`;
-    }
-    if (m === 'cleansheetaway') {
-      const v = tipo.endsWith('Yes') ? 'Sí' : 'No';
-      return `🧤 Portería a cero visitante: ${v}`;
-    }
-
+    if (m === 'cleansheethome') return `🧤 Portería a cero local: ${tipo.endsWith('Yes') ? 'Sí' : 'No'}`;
+    if (m === 'cleansheetaway') return `🧤 Portería a cero visitante: ${tipo.endsWith('Yes') ? 'Sí' : 'No'}`;
     if (m === 'firstscore') {
       if (tipo === 'firstScoreHome') return '🥇 Primer gol: Local';
       if (tipo === 'firstScoreNone') return '🥇 Sin goles';
       if (tipo === 'firstScoreAway') return '🥇 Primer gol: Visitante';
     }
-
     if (m === 'nextgoal') {
       if (tipo === 'nextGoalHome') return '⚡ Próx. gol: Local';
       if (tipo === 'nextGoalNone') return '⚡ Sin gol';
       if (tipo === 'nextGoalAway') return '⚡ Próx. gol: Visitante';
     }
-
     if (m === 'winnil') {
       if (tipo === 'winNilHome') return '🔒 Local gana sin encajar';
       if (tipo === 'winNilAway') return '🔒 Visitante gana sin encajar';
     }
-
-    // Fallback genérico para "+X"/"-X" legacy
     if (/^[+-]\d/.test(tipo)) {
       const dir = tipo.startsWith('+') ? 'Más de' : 'Menos de';
       return `${dir} ${tipo.slice(1)}`;
     }
-
     return tipo;
   }
 

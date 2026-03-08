@@ -35,6 +35,8 @@
       --morado-dim:  rgba(139,92,246,0.12);
       --cyan:        #06b6d4;
       --cyan-dim:    rgba(6,182,212,0.12);
+      --rosa:        #ec4899;
+      --rosa-dim:    rgba(236,72,153,0.12);
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -149,21 +151,25 @@
     .btn-accion .btn-text strong { display: block; font-size: 0.9rem; }
     .btn-accion .btn-text small  { font-size: 0.75rem; opacity: 0.7; font-weight: 400; }
 
-    .btn-importar    { background: var(--rojo-dim);    border-color: rgba(230,48,48,0.25);   color: #ff8080; }
-    .btn-cuotas      { background: var(--amarillo-dim);border-color: rgba(245,197,24,0.2);   color: var(--amarillo); }
-    .btn-cuotas-full { background: var(--azul-dim);    border-color: rgba(59,130,246,0.25);  color: #93c5fd; }
-    .btn-cuotas-afb  { background: var(--cyan-dim);    border-color: rgba(6,182,212,0.25);   color: var(--cyan); }
-    .btn-vivo        { background: var(--verde-dim);   border-color: rgba(34,197,94,0.2);    color: var(--verde); }
-    .btn-resolver    { background: var(--morado-dim);  border-color: rgba(139,92,246,0.25);  color: #c4b5fd; }
-    .btn-archivar    { background: var(--naranja-dim); border-color: rgba(245,158,11,0.2);   color: var(--naranja); }
+    .btn-importar      { background: var(--rojo-dim);    border-color: rgba(230,48,48,0.25);   color: #ff8080; }
+    .btn-cuotas        { background: var(--amarillo-dim);border-color: rgba(245,197,24,0.2);   color: var(--amarillo); }
+    .btn-cuotas-full   { background: var(--azul-dim);    border-color: rgba(59,130,246,0.25);  color: #93c5fd; }
+    .btn-cuotas-afb    { background: var(--cyan-dim);    border-color: rgba(6,182,212,0.25);   color: var(--cyan); }
+    /* ── NUEVO ── */
+    .btn-cuotas-extras { background: var(--rosa-dim);    border-color: rgba(236,72,153,0.25);  color: #f9a8d4; }
+    .btn-vivo          { background: var(--verde-dim);   border-color: rgba(34,197,94,0.2);    color: var(--verde); }
+    .btn-resolver      { background: var(--morado-dim);  border-color: rgba(139,92,246,0.25);  color: #c4b5fd; }
+    .btn-archivar      { background: var(--naranja-dim); border-color: rgba(245,158,11,0.2);   color: var(--naranja); }
 
-    .btn-importar:not(:disabled):hover    { background: rgba(230,48,48,0.2);   border-color: var(--rojo);    color: #fff; box-shadow: 0 4px 16px rgba(230,48,48,0.2); }
-    .btn-cuotas:not(:disabled):hover      { background: rgba(245,197,24,0.18); border-color: var(--amarillo);color: #fff; box-shadow: 0 4px 16px rgba(245,197,24,0.15); }
-    .btn-cuotas-full:not(:disabled):hover { background: rgba(59,130,246,0.2);  border-color: var(--azul);    color: #fff; box-shadow: 0 4px 16px rgba(59,130,246,0.2); }
-    .btn-cuotas-afb:not(:disabled):hover  { background: rgba(6,182,212,0.2);   border-color: var(--cyan);    color: #fff; box-shadow: 0 4px 16px rgba(6,182,212,0.2); }
-    .btn-vivo:not(:disabled):hover        { background: rgba(34,197,94,0.18);  border-color: var(--verde);   color: #fff; box-shadow: 0 4px 16px rgba(34,197,94,0.15); }
-    .btn-resolver:not(:disabled):hover    { background: rgba(139,92,246,0.2);  border-color: var(--morado);  color: #fff; box-shadow: 0 4px 16px rgba(139,92,246,0.2); }
-    .btn-archivar:not(:disabled):hover    { background: rgba(245,158,11,0.18); border-color: var(--naranja); color: #fff; box-shadow: 0 4px 16px rgba(245,158,11,0.15); }
+    .btn-importar:not(:disabled):hover      { background: rgba(230,48,48,0.2);   border-color: var(--rojo);    color: #fff; box-shadow: 0 4px 16px rgba(230,48,48,0.2); }
+    .btn-cuotas:not(:disabled):hover        { background: rgba(245,197,24,0.18); border-color: var(--amarillo);color: #fff; box-shadow: 0 4px 16px rgba(245,197,24,0.15); }
+    .btn-cuotas-full:not(:disabled):hover   { background: rgba(59,130,246,0.2);  border-color: var(--azul);    color: #fff; box-shadow: 0 4px 16px rgba(59,130,246,0.2); }
+    .btn-cuotas-afb:not(:disabled):hover    { background: rgba(6,182,212,0.2);   border-color: var(--cyan);    color: #fff; box-shadow: 0 4px 16px rgba(6,182,212,0.2); }
+    /* ── NUEVO ── */
+    .btn-cuotas-extras:not(:disabled):hover { background: rgba(236,72,153,0.2);  border-color: var(--rosa);    color: #fff; box-shadow: 0 4px 16px rgba(236,72,153,0.2); }
+    .btn-vivo:not(:disabled):hover          { background: rgba(34,197,94,0.18);  border-color: var(--verde);   color: #fff; box-shadow: 0 4px 16px rgba(34,197,94,0.15); }
+    .btn-resolver:not(:disabled):hover      { background: rgba(139,92,246,0.2);  border-color: var(--morado);  color: #fff; box-shadow: 0 4px 16px rgba(139,92,246,0.2); }
+    .btn-archivar:not(:disabled):hover      { background: rgba(245,158,11,0.18); border-color: var(--naranja); color: #fff; box-shadow: 0 4px 16px rgba(245,158,11,0.15); }
 
     /* ── Separador ── */
     .acciones-divider {
@@ -185,7 +191,6 @@
     .liga-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: #0e0f14; border: 1px solid var(--borde); border-radius: 8px; font-size: 0.85rem; }
     .liga-nombre { font-weight: 600; color: var(--texto); display: flex; align-items: center; gap: 6px; }
     .liga-nombre .liga-tag { font-size: 0.68rem; color: var(--texto-dim); background: #1a1c22; padding: 1px 6px; border-radius: 4px; font-weight: 400; font-family: monospace; }
-    /* Badge de fuente de cuotas */
     .liga-nombre .liga-src {
       font-size: 0.62rem; font-weight: 700; padding: 1px 5px; border-radius: 4px;
       letter-spacing: 0.5px; text-transform: uppercase;
@@ -218,6 +223,8 @@
     .hint-box.azul   { background: var(--azul-dim);   border-color: rgba(59,130,246,0.15);  color: #93c5fd; }
     .hint-box.cyan   { background: var(--cyan-dim);   border-color: rgba(6,182,212,0.15);   color: var(--cyan); }
     .hint-box.morado { background: var(--morado-dim); border-color: rgba(139,92,246,0.15);  color: #c4b5fd; }
+    /* ── NUEVO ── */
+    .hint-box.rosa   { background: var(--rosa-dim);   border-color: rgba(236,72,153,0.15);  color: #f9a8d4; }
 
     #progress-bar-wrap { margin-bottom: 14px; }
   </style>
@@ -307,8 +314,8 @@
               <i class="fas fa-info-circle"></i>
               <span>
                 Orden recomendado:<br>
-                <strong>Importar → Cuotas top 5 → Cuotas ligas secundarias → En vivo → Resolver → Archivar</strong><br>
-                <small style="opacity:0.8">Importar 12 ligas tarda ~75s por las pausas anti-rate-limit (6s entre ligas).</small>
+                <strong>Importar → Cuotas top 5 → Cuotas extras Bet365 → En vivo → Resolver → Archivar</strong><br>
+                <small style="opacity:0.8">Importar 12 ligas tarda ~75s. Las cuotas extras pueden tardar hasta 90s según el número de partidos.</small>
               </span>
             </div>
 
@@ -320,6 +327,12 @@
             <div class="hint-box cyan">
               <i class="fas fa-futbol"></i>
               <span><strong>Cuotas ligas secundarias</strong> usa API-Football (100 req/día gratis). Champions, Eredivisie, Championship, Primeira Liga y Brasil.</span>
+            </div>
+
+            <!-- ── NUEVA hint box para cuotas extras ── -->
+            <div class="hint-box rosa">
+              <i class="fas fa-dice"></i>
+              <span><strong>Cuotas extras Bet365</strong> usa odds-api.io para añadir BTTS, Doble Oportunidad, DNB y O/U alternativos a los partidos que ya tienen cuotas principales. Máx. 85 requests/ejecución (plan gratuito: 100/día).</span>
             </div>
 
             <div class="hint-box morado">
@@ -376,6 +389,15 @@
                 <div class="btn-text">
                   <strong>Cuotas ligas secundarias</strong>
                   <small>Champions · Eredivisie · Championship · Primeira Liga · Brasil · API-Football</small>
+                </div>
+              </button>
+
+              <!-- ── NUEVO BOTÓN: Cuotas extras Bet365 ── -->
+              <button class="btn-accion btn-cuotas-extras" id="btn-cuotas-extras">
+                <span class="btn-icon">🎲</span><div class="btn-spinner"></div>
+                <div class="btn-text">
+                  <strong>Cuotas extras Bet365</strong>
+                  <small>BTTS · Doble oportunidad · DNB · O/U alternativos · odds-api.io</small>
                 </div>
               </button>
 

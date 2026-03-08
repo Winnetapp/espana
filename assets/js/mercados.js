@@ -1,20 +1,24 @@
 /* =============================================================
-   mercados.js  —  v3.4
+   mercados.js  —  v4.0
    Renderiza todos los mercados de apuestas.
 
+   CAMBIOS v4.0:
+   · Bloque GOLES completamente rediseñado al estilo Bet365:
+     – Dos selects independientes: "Período" (Encuentro / 1ª Mitad)
+       y "Equipo" (Ambos equipos / Local / Visitante).
+     – Cada select solo se muestra si hay más de una opción.
+     – Tabla con filas de líneas (+0.5, +1.5, +2.5 …) y dos
+       columnas "Más de" / "Menos de".
+     – Los botones muestran solo la cuota; la línea va en la fila.
+
    CAMBIOS v3.4:
-   · _renderLineasGU: data-tipo pasa texto legible
-     ("Más de 2.5 goles" / "Menos de 2.5 goles") en lugar de
-     "+2.5" / "-2.5". Se añaden data-line y data-dir para que
-     betslip-core y worker.js puedan resolver sin regex.
+   · _renderLineasGU: data-tipo legible + data-line + data-dir.
 
    CAMBIOS v3.3:
-   · _leerOUraw: filtro revertido a original (line !== null && line > 0)
-     El worker garantiza el point correcto vía votación de bookmakers.
+   · _leerOUraw: filtro revertido a original (line > 0).
 
    CAMBIOS v3.1:
-   · Mercados de goles unificados en bloque con selector de tipo
-     al estilo Bet365.
+   · Mercados de goles unificados en bloque con selector.
    ============================================================= */
 
 window.toggleMercado = function(id) {
@@ -24,7 +28,6 @@ window.toggleMercado = function(id) {
 window.handleOpcion = function(btn) {
   if (btn.classList.contains('sin-cuota'))    return;
   if (btn.classList.contains('ft-bloqueada')) return;
-  // ★ v3.4: pasar line y dir si están presentes en el botón
   const extra = {};
   if (btn.dataset.line != null && btn.dataset.line !== '') extra.line = parseFloat(btn.dataset.line);
   if (btn.dataset.dir  != null && btn.dataset.dir  !== '') extra.dir  = btn.dataset.dir;
@@ -68,14 +71,52 @@ function leerLineasOU(c, prefOver, prefUnder, mercadoId, labelOver, labelUnder) 
   return opts;
 }
 
-/* ─────────────────────────────────────────────────────────────
-   BLOQUE GOLES UNIFICADO — helpers internos
-─────────────────────────────────────────────────────────────── */
-function _leerOUraw(c, prefOver, prefUnder) {
+/* ═════════════════════════════════════════════════════════════
+   BLOQUE GOLES — Estilo Bet365
+   ═════════════════════════════════════════════════════════════
+
+   Estructura de los datos en Firestore (prefijos):
+   ┌─────────────┬───────────────┬─────────────────────────────┐
+   │ Período     │ Equipo        │ Prefijos over / under       │
+   ├─────────────┼───────────────┼─────────────────────────────┤
+   │ Encuentro   │ Ambos equipos │ over / under                │
+   │ Encuentro   │ Local         │ ttHomeOver / ttHomeUnder    │
+   │ Encuentro   │ Visitante     │ ttAwayOver / ttAwayUnder    │
+   │ 1ª Mitad    │ Ambos equipos │ htOver / htUnder            │
+   │ 1ª Mitad    │ Local         │ htTtHomeOver / htTtHomeUnder│
+   │ 1ª Mitad    │ Visitante     │ htTtAwayOver / htTtAwayUnder│
+   └─────────────┴───────────────┴─────────────────────────────┘
+*/
+
+/* Config de todas las combinaciones */
+const _GU_CONFIG = {
+  // [periodoId, equipoId] → prefijos y mercado Firestore
+  'encuentro_ambos':     { prefO: 'over',         prefU: 'under',         mercado: 'totalgoles'    },
+  'encuentro_local':     { prefO: 'ttHomeOver',   prefU: 'ttHomeUnder',   mercado: 'teamtotalhome' },
+  'encuentro_visitante': { prefO: 'ttAwayOver',   prefU: 'ttAwayUnder',   mercado: 'teamtotalaway' },
+  'primera_ambos':       { prefO: 'htOver',       prefU: 'htUnder',       mercado: 'totalsht'      },
+  'primera_local':       { prefO: 'htTtHomeOver', prefU: 'htTtHomeUnder', mercado: 'httotalhome'   },
+  'primera_visitante':   { prefO: 'htTtAwayOver', prefU: 'htTtAwayUnder', mercado: 'httotalaway'   },
+};
+
+/* Etiquetas para los tipos (lo que llega al betslip) */
+const _GU_TIPO_LABELS = {
+  'encuentro_ambos':     { over: (l) => `Más de ${l} goles`,          under: (l) => `Menos de ${l} goles`          },
+  'encuentro_local':     { over: (l) => `Local más de ${l}`,           under: (l) => `Local menos de ${l}`           },
+  'encuentro_visitante': { over: (l) => `Visitante más de ${l}`,       under: (l) => `Visitante menos de ${l}`       },
+  'primera_ambos':       { over: (l) => `Más de ${l} goles (1ª)`,     under: (l) => `Menos de ${l} goles (1ª)`     },
+  'primera_local':       { over: (l) => `Local más de ${l} (1ª)`,     under: (l) => `Local menos de ${l} (1ª)`     },
+  'primera_visitante':   { over: (l) => `Visitante más de ${l} (1ª)`, under: (l) => `Visitante menos de ${l} (1ª)` },
+};
+
+/* Leer líneas para una combinación concreta */
+function _leerLineasGU(comboId, c) {
+  const cfg = _GU_CONFIG[comboId];
+  if (!cfg) return [];
   const lineas = new Set();
   for (const key of Object.keys(c)) {
-    if (key.startsWith(prefOver))  lineas.add(key.slice(prefOver.length));
-    if (key.startsWith(prefUnder)) lineas.add(key.slice(prefUnder.length));
+    if (key.startsWith(cfg.prefO)) lineas.add(key.slice(cfg.prefO.length));
+    if (key.startsWith(cfg.prefU)) lineas.add(key.slice(cfg.prefU.length));
   }
   return [...lineas]
     .map(raw => ({ raw, line: parseLineKey(raw) }))
@@ -83,71 +124,61 @@ function _leerOUraw(c, prefOver, prefUnder) {
     .sort((a, b) => a.line - b.line)
     .map(({ raw, line }) => ({
       line,
-      over:  c[prefOver  + raw] ?? null,
-      under: c[prefUnder + raw] ?? null,
+      over:  c[cfg.prefO + raw] ?? null,
+      under: c[cfg.prefU + raw] ?? null,
     }));
 }
 
-const _GU_MAP = {
-  partido:     { prefO: 'over',         prefU: 'under',         mercado: 'totalgoles'    },
-  primera:     { prefO: 'htOver',       prefU: 'htUnder',       mercado: 'totalsht'      },
-  local:       { prefO: 'ttHomeOver',   prefU: 'ttHomeUnder',   mercado: 'teamtotalhome' },
-  visitante:   { prefO: 'ttAwayOver',   prefU: 'ttAwayUnder',   mercado: 'teamtotalaway' },
-  localht:     { prefO: 'htTtHomeOver', prefU: 'htTtHomeUnder', mercado: 'httotalhome'   },
-  visitanteht: { prefO: 'htTtAwayOver', prefU: 'htTtAwayUnder', mercado: 'httotalaway'   },
-};
+/* Determinar qué períodos y equipos tienen datos */
+function _analizarDisponibilidad(c) {
+  const periodos = [];
+  const equipos  = [];
 
-// Etiquetas legibles por tab
-const _GU_LABELS = {
-  partido:     { over: (l) => `Más de ${l} goles`,    under: (l) => `Menos de ${l} goles`    },
-  primera:     { over: (l) => `Más de ${l} (1ª)`,     under: (l) => `Menos de ${l} (1ª)`     },
-  local:       { over: (l) => `Local más de ${l}`,     under: (l) => `Local menos de ${l}`     },
-  visitante:   { over: (l) => `Visitante más de ${l}`, under: (l) => `Visitante menos de ${l}` },
-  localht:     { over: (l) => `Local más de ${l} (1ª)`,     under: (l) => `Local menos de ${l} (1ª)`     },
-  visitanteht: { over: (l) => `Visitante más de ${l} (1ª)`, under: (l) => `Visitante menos de ${l} (1ª)` },
-};
+  const tieneEncuentroAmbos     = _leerLineasGU('encuentro_ambos', c).length > 0;
+  const tieneEncuentroLocal     = _leerLineasGU('encuentro_local', c).length > 0;
+  const tieneEncuentroVisitante = _leerLineasGU('encuentro_visitante', c).length > 0;
+  const tienePrimeraAmbos       = _leerLineasGU('primera_ambos', c).length > 0;
+  const tienePrimeraLocal       = _leerLineasGU('primera_local', c).length > 0;
+  const tienePrimeraVisitante   = _leerLineasGU('primera_visitante', c).length > 0;
 
-function _getLineasGU(tabId, c) {
-  const cfg = _GU_MAP[tabId];
-  if (!cfg) return { lineas: [], mercado: '' };
-  return { lineas: _leerOUraw(c, cfg.prefO, cfg.prefU), mercado: cfg.mercado };
+  if (tieneEncuentroAmbos || tieneEncuentroLocal || tieneEncuentroVisitante)
+    periodos.push('encuentro');
+  if (tienePrimeraAmbos || tienePrimeraLocal || tienePrimeraVisitante)
+    periodos.push('primera');
+
+  // Equipos disponibles para el primer período con datos
+  const periodoRef = periodos[0] || 'encuentro';
+  const tieneAmbos     = _leerLineasGU(`${periodoRef}_ambos`, c).length > 0;
+  const tieneLocal     = _leerLineasGU(`${periodoRef}_local`, c).length > 0;
+  const tieneVisitante = _leerLineasGU(`${periodoRef}_visitante`, c).length > 0;
+  if (tieneAmbos)     equipos.push('ambos');
+  if (tieneLocal)     equipos.push('local');
+  if (tieneVisitante) equipos.push('visitante');
+
+  return { periodos, equipos };
 }
 
-function _getTabs(c, p) {
-  const tabs = [];
-  const add = (id, icon, label, maxLen = 14) => {
-    const cfg = _GU_MAP[id];
-    if (_leerOUraw(c, cfg.prefO, cfg.prefU).length) {
-      const lbl = label.length > maxLen ? label.slice(0, maxLen) + '…' : label;
-      tabs.push({ id, icon, label: lbl });
-    }
-  };
-  add('partido',     '⚽', 'Partido');
-  add('primera',     '⏱', '1ª parte');
-  add('local',       '🏠', p.local, 12);
-  add('visitante',   '✈️', p.visitante, 12);
-  add('localht',     '🏠', (p.local.length > 9 ? p.local.slice(0,9)+'…' : p.local) + ' 1ª');
-  add('visitanteht', '✈️', (p.visitante.length > 9 ? p.visitante.slice(0,9)+'…' : p.visitante) + ' 1ª');
-  return tabs;
-}
-
-function _ganadoresGU(tabId, p, c) {
+/* Ganadores para una combinación (partido terminado) */
+function _ganadoresGU(comboId, p, c) {
   const gl  = p.golesLocal       ?? null;
   const gv  = p.golesVisitante   ?? null;
   const htL = p.golesLocalHT     ?? p.htGolesLocal     ?? null;
   const htV = p.golesVisitanteHT ?? p.htGolesVisitante ?? null;
+
   const valMap = {
-    partido:     gl !== null && gv !== null ? gl + gv : null,
-    primera:     htL !== null && htV !== null ? htL + htV : null,
-    local:       gl,
-    visitante:   gv,
-    localht:     htL,
-    visitanteht: htV,
+    'encuentro_ambos':     gl !== null && gv !== null ? gl + gv : null,
+    'encuentro_local':     gl,
+    'encuentro_visitante': gv,
+    'primera_ambos':       htL !== null && htV !== null ? htL + htV : null,
+    'primera_local':       htL,
+    'primera_visitante':   htV,
   };
-  const val = valMap[tabId] ?? null;
+
+  const val = valMap[comboId] ?? null;
   const g = new Set();
   if (val === null) return g;
-  const { lineas } = _getLineasGU(tabId, c);
+
+  const lineas = _leerLineasGU(comboId, c);
   for (const { line } of lineas) {
     if (val > line) g.add(`over_${line}`);
     if (val < line) g.add(`under_${line}`);
@@ -155,71 +186,153 @@ function _ganadoresGU(tabId, p, c) {
   return g;
 }
 
-function _renderLineasGU(tabId, lineas, mercado, ganadores, terminado) {
+/* Renderizar tabla de líneas estilo Bet365 */
+function _renderTablaGU(comboId, lineas, mercado, ganadores, terminado) {
   if (!lineas.length)
     return `<div class="gu-empty">Sin líneas disponibles</div>`;
 
-  const labels = _GU_LABELS[tabId] || _GU_LABELS['partido'];
+  const labels = _GU_TIPO_LABELS[comboId] || _GU_TIPO_LABELS['encuentro_ambos'];
 
-  return lineas.map(({ line, over, under }) => {
+  const filas = lineas.map(({ line, over, under }) => {
     const esGO = ganadores.has(`over_${line}`);
     const esGU = ganadores.has(`under_${line}`);
 
-    // ★ v3.4: tipo legible + data-line y data-dir
-    const tipoOver  = labels.over(line);
-    const tipoUnder = labels.under(line);
-
-    const mkBtn = ({ tipo, cuota, esG, dir }) => {
+    const mkCell = ({ cuota, esG, dir }) => {
       const tieneValor = cuota != null;
-      let cls = 'gu-btn opcion-btn';
+      const tipo = dir === 'over' ? labels.over(line) : labels.under(line);
+      let cls = 'gu-cell opcion-btn';
       if (!tieneValor) cls += ' sin-cuota';
       if (terminado)   cls += ' ft-bloqueada';
       if (esG)         cls += ' ft-ganadora';
-      const isOver  = dir === 'over';
-      const flecha  = isOver ? '▲' : '▼';
-      const dirCls  = isOver ? 'over' : 'under';
-      const display = isOver ? `+${line}` : `-${line}`;
-      return `<button class="${cls}"
-                      data-tipo="${tipo}"
-                      data-cuota="${tieneValor ? cuota : '-'}"
-                      data-mercado="${mercado}"
-                      data-line="${line}"
-                      data-dir="${dir}"
-                      onclick="handleOpcion(this)"
-                      ${terminado ? 'title="Partido finalizado"' : ''}>
-                <span class="gu-btn-dir ${dirCls}">${flecha}</span>
-                <span class="gu-btn-label">${display}</span>
-                <span class="gu-btn-cuota">${tieneValor ? parseFloat(cuota).toFixed(2) : '—'}</span>
-                ${esG ? '<span class="ft-ganadora-badge">✓</span>' : ''}
-              </button>`;
+
+      return `<td>
+        <button class="${cls}"
+                data-tipo="${tipo}"
+                data-cuota="${tieneValor ? cuota : '-'}"
+                data-mercado="${mercado}"
+                data-line="${line}"
+                data-dir="${dir}"
+                onclick="handleOpcion(this)"
+                ${terminado ? 'title="Partido finalizado"' : ''}>
+          <span class="gu-cell-cuota">${tieneValor ? parseFloat(cuota).toFixed(2) : '—'}</span>
+          ${esG ? '<span class="ft-ganadora-badge">✓</span>' : ''}
+        </button>
+      </td>`;
     };
 
-    return `
-      <div class="gu-linea">
-        <div class="gu-linea-val">${line}</div>
-        <div class="gu-linea-par">
-          ${mkBtn({ tipo: tipoOver,  cuota: over,  esG: esGO, dir: 'over'  })}
-          ${mkBtn({ tipo: tipoUnder, cuota: under, esG: esGU, dir: 'under' })}
-        </div>
-      </div>`;
+    return `<tr>
+      <td class="gu-linea-label">+${line}</td>
+      ${mkCell({ cuota: over,  esG: esGO, dir: 'over'  })}
+      ${mkCell({ cuota: under, esG: esGU, dir: 'under' })}
+    </tr>`;
   }).join('');
+
+  return `
+    <table class="gu-tabla">
+      <thead>
+        <tr>
+          <th class="gu-th-linea">Línea</th>
+          <th class="gu-th-dir">Más de</th>
+          <th class="gu-th-dir">Menos de</th>
+        </tr>
+      </thead>
+      <tbody>${filas}</tbody>
+    </table>`;
 }
 
-/* ── Switch público (llamado por onchange del select) ── */
-window._switchGolesTab = function(selectEl) {
-  const tabId = selectEl.value;
-  const cuerpo = document.getElementById('gu-cuerpo');
-  if (!cuerpo) return;
+/* Construir HTML del bloque goles completo */
+function _buildBloqueGoles(p, c, terminado) {
+  const { periodos, equipos } = _analizarDisponibilidad(c);
+  if (!periodos.length) return null;
 
+  // Estado inicial
+  const periodoInicial = periodos[0];
+  const equipoInicial  = equipos[0] || 'ambos';
+  const comboInicial   = `${periodoInicial}_${equipoInicial}`;
+
+  const lineasIni   = _leerLineasGU(comboInicial, c);
+  const mercadoIni  = _GU_CONFIG[comboInicial]?.mercado || 'totalgoles';
+  const ganadoresIni = terminado ? _ganadoresGU(comboInicial, p, c) : new Set();
+
+  /* Selects — solo se muestran si hay más de 1 opción */
+  const labelPeriodo = { encuentro: 'Encuentro', primera: '1ª Mitad' };
+  const labelEquipo  = { ambos: 'Ambos equipos', local: p.local, visitante: p.visitante };
+
+  const selectPeriodo = periodos.length > 1
+    ? `<div class="gu-select-wrap">
+         <select class="gu-select" id="gu-sel-periodo" onchange="window._switchGolesTab()">
+           ${periodos.map(id => `<option value="${id}"${id === periodoInicial ? ' selected' : ''}>${labelPeriodo[id]}</option>`).join('')}
+         </select>
+         <i class="fas fa-chevron-down gu-select-icon"></i>
+       </div>`
+    : `<div class="gu-select-single">${labelPeriodo[periodoInicial]}</div>`;
+
+  /* Para el select equipo, recalcular disponibilidad del período inicial */
+  const equiposParaPeriodo = ['ambos','local','visitante'].filter(eq =>
+    _leerLineasGU(`${periodoInicial}_${eq}`, c).length > 0
+  );
+
+  const selectEquipo = equiposParaPeriodo.length > 1
+    ? `<div class="gu-select-wrap">
+         <select class="gu-select" id="gu-sel-equipo" onchange="window._switchGolesTab()">
+           ${equiposParaPeriodo.map(id => `<option value="${id}"${id === equipoInicial ? ' selected' : ''}>${labelEquipo[id]}</option>`).join('')}
+         </select>
+         <i class="fas fa-chevron-down gu-select-icon"></i>
+       </div>`
+    : `<div class="gu-select-single">${labelEquipo[equipoInicial]}</div>`;
+
+  return `
+    <div class="gu-controles">
+      ${selectPeriodo}
+      ${selectEquipo}
+    </div>
+    <div class="gu-tabla-wrap" id="gu-tabla-wrap">
+      ${_renderTablaGU(comboInicial, lineasIni, mercadoIni, ganadoresIni, terminado)}
+    </div>`;
+}
+
+/* Callback público: recalcula tabla al cambiar cualquier select */
+window._switchGolesTab = function() {
   const p = window._partidoData;
-  const c = p?.cuotas;
-  if (!p || !c) return;
-
+  if (!p?.cuotas) return;
+  const c = p.cuotas;
   const terminado = ['FT','AET','PEN'].includes(p.estado);
-  const { lineas, mercado } = _getLineasGU(tabId, c);
-  const ganadores = terminado ? _ganadoresGU(tabId, p, c) : new Set();
 
-  cuerpo.innerHTML = _renderLineasGU(tabId, lineas, mercado, ganadores, terminado);
+  const selPeriodo = document.getElementById('gu-sel-periodo');
+  const selEquipo  = document.getElementById('gu-sel-equipo');
+
+  const periodo = selPeriodo?.value || 'encuentro';
+  let   equipo  = selEquipo?.value  || 'ambos';
+
+  /* Al cambiar período, actualizar opciones del select equipo */
+  if (selEquipo) {
+    const equiposDisp = ['ambos','local','visitante'].filter(eq =>
+      _leerLineasGU(`${periodo}_${eq}`, c).length > 0
+    );
+
+    // Reconstruir opciones
+    const labelEquipo = { ambos: 'Ambos equipos', local: p.local, visitante: p.visitante };
+    selEquipo.innerHTML = equiposDisp
+      .map(id => `<option value="${id}">${labelEquipo[id]}</option>`)
+      .join('');
+
+    // Si el equipo anterior no existe en nuevo período, usar el primero
+    if (!equiposDisp.includes(equipo)) equipo = equiposDisp[0] || 'ambos';
+    selEquipo.value = equipo;
+
+    // Ocultar/mostrar el wrap del select equipo si solo hay 1 opción
+    const wrapEquipo = selEquipo.closest('.gu-select-wrap');
+    if (wrapEquipo) wrapEquipo.style.display = equiposDisp.length > 1 ? '' : 'none';
+  }
+
+  const comboId  = `${periodo}_${equipo}`;
+  const lineas   = _leerLineasGU(comboId, c);
+  const mercado  = _GU_CONFIG[comboId]?.mercado || 'totalgoles';
+  const ganadores = terminado ? _ganadoresGU(comboId, p, c) : new Set();
+
+  const wrap = document.getElementById('gu-tabla-wrap');
+  if (wrap) wrap.innerHTML = _renderTablaGU(comboId, lineas, mercado, ganadores, terminado);
+
   window.actualizarBotones?.();
 };
 
@@ -396,31 +509,15 @@ window.renderMercados = function(p) {
     });
   }
 
-  /* ── 5. GOLES UNIFICADO ── */
-  const golesTabs = _getTabs(c, p);
-  if (golesTabs.length) {
-    const primerTab = golesTabs[0];
-    const { lineas: l0, mercado: m0 } = _getLineasGU(primerTab.id, c);
-    const ganadores0 = terminado ? _ganadoresGU(primerTab.id, p, c) : new Set();
-
-    const optsHTML = golesTabs.map((t, i) =>
-      `<option value="${t.id}"${i === 0 ? ' selected' : ''}>${t.icon} ${t.label}</option>`
-    ).join('');
-
+  /* ── 5. GOLES — estilo Bet365 ────────────────────────────── */
+  const bloqueGolesHTML = _buildBloqueGoles(p, c, terminado);
+  if (bloqueGolesHTML) {
     mercados.push({
       id: 'golesUnificado',
-      titulo: '📊 Goles',
+      titulo: '📊 Total de Goles',
       _custom: true,
-      _html: `
-        <div class="gu-selector-wrap">
-          <select class="gu-select" id="gu-select" onchange="window._switchGolesTab(this)">
-            ${optsHTML}
-          </select>
-          <span class="gu-select-arrow"><i class="fas fa-chevron-down"></i></span>
-        </div>
-        <div class="gu-cuerpo" id="gu-cuerpo">
-          ${_renderLineasGU(primerTab.id, l0, m0, ganadores0, terminado)}
-        </div>`,
+      _html: bloqueGolesHTML,
+      _bodyClass: 'gu-mercado-body',
     });
   }
 
@@ -641,7 +738,7 @@ window.renderMercados = function(p) {
             <span class="mercado-titulo">${m.titulo}</span>
             <i class="fas fa-chevron-down mercado-chevron"></i>
           </div>
-          <div class="mercado-body gu-mercado-body">
+          <div class="mercado-body${m._bodyClass ? ' ' + m._bodyClass : ''}">
             ${m._html}
           </div>
         </div>`;

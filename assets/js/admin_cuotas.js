@@ -82,53 +82,30 @@ const TEAM_ALIASES = {
   "angerssco":                 ["angers"],
   "lehavreac":                 ["lehavre", "havre"],
 
-  // La Liga — nombres exactos confirmados desde The Odds API
-  // norm("Girona FC") = "gironafc", API devuelve "Girona" → norm = "girona" ✓ alias
+  // La Liga
   "gironafc":                  ["girona"],
-  // norm("RC Celta de Vigo") = "rcceltadevigo", API devuelve "Celta Vigo" → norm = "celtavigo" ✓
-  // FIX: clave corregida de "rceltadevigo" a "rcceltadevigo"
   "rcceltadevigo":             ["celtavigo", "celta", "rcelta"],
-  // norm("Real Madrid CF") = "realmadridcf", API devuelve "Real Madrid" → norm = "realmadrid" ✓
-  "realmadridcf":              ["realmadrid", "madrid"],           // FIX: typo 'realmadrIdcf' corregido
-  // norm("FC Barcelona") = "fcbarcelona", API devuelve "Barcelona" → norm = "barcelona" ✓
+  "realmadridcf":              ["realmadrid", "madrid"],
   "fcbarcelona":               ["barcelona", "barca"],
-  // norm("Club Atlético de Madrid") = "clubatleticodemadrid", API → "Atletico Madrid" → norm = "atleticomadrid" ✓
   "clubatleticodemadrid":      ["atleticomadrid", "atletico", "atleticomadrid"],
-  // norm("Athletic Club") = "athleticclub", API → "Athletic Club" ✓ (coincidencia directa)
   "athleticclub":              ["athleticbilbao", "athletic", "athleticclububilbao"],
-  // norm("Real Sociedad de Fútbol") = "realsociedaddefutbol", API → "Real Sociedad" → norm = "realsociedad" ✓
   "realsociedaddefutbol":      ["realsociedad", "sociedad"],
-  // norm("Real Betis Balompié") = "realbetisbalompie", API → "Real Betis" → norm = "realbetis" ✓
   "realbetisbalompie":         ["realbetis", "betis"],
-  // norm("Sevilla FC") = "sevillafc", API → "Sevilla" → norm = "sevilla" ✓
   "sevillafc":                 ["sevilla"],
-  // norm("Villarreal CF") = "villarrealcf", API → "Villarreal" → norm = "villarreal" ✓
   "villarrealcf":              ["villarreal"],
-  // norm("Rayo Vallecano de Madrid") = "rayovallecanodemadrid", API → "Rayo Vallecano" → norm = "rayovallecano" ✓
   "rayovallecanodemadrid":     ["rayovallecano", "rayo"],
-  // norm("RCD Espanyol de Barcelona") = "rcdespanyoldebarcelona", API → "Espanyol" → norm = "espanyol" ✓
-  "rcdespanyoldebarcelona":    ["espanyol", "rcdespanyol"],        // FIX: typo 'rcdespaynol' corregido
-  // norm("Real Oviedo") = "realoviedo", API → "Real Oviedo" ✓ (coincidencia directa)
+  "rcdespanyoldebarcelona":    ["espanyol", "rcdespanyol"],
   "realoviedo":                ["oviedo"],
-  // norm("Valencia CF") = "valenciacf", API → "Valencia" → norm = "valencia" ✓
   "valenciacf":                ["valencia"],
-  // norm("Getafe CF") = "getafecf", API → "Getafe" → norm = "getafe" ✓
   "getafecf":                  ["getafe"],
-  // norm("CA Osasuna") = "caosasuna", API → "Osasuna" → norm = "osasuna" ✓
   "caosasuna":                 ["osasuna"],
-  // norm("Elche CF") = "elchecf", API → "Elche" → norm = "elche" ✓
   "elchecf":                   ["elche"],
-  // norm("Levante UD") = "levanteud", API → "Levante" → norm = "levante" ✓
   "levanteud":                 ["levante"],
-  // norm("RCD Mallorca") = "rcdmallorca", API → "Mallorca" → norm = "mallorca" ✓
   "rcdmallorca":               ["mallorca"],
 
   // Premier League
-  // norm("Brighton & Hove Albion FC") = "brightonhovealbion", API → "Brighton" → norm = "brighton" ✓
-  "brightonhovealbion":        ["brighton", "brightonandhove"],    // FIX: typo 'brightonhoVealbion' corregido
-  // norm("Nottingham Forest FC") = "nottinghamforest", API → "Nottingham Forest" → coincidencia directa ✓
+  "brightonhovealbion":        ["brighton", "brightonandhove"],
   "nottinghamforest":          ["nottmforest", "forest"],
-  // norm("Arsenal FC") = "arsenal", API → "Arsenal" → coincidencia directa ✓
   "arsenal":                   ["arsenalfc"],
   "manchestercity":            ["mancity", "mancityfc"],
   "manchesterunited":          ["manunited", "manutd"],
@@ -146,30 +123,21 @@ const TEAM_ALIASES = {
   "brentfordfc":               ["brentford"],
   "leedsunited":               ["leeds"],
   "burnleyfc":                 ["burnley"],
-  "sheffieldunited":           ["sheffield", "sheffieldutd"],     // FIX: typo 'sheffieldUnited'
+  "sheffieldunited":           ["sheffield", "sheffieldutd"],
   "lutontown":                 ["luton"],
   "ipswich":                   ["ipswichtown"],
   "leicestercity":             ["leicester"],
   "southamptonfc":             ["southampton", "saints"],
 
-  // Eredivisie — norm() de Firestore → alias con nombres cortos que usa The Odds API
-  // norm("FC Utrecht") = "fcutrecht", API → "Utrecht" → norm = "utrecht" ✓
+  // Eredivisie
   "fcutrecht":                 ["utrecht"],
-  // norm("AZ") = "az", API → "AZ Alkmaar" → norm = "azalkmaar" — necesita alias
   "az":                        ["azalkmaar", "alkmaar"],
-  // norm("Heracles Almelo") = "heraclesalmelo", API → "Heracles" → norm = "heracles" ✓
   "heraclesalmelo":            ["heracles"],
-  // norm("PSV") = "psv", API → "PSV Eindhoven" → norm = "psveindhoven" — necesita alias
   "psv":                       ["psveindhoven", "eindhoven"],
-  // norm("NEC") = "nec", API → "NEC Nijmegen" → norm = "necnijmegen" — necesita alias
   "nec":                       ["necnijmegen", "nijmegen"],
-  // norm("Fortuna Sittard") = "fortunasittard", API → "Fortuna Sittard" → coincidencia directa ✓
   "fortunasittard":            ["fortuna"],
-  // norm("FC Twente '65") = "fctwente65", API → "Twente" → norm = "twente" — necesita alias
   "fctwente65":                ["twente", "fctwente"],
-  // norm("Feyenoord Rotterdam") = "feyenoordrotterdam", API → "Feyenoord" → norm = "feyenoord" ✓
   "feyenoordrotterdam":        ["feyenoord"],
-  // Otros equipos Eredivisie habituales
   "ajaxamsterdam":             ["ajax"],
   "ajaxfc":                    ["ajax"],
   "goaheadeagles":             ["goahead"],
@@ -177,17 +145,13 @@ const TEAM_ALIASES = {
   "rkcwaalwijk":               ["waalwijk", "rkc"],
   "sbvexcelsior":              ["excelsior"],
   "fcgroningen":               ["groningen"],
-  "sparthaalkmaar":            ["sparthaalkmaar"],
   "nacacbreda":                ["nac", "nacbreda"],
   "pec zwolle":                ["peczwolle", "zwolle"],
   "fcemmen":                   ["emmen"],
 
-  // Primeira Liga — norm() de Firestore → alias con nombres que usa The Odds API
-  // norm("AVS") = "avs", API → "AVS" → coincidencia directa ✓ (pero por si acaso)
+  // Primeira Liga
   "avs":                       ["avsfutebol", "avsfc"],
-  // norm("CF Estrela da Amadora") = "cfestreladaamadora", API → "Estrela da Amadora" → norm = "estreladaamadora"
   "cfestreladaamadora":        ["estreladaamadora", "estrela", "amadora"],
-  // Otros equipos Primeira Liga habituales
   "slbenfica":                 ["benfica", "slbenficafc"],
   "sportingcp":                ["sporting", "sportinglisboa"],
   "fcporto":                   ["porto"],
@@ -240,15 +204,14 @@ function coinciden(a, b) {
   if (!na || !nb) return false;
   if (na === nb) return true;
   const [menor, mayor] = na.length <= nb.length ? [na, nb] : [nb, na];
-  if (menor.length >= 4 && mayor.includes(menor)) return true;  // FIX: bajado de 5 a 4
+  if (menor.length >= 4 && mayor.includes(menor)) return true;
   if (levenshtein(na, nb) <= 2) return true;
-  // Comprobar aliases
   const aliasesA = TEAM_ALIASES[na] || [];
   const aliasesB = TEAM_ALIASES[nb] || [];
   if (aliasesA.some(al => al === nb || nb.includes(al) || al.includes(nb))) return true;
   if (aliasesB.some(al => al === na || na.includes(al) || al.includes(na))) return true;
   if (aliasesA.some(al => levenshtein(norm(al), nb) <= 2)) return true;
-  if (aliasesB.some(al => levenshtein(norm(al), na) <= 2)) return true;  // FIX: bidireccional
+  if (aliasesB.some(al => levenshtein(norm(al), na) <= 2)) return true;
   return false;
 }
 
@@ -394,7 +357,6 @@ export async function actualizar_cuotas_completas(db, onProgress, opciones = {})
 
     log("info", `${oddsData.length} eventos recibidos`, ligaId);
 
-    // Debug: muestra los nombres exactos que devuelve la API (activar si hay "No encontrado")
     if (debugNombres) {
       const nombres = oddsData.map(e => `"${e.home_team}" vs "${e.away_team}"`).join(" | ");
       log("info", `[DEBUG nombres API] ${nombres}`, ligaId);
@@ -445,14 +407,53 @@ export async function actualizar_cuotas_completas(db, onProgress, opciones = {})
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  EXPORTACIÓN LEGACY — mantenida para compatibilidad con
-//  adminpartidos.js (btn-cuotas-afb). Ya no hace nada útil.
-//  Si quieres puedes eliminar el botón "Cuotas ligas secundarias"
-//  del HTML y esta función.
+//  LEGACY — API-Football (no hace nada, mantenida por compatibilidad)
 // ═══════════════════════════════════════════════════════════════
 export async function actualizar_cuotas_apifootball(db, onProgress) {
   const log = (tipo, msg) => onProgress?.(tipo, msg);
   log("warn", "⚠ API-Football eliminado — no aportaba cuotas en plan gratuito.");
   log("info", "ℹ Para cubrir ligas secundarias, amplía el plan de The Odds API o añade sus claves en ODDS_API_KEYS.");
   return { totalActualizados: 0, totalSinCuotas: 0, errores: [] };
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  CUOTAS EXTRAS — via worker endpoint (clave segura en servidor)
+//  Ejecuta actualizarCuotasExtras() en el worker (odds-api.io).
+//  La ODDS_API_IO_KEY nunca sale del worker — solo viaja el secret.
+// ═══════════════════════════════════════════════════════════════
+
+const WORKER_URL   = "https://winnet-proxy.winnetaplicacion.workers.dev";
+const ADMIN_SECRET = "Winnet2026"; // mismo valor que env.ADMIN_SECRET en el worker
+
+export async function actualizar_cuotas_extras(db, onProgress) {
+  const log = (tipo, msg) => onProgress?.(tipo, msg);
+
+  log("info", "🎯 Solicitando cuotas extras al worker (BTTS · DC · DNB · O/U)...");
+
+  let res;
+  try {
+    res = await fetch(`${WORKER_URL}/_admin/cuotas-extras?secret=${ADMIN_SECRET}`);
+  } catch (err) {
+    throw new Error(`No se pudo conectar con el worker: ${err.message}`);
+  }
+
+  if (res.status === 401) {
+    throw new Error("ADMIN_SECRET incorrecto. Revisa la constante ADMIN_SECRET en admin_cuotas.js.");
+  }
+
+  if (res.status === 500) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || "Error interno del worker.");
+  }
+
+  if (!res.ok) {
+    throw new Error(`El worker respondió con HTTP ${res.status}.`);
+  }
+
+  const data = await res.json();
+  log("ok", `✅ Cuotas extras completadas correctamente.`);
+  log("info", `📋 Timestamp worker: ${data.ts || "—"}`);
+
+  // Formato compatible con ejecutarCuotas()
+  return { totalActualizados: data.ok ? 1 : 0, totalSinCuotas: 0, errores: [] };
 }
