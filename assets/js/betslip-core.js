@@ -1,46 +1,68 @@
 /* =============================================================
-   betslip-core.js  —  v4.3
+   betslip-core.js  —  v4.4
    Módulo compartido de carrito entre index.html y partido.html
 
-   CAMBIOS v4.3:
-   · resolverConflictoGoles(): nueva función que gestiona la
-     lógica de reemplazo inteligente en el mercado totalgoles
-     cuando ya existe una selección del mismo tipo (over/under)
-     en el mismo partido:
-       – Dos "over"  → gana la de línea más alta (más restrictiva
-         y cuota más alta). Reemplaza automáticamente.
-       – Dos "under" → gana la de línea más baja (más restrictiva
-         y cuota más alta). Reemplaza automáticamente.
-       – Over + Under compatibles (over < under) → coexisten.
-       – Over + Under incompatibles (over >= under) → bloqueado
-         (ya manejado por esIncompatible).
-     Se muestra un toast explicativo cuando hay reemplazo.
-     Aplica también a totalsht, teamtotalhome, teamtotalaway,
-     httotalhome, httotalaway (todos los mercados de totales).
+   CAMBIOS v4.4:
+   · factorCorrelacion() completamente reescrito con lógica
+     probabilística real de casas de apuestas profesionales.
 
-   CAMBIOS v4.2:
-   · partidoNoApostable(): renombrada y ampliada. Antes solo
-     bloqueaba partidos en vivo (1H, HT, 2H, ET, P). Ahora
-     también bloquea partidos terminados (FT, AET, PEN) y
-     cualquier estado distinto de NS/TBD. Un partido que ha
-     comenzado —ya sea en juego o finalizado— no puede recibir
-     nuevas apuestas ni confirmar apuestas pendientes en carrito.
+     PRINCIPIO: dos selecciones son "redundantes" (factor 0 o muy
+     bajo) cuando una implica o está CONTENIDA en la otra.
+     Son "independientes" (factor 1) solo cuando pertenecen a
+     segmentos del partido realmente distintos o a equipos
+     distintos sin relación directa.
 
-   CAMBIOS v4.1:
-   · validarDNBEnCarrito(): fix completo. DNB nunca puede
-     coexistir con ninguna otra selección en el carrito,
-     independientemente de si son del mismo partido o de
-     partidos distintos.
+     Casos clave corregidos:
+     ─────────────────────────────────────────────────────────
+     [A] BTTS Sí + Over 0.5 / Over 1.5 → factor 0 (BTTS Sí ya
+         implica ≥2 goles, Over 0.5/1.5 están contenidos)
+     [B] BTTS Sí + Over 2.5+ → factor 0.55 (correlados pero no
+         contenidos: BTTS no garantiza >2 goles)
+     [C] BTTS No + Over cualquier línea → factor 0.35
+         (si nadie marca, difícil que haya muchos goles)
+     [D] BTTS Sí + Under 1.5 → factor 0 (incompatible, bloqueado
+         antes de llegar aquí, pero por si acaso → 0)
+     [E] BTTS Sí + Under 2.5 → factor 0 (BTTS garantiza ≥2,
+         Under 2.5 exige <2.5, solo se cumple con exactamente 2
+         → cuotas ya reflejan esto, no multiplicar)
+     [F] BTTS Sí + Under 3.5+ → factor 0.55
+     [G] 1X2 + Over alta (>2.5) → factor 0.65 (partido abierto
+         favorece a uno pero no implica resultado concreto)
+     [H] 1X2 local gana + BTTS Sí → factor 0.45 (gana local Y
+         marca visitante, eventos parcialmente dependientes)
+     [I] 1X2 empate + Over → factor 0.5 (empate con goles es
+         correlado; empate 0-0 es under, empate 1-1, 2-2 es over)
+     [J] 1X2 empate + BTTS Sí → factor 0 (empate implica ≥1 gol
+         de cada, BTTS Sí está contenido en empate con goles,
+         EXCEPTO empate 0-0)
+     [K] DNB + Over 0.5/1.5 → factor 0.35 (DNB anula empate,
+         un gol diferencia favorece un equipo, correlados)
+     [L] Resultado 2ª mitad vs resultado 1ª mitad → factor 0.6
+     [M] Over/Under mismo mercado misma línea ya bloqueado
+     [N] Over N + Over M (mismo partido, mismo mercado, N>M) →
+         el reemplazo inteligente ya los maneja; si coexisten
+         factor 0.85 (Over 2.5 + Over 1.5 → Over 2.5 implica
+         Over 1.5, redundante)
+     [O] Under N + Under M (mismo partido, N<M) → mismo caso
+     [P] Goles encuentro vs goles 1ª mitad → factor 0.5
+         (segmentos distintos pero correlados: muchos goles en
+         primera aumenta probabilidad de muchos en el encuentro)
+     [Q] TeamTotal local + TeamTotal visitante → factor 0.7
+     [R] Marcador exacto ya es incompatible con todo (manejado)
+     [S] HT/FT ya es incompatible con todo (manejado)
+     [T] CleanSheet local + 1X2 local gana → factor 0.45
+     [U] WinNil + CleanSheet mismo equipo → factor 0
+         (WinNil implica CleanSheet)
+     [V] Corners misma dirección misma línea → factor 0
+         (mismo mercado mismo partido, ya manejado por clave)
+     [W] 1X2 empate + DNB → incompatible (ya manejado)
+     [X] BTTS Sí + CorrectScore con al menos 1 gol de cada →
+         correlados
 
-   CAMBIOS v4.0 — Reglas reales de casas de apuestas:
-   ─────────────────────────────────────────────────────────
-   FIX 1 · claveExclusion()
-   FIX 2 · esIncompatible()
-   FIX 3 · DNB solo en apuesta simple
-   FIX 4 · addBet() con validación previa
-   FIX 5 · factorCorrelacion() revisado
-   FIX 6 · actualizarBotones() con clase incompatible-bloqueada
-   FIX 7 · realizarApuesta() con segunda validación
+   CAMBIOS v4.3: resolverConflictoGoles()
+   CAMBIOS v4.2: partidoNoApostable() ampliado
+   CAMBIOS v4.1: validarDNBEnCarrito() fix
+   CAMBIOS v4.0: reglas reales casas de apuestas base
 
    Mantiene compatibilidad con mercados.js v4.1 y worker.js v6.6
    ============================================================= */
@@ -48,9 +70,7 @@
 (function () {
   'use strict';
 
-  // Estados en los que un partido ya NO acepta apuestas
   const ESTADOS_NO_APOSTABLE = ['1H', 'HT', '2H', 'ET', 'P', 'FT', 'AET', 'PEN', 'SUSP', 'INT', 'ABD', 'AWD', 'WO'];
-  // Estados en los que el partido todavía acepta apuestas
   const ESTADOS_APOSTABLE    = ['NS', 'TBD', 'PST'];
 
   const normM = m => (m || '').toLowerCase().replace(/[\s\-_]/g, '');
@@ -167,7 +187,6 @@
   const esEH       = m => m === 'ehresult';
   const esAsian    = m => m === 'asiantotals';
 
-  // Todos los mercados de totales de goles (aplica lógica de reemplazo inteligente)
   const esMercadoTotales = m =>
     esGoles(m) || esTotalHT(m) || esTTHome(m) || esTTAway(m) || esHTTHome(m) || esHTTAway(m);
 
@@ -211,29 +230,18 @@
 
   /* ─────────────────────────────────────────────────────────
      v4.3 · resolverConflictoGoles
-     Gestiona la lógica de reemplazo inteligente cuando se añade
-     una selección de un mercado de totales y ya existe otra del
-     mismo mercado y partido con la misma dirección (over/over
-     o under/under).
-
-     Retorna:
-       { accion: 'ninguna' }          → no hay conflicto, añadir normal
-       { accion: 'reemplazar', idx }  → reemplazar la existente en bets[idx]
-       { accion: 'descartar' }        → la nueva es redundante, descartar silenciosamente
-                                        (la existente ya es más restrictiva)
   ───────────────────────────────────────────────────────── */
   function resolverConflictoGoles(betNuevo, betsActuales) {
     const mNuevo = normM(betNuevo.mercado);
     if (!esMercadoTotales(mNuevo)) return { accion: 'ninguna' };
 
-    const dirNueva  = betNuevo.dir  || direccion(betNuevo.tipo);
+    const dirNueva   = betNuevo.dir  || direccion(betNuevo.tipo);
     const lineaNueva = betNuevo.line ?? valorNum(betNuevo.tipo);
 
     if (dirNueva === null || lineaNueva === null) return { accion: 'ninguna' };
 
     const pidNuevo = (betNuevo.partidoId || '').toString().trim();
 
-    // Buscar todas las selecciones del mismo partido y mismo mercado de totales
     for (let i = 0; i < betsActuales.length; i++) {
       const b = betsActuales[i];
       if ((b.partidoId || '').toString().trim() !== pidNuevo) continue;
@@ -243,35 +251,18 @@
       const lineaExistente = b.line ?? valorNum(b.tipo);
 
       if (dirExistente === null || lineaExistente === null) continue;
-
-      // Solo aplica la lógica cuando la dirección es la misma (over+over o under+under)
       if (dirNueva !== dirExistente) continue;
 
       if (dirNueva === 'over') {
-        // Dos "over": gana la de línea más alta (más restrictiva, cuota más alta)
-        if (lineaNueva > lineaExistente) {
-          // La nueva es más restrictiva → reemplaza la existente
-          return { accion: 'reemplazar', idx: i };
-        } else if (lineaNueva < lineaExistente) {
-          // La existente ya es más restrictiva → descartar la nueva
-          return { accion: 'descartar' };
-        } else {
-          // Misma línea → toggle normal (se elimina si ya estaba)
-          return { accion: 'ninguna' };
-        }
+        if (lineaNueva > lineaExistente) return { accion: 'reemplazar', idx: i };
+        else if (lineaNueva < lineaExistente) return { accion: 'descartar' };
+        else return { accion: 'ninguna' };
       }
 
       if (dirNueva === 'under') {
-        // Dos "under": gana la de línea más baja (más restrictiva, cuota más alta)
-        if (lineaNueva < lineaExistente) {
-          // La nueva es más restrictiva → reemplaza la existente
-          return { accion: 'reemplazar', idx: i };
-        } else if (lineaNueva > lineaExistente) {
-          // La existente ya es más restrictiva → descartar la nueva
-          return { accion: 'descartar' };
-        } else {
-          return { accion: 'ninguna' };
-        }
+        if (lineaNueva < lineaExistente) return { accion: 'reemplazar', idx: i };
+        else if (lineaNueva > lineaExistente) return { accion: 'descartar' };
+        else return { accion: 'ninguna' };
       }
     }
 
@@ -306,7 +297,6 @@
         if ((dA === 'over' && dB === 'under') || (dA === 'under' && dB === 'over'))
           return { incompatible: true, motivo: `Over ${nA} y Under ${nA} del mismo mercado son incompatibles` };
       }
-      // Over >= Under en el mismo mercado también es incompatible
       if (nA !== null && nB !== null && dA !== null && dB !== null && dA !== dB) {
         const overLine  = dA === 'over'  ? nA : nB;
         const underLine = dA === 'under' ? nA : nB;
@@ -355,99 +345,575 @@
     return { ok: true };
   }
 
-  /* ─────────────────────────────────────────────────────────
-     factorCorrelacion
-  ───────────────────────────────────────────────────────── */
+  /* =================================================================
+     factorCorrelacion  —  v4.4
+     REESCRITURA COMPLETA con lógica probabilística profesional.
+
+     Retorna un factor entre 0 y 1:
+       0   → cuotas no se multiplican (selecciones redundantes/contenidas)
+       0.x → correlación parcial (cuota combinada penalizada)
+       1   → independientes (se multiplican normalmente)
+
+     REGLA DE ORO: si la selección A implica probabilísticamente
+     que B va a ocurrir (o ya está contenida en A), el factor
+     debe ser 0 o muy bajo — NO tiene sentido pagar cuota extra.
+  ================================================================= */
   function factorCorrelacion(a, b) {
     const mA = normM(a.mercado), mB = normM(b.mercado);
     const tA = (a.tipo || '').toLowerCase();
     const tB = (b.tipo || '').toLowerCase();
 
+    // Si son incompatibles, factor 0 (la cuota menor absorbe)
     const { incompatible } = esIncompatible(a, b);
     if (incompatible) return 0;
 
-    if (esRes(mA) && esAmbos(mB) && opcionSiNo(tB) === 'si') return 0.4;
-    if (esAmbos(mA) && esRes(mB) && opcionSiNo(tA) === 'si') return 0.4;
-    if (esRes(mA) && esAmbos(mB) && opcionSiNo(tB) === 'no') return 0.5;
-    if (esAmbos(mA) && esRes(mB) && opcionSiNo(tA) === 'no') return 0.5;
-    if (esRes(mA) && esGoles(mB)) return 0.5;
-    if (esGoles(mA) && esRes(mB)) return 0.5;
-    if (esDoble(mA) && esAmbos(mB)) return 0.5;
-    if (esAmbos(mA) && esDoble(mB)) return 0.5;
-    if (esDNB(mA) && esGoles(mB)) return 0.5;
-    if (esGoles(mA) && esDNB(mB)) return 0.5;
-    if (esDNB(mA) && esHTResult(mB)) return 0.7;
-    if (esHTResult(mA) && esDNB(mB)) return 0.7;
+    // Helpers locales
+    const dA  = a.dir  || direccion(tA);
+    const dB  = b.dir  || direccion(tB);
+    const nA  = a.line ?? valorNum(tA);
+    const nB  = b.line ?? valorNum(tB);
+    const opA = opcionSiNo(tA);
+    const opB = opcionSiNo(tB);
 
-    if (esGoles(mA) && esGoles(mB)) {
-      const dA = a.dir || direccion(tA), dB = b.dir || direccion(tB);
-      const nA = a.line ?? valorNum(tA),  nB = b.line ?? valorNum(tB);
-      if (nA !== null && nB !== null && nA === nB && dA !== null && dB !== null) return 0;
-      if (dA === dB) return 0.7;
-      if (nA !== null && nB !== null && nA !== nB) return 0.8;
-      return 0.7;
+    // ── Abreviaturas de clasificación ──────────────────────────────
+    const bttsA = esAmbos(mA), bttsB = esAmbos(mB);
+    const resA  = esRes(mA),   resB  = esRes(mB);
+    const golA  = esGoles(mA), golB  = esGoles(mB);
+    const htA   = esHTResult(mA), htB = esHTResult(mB);
+    const h2A   = esSegunda(mA),  h2B = esSegunda(mB);
+    const dnbA  = esDNB(mA),   dnbB  = esDNB(mB);
+    const dcA   = esDoble(mA), dcB   = esDoble(mB);
+    const ttHA  = esTTHome(mA), ttHB = esTTHome(mB);
+    const ttAA  = esTTAway(mA), ttAB = esTTAway(mB);
+    const htGolA = esTotalHT(mA), htGolB = esTotalHT(mB);
+    const csHA  = esCSHome(mA), csHB = esCSHome(mB);
+    const csAA  = esCSAway(mA), csAB = esCSAway(mB);
+    const wnA   = esWinNil(mA), wnB  = esWinNil(mB);
+    const firstA = esFirst(mA), firstB = esFirst(mB);
+    const nextA  = esNext(mA),  nextB  = esNext(mB);
+    const cornA  = esCorn(mA),  cornB  = esCorn(mB);
+    const cornHTA = esCornHT(mA), cornHTB = esCornHT(mB);
+    const tarjA  = esTarj(mA), tarjB   = esTarj(mB);
+    const ehA    = esEH(mA),   ehB    = esEH(mB);
+    const ahA    = esAH(mA),   ahB    = esAH(mB);
+    const asianA = esAsian(mA), asianB = esAsian(mB);
+    const imparA = esImpar(mA), imparB = esImpar(mB);
+    const htImA  = esHTImpar(mA), htImB = esHTImpar(mB);
+
+    /* ──────────────────────────────────────────────────────────────
+       BLOQUE 1: BTTS (Ambos marcan) con Total Goles
+       Casos más importantes y que estaban mal en v4.3
+    ────────────────────────────────────────────────────────────── */
+    if (bttsA || bttsB) {
+      const esBttsA = bttsA, esBttsB = bttsB;
+      const esGolX  = golA || golB;
+
+      if (esBttsA && esGolX) {
+        // Obtenemos el lado BTTS y el lado Goles
+        const bttsSi = esBttsA ? opA === 'si' : opB === 'si';
+        const bttsNo = esBttsA ? opA === 'no' : opB === 'no';
+        const gDir   = esBttsA ? dB : dA;
+        const gLine  = esBttsA ? nB : nA;
+
+        if (bttsSi) {
+          // BTTS Sí garantiza MÍNIMO 2 goles (1 de cada equipo)
+          if (gDir === 'over' && gLine !== null) {
+            if (gLine <= 1.5) return 0;     // Over 0.5/1.5 están contenidos en BTTS Sí
+            if (gLine <= 2.5) return 0.20;  // Over 2.5 muy correlado: BTTS garantiza 2, se necesita 1 más
+            if (gLine <= 3.5) return 0.55;  // Over 3.5: correlado moderado
+            return 0.70;                    // Over 4.5+: correlación menor
+          }
+          if (gDir === 'under' && gLine !== null) {
+            if (gLine <= 2.5) return 0;     // Under 2.5 con BTTS Sí: solo pasa con exactamente 2 goles → absurdo combinar
+            if (gLine <= 3.5) return 0.30;  // Under 3.5: BTTS garantiza 2, se necesita que no haya 3º
+            return 0.55;                    // Under 4.5+: correlación moderada
+          }
+        }
+
+        if (bttsNo) {
+          // BTTS No significa máximo 1 equipo marca → partido de pocos goles
+          if (gDir === 'over' && gLine !== null) {
+            if (gLine <= 1.5) return 0.25;  // Over 0.5/1.5 posible aunque BTTS No (un equipo marca 2+)
+            return 0.40;                    // Over 2.5+: bastante correlado negativamente
+          }
+          if (gDir === 'under' && gLine !== null) {
+            if (gLine <= 1.5) return 0.20;  // Under 1.5 + BTTS No: ambos apuestan a partido sin goles o solo 1
+            if (gLine <= 2.5) return 0.30;  // Under 2.5 + BTTS No: correlados (pocos goles)
+            return 0.55;
+          }
+        }
+      }
+
+      // BTTS + BTTS del mismo segmento (ya bloqueado, pero por si acaso)
+      if (esBttsA && esBttsB) {
+        if (opA !== null && opB !== null && opA === opB) return 0;
+        return 0;
+      }
     }
 
-    if (esAsian(mA) && esAsian(mB)) {
-      const dA = a.dir || direccion(tA), dB = b.dir || direccion(tB);
-      const nA = a.line ?? valorNum(tA),  nB = b.line ?? valorNum(tB);
-      if (nA !== null && nB !== null && nA === nB && dA !== null && dB !== null) return 0;
-      if (dA === dB) return 0.7;
-      return 0.8;
+    /* ──────────────────────────────────────────────────────────────
+       BLOQUE 2: BTTS con 1X2 Resultado
+    ────────────────────────────────────────────────────────────── */
+    if ((bttsA && resB) || (bttsB && resA)) {
+      const bttsSi = bttsA ? opA === 'si' : opB === 'si';
+      const bttsNo = bttsA ? opA === 'no' : opB === 'no';
+      const tipoRes = (resA ? tA : tB);
+      const esEmpate = tipoRes.includes('empate');
+      const esLocal  = !esEmpate && (resA ? !tA.includes('visitante') : !tB.includes('visitante'));
+
+      if (bttsSi) {
+        if (esEmpate) return 0;   // Empate + BTTS Sí → para que haya empate CON goles, ambos deben marcar → redundante
+        return 0.40;              // Local/Visitante + BTTS Sí: correlados pero no idénticos
+      }
+      if (bttsNo) {
+        if (esEmpate) return 0.15; // Empate + BTTS No: solo pasa con 0-0 → casi el mismo evento
+        return 0.50;              // Local/visitante + BTTS No: partido con pocos goles
+      }
+      return 0.45;
     }
 
-    if ((esGoles(mA) && esAsian(mB)) || (esGoles(mB) && esAsian(mA))) return 0.7;
-    if (esAmbos(mA) && esAmbos(mB)) return 0.6;
-    if (esAmbos(mA) && esGoles(mB) && opcionSiNo(tA) === 'si') return 0.4;
-    if (esGoles(mA) && esAmbos(mB) && opcionSiNo(tB) === 'si') return 0.4;
-    if (esAmbos(mA) && esGoles(mB) && opcionSiNo(tA) === 'no') return 0.5;
-    if (esGoles(mA) && esAmbos(mB) && opcionSiNo(tB) === 'no') return 0.5;
-    if (esHTResult(mA) && esRes(mB)) return 0.6;
-    if (esHTResult(mB) && esRes(mA)) return 0.6;
-    if (esHTResult(mA) && esTotalHT(mB)) return 0.5;
-    if (esHTResult(mB) && esTotalHT(mA)) return 0.5;
-    if (esImpar(mA) && esGoles(mB)) return 0.5;
-    if (esImpar(mB) && esGoles(mA)) return 0.5;
-    if (esHTImpar(mA) && esTotalHT(mB)) return 0.5;
-    if (esHTImpar(mB) && esTotalHT(mA)) return 0.5;
-    if (esImpar(mA) && esImpar(mB)) return 0;
+    /* ──────────────────────────────────────────────────────────────
+       BLOQUE 3: Total goles encuentro con 1X2 Resultado
+    ────────────────────────────────────────────────────────────── */
+    if ((golA && resB) || (golB && resA)) {
+      const gDir  = golA ? dA : dB;
+      const gLine = golA ? nA : nB;
+      const tipoRes = resA ? tA : tB;
+      const esEmpate = tipoRes.includes('empate');
 
-    if (esTTHome(mA) && esTTHome(mB)) {
-      const dA = a.dir || direccion(tA), dB = b.dir || direccion(tB);
-      const nA = a.line ?? valorNum(tA),  nB = b.line ?? valorNum(tB);
-      if (nA !== null && nB !== null && nA === nB && dA !== dB) return 0;
-      if (dA === dB) return 0.7;
-      return 0.8;
+      if (gDir === 'over' && gLine !== null) {
+        if (esEmpate) {
+          // Empate + Over: empate con goles (1-1, 2-2) → correlados
+          if (gLine <= 1.5) return 0.35;
+          if (gLine <= 2.5) return 0.45;
+          return 0.60;
+        }
+        // Local/visitante + Over: partido abierto puede favorecer a cualquiera
+        if (gLine <= 1.5) return 0.60;
+        if (gLine <= 2.5) return 0.55;
+        return 0.65;
+      }
+      if (gDir === 'under' && gLine !== null) {
+        if (esEmpate) {
+          // Empate + Under: correlados fuertes (0-0 es under y empate)
+          if (gLine <= 1.5) return 0.25; // Empate + Under 1.5 → casi solo 0-0
+          if (gLine <= 2.5) return 0.35;
+          return 0.55;
+        }
+        // Victoria + Under pocos goles: un equipo gana por 1-0, etc
+        if (gLine <= 1.5) return 0.35;
+        if (gLine <= 2.5) return 0.50;
+        return 0.60;
+      }
+      return 0.55;
     }
-    if (esTTAway(mA) && esTTAway(mB)) {
-      const dA = a.dir || direccion(tA), dB = b.dir || direccion(tB);
-      const nA = a.line ?? valorNum(tA),  nB = b.line ?? valorNum(tB);
-      if (nA !== null && nB !== null && nA === nB && dA !== dB) return 0;
-      if (dA === dB) return 0.7;
-      return 0.8;
+
+    /* ──────────────────────────────────────────────────────────────
+       BLOQUE 4: Total goles entre sí (mismo mercado, mismo partido)
+    ────────────────────────────────────────────────────────────── */
+    if (golA && golB) {
+      if (dA === null || dB === null || nA === null || nB === null) return 0.65;
+
+      // Misma línea mismo sentido → ya manejado por clave (toggle)
+      if (nA === nB && dA === dB) return 0;
+
+      // Over A + Over B mismo mercado (diferentes líneas)
+      if (dA === 'over' && dB === 'over') {
+        const lineaAlta = Math.max(nA, nB);
+        const lineBaja  = Math.min(nA, nB);
+        // Over alta implica Over baja: Over 2.5 implica Over 1.5 → casi redundante
+        if (lineaAlta - lineBaja <= 1) return 0.10;
+        if (lineaAlta - lineBaja <= 2) return 0.35;
+        return 0.55;
+      }
+
+      // Under A + Under B mismo mercado (diferentes líneas)
+      if (dA === 'under' && dB === 'under') {
+        const lineBaja = Math.min(nA, nB);
+        const lineaAlta = Math.max(nA, nB);
+        // Under baja implica Under alta: Under 1.5 implica Under 2.5 → casi redundante
+        if (lineaAlta - lineBaja <= 1) return 0.10;
+        if (lineaAlta - lineBaja <= 2) return 0.35;
+        return 0.55;
+      }
+
+      // Over + Under diferentes líneas (no incompatibles, ya validado)
+      // Ej: Over 1.5 + Under 3.5 → hay margen (2-3 goles cumplen ambos)
+      const overLine  = dA === 'over'  ? nA : nB;
+      const underLine = dA === 'under' ? nA : nB;
+      const margen = underLine - overLine;
+      if (margen <= 1) return 0.25;
+      if (margen <= 2) return 0.50;
+      return 0.70;
     }
 
-    if ((esTTHome(mA) || esTTAway(mA)) && esGoles(mB)) return 0.6;
-    if (esGoles(mA) && (esTTHome(mB) || esTTAway(mB))) return 0.6;
-    if (esHTTHome(mA) && esHTTHome(mB)) return 0.7;
-    if (esHTTAway(mA) && esHTTAway(mB)) return 0.7;
-    if ((esCSHome(mA) || esCSAway(mA)) && esRes(mB)) return 0.5;
-    if ((esCSHome(mB) || esCSAway(mB)) && esRes(mA)) return 0.5;
-    if (esWinNil(mA) && (esCSHome(mB) || esCSAway(mB))) return 0.5;
-    if (esWinNil(mB) && (esCSHome(mA) || esCSAway(mA))) return 0.5;
-    if ((esFirst(mA) || esNext(mA)) && esRes(mB)) return 0.5;
-    if ((esFirst(mB) || esNext(mB)) && esRes(mA)) return 0.5;
-    if (esFirst(mA) && esNext(mB)) return 0.6;
-    if (esFirst(mB) && esNext(mA)) return 0.6;
-    if (esCorn(mA) && esCorn(mB)) return 0.6;
-    if (esCornHT(mA) && esCornHT(mB)) return 0.6;
-    if ((esCorn(mA) && esCornHT(mB)) || (esCorn(mB) && esCornHT(mA))) return 0.6;
-    if (esTarj(mA) && esTarj(mB)) return 0.6;
-    if ((esEH(mA) || esAH(mA)) && esRes(mB)) return 0.5;
-    if ((esEH(mB) || esAH(mB)) && esRes(mA)) return 0.5;
-    if (esSegunda(mA) && esRes(mB)) return 0.7;
-    if (esSegunda(mB) && esRes(mA)) return 0.7;
+    /* ──────────────────────────────────────────────────────────────
+       BLOQUE 5: Asian Totals (similar a totalgoles)
+    ────────────────────────────────────────────────────────────── */
+    if (asianA && asianB) {
+      if (dA === null || dB === null || nA === null || nB === null) return 0.65;
+      if (nA === nB && dA === dB) return 0;
+      if (dA === dB) {
+        const diff = Math.abs(nA - nB);
+        if (diff <= 1) return 0.10;
+        return 0.40;
+      }
+      const overLine  = dA === 'over'  ? nA : nB;
+      const underLine = dA === 'under' ? nA : nB;
+      const margen = underLine - overLine;
+      if (margen <= 1) return 0.25;
+      return 0.60;
+    }
 
+    if ((golA && asianB) || (golB && asianA)) return 0.65;
+
+    /* ──────────────────────────────────────────────────────────────
+       BLOQUE 6: Goles encuentro vs goles 1ª mitad
+       Son segmentos distintos pero correlados
+    ────────────────────────────────────────────────────────────── */
+    if ((golA && htGolB) || (golB && htGolA)) {
+      // Muchos goles en 1ª mitad correlaciona con muchos en el total
+      const gDirEnc = golA ? dA : dB;
+      const gDirHT  = golA ? dB : dA;
+      const gLineEnc = golA ? nA : nB;
+      const gLineHT  = golA ? nB : nA;
+
+      if (gDirEnc !== null && gDirHT !== null && gDirEnc === gDirHT) return 0.45;
+      return 0.55; // Sentidos opuestos en distintos segmentos: moderado
+    }
+
+    /* ──────────────────────────────────────────────────────────────
+       BLOQUE 7: Total goles vs TeamTotal (local o visitante)
+    ────────────────────────────────────────────────────────────── */
+    if ((golA && (ttHB || ttAB)) || (golB && (ttHA || ttAA))) {
+      const gDirEnc  = golA ? dA : dB;
+      const gDirTeam = golA ? dB : dA;
+      const gLineEnc  = golA ? nA : nB;
+      const gLineTeam = golA ? nB : nA;
+
+      if (gDirEnc !== null && gDirTeam !== null) {
+        if (gDirEnc === gDirTeam) {
+          // Over total + Over equipo: si un equipo marca mucho, el total sube
+          if (gDirEnc === 'over' && gLineTeam !== null && gLineEnc !== null) {
+            // Over total 2.5 + Over local 1.5: el local metiendo 2 ya casi cumple el total
+            if (gLineTeam >= gLineEnc * 0.7) return 0.30;
+            return 0.50;
+          }
+          return 0.45;
+        }
+        return 0.60; // Sentidos opuestos
+      }
+      return 0.55;
+    }
+
+    /* ──────────────────────────────────────────────────────────────
+       BLOQUE 8: TeamTotal local vs TeamTotal visitante
+    ────────────────────────────────────────────────────────────── */
+    if ((ttHA && ttAB) || (ttAA && ttHB)) {
+      // Son equipos distintos: bastante independientes, correlación solo por "partido abierto"
+      if (dA !== null && dB !== null) {
+        if (dA === dB) return 0.70; // Ambos Over o ambos Under: partido abierto/cerrado
+        return 0.80;                // Sentidos opuestos: bastante independientes
+      }
+      return 0.70;
+    }
+
+    // TeamTotal local + TeamTotal local (diferentes líneas)
+    if (ttHA && ttHB) {
+      if (dA === null || dB === null || nA === null || nB === null) return 0.65;
+      if (nA === nB && dA !== dB) return 0;
+      if (dA === dB) {
+        const diff = Math.abs(nA - nB);
+        if (diff <= 1) return 0.10;
+        return 0.40;
+      }
+      return 0.70;
+    }
+
+    // TeamTotal visitante + TeamTotal visitante (diferentes líneas)
+    if (ttAA && ttAB) {
+      if (dA === null || dB === null || nA === null || nB === null) return 0.65;
+      if (nA === nB && dA !== dB) return 0;
+      if (dA === dB) {
+        const diff = Math.abs(nA - nB);
+        if (diff <= 1) return 0.10;
+        return 0.40;
+      }
+      return 0.70;
+    }
+
+    /* ──────────────────────────────────────────────────────────────
+       BLOQUE 9: HT Total Goles entre sí
+    ────────────────────────────────────────────────────────────── */
+    if (esHTTHome(mA) && esHTTHome(mB)) return 0.65;
+    if (esHTTAway(mA) && esHTTAway(mB)) return 0.65;
+
+    /* ──────────────────────────────────────────────────────────────
+       BLOQUE 10: 1X2 resultado con otros mercados
+    ────────────────────────────────────────────────────────────── */
+    // 1X2 + Doble oportunidad: incompatibles (ya manejado arriba)
+
+    // 1X2 + resultado HT
+    if ((resA && htB) || (htA && resB)) {
+      // El resultado final y el de la primera mitad están correlados
+      // Un equipo que gana la primera tiene más probabilidades de ganar el partido
+      return 0.55;
+    }
+
+    // 1X2 + resultado 2ª mitad
+    if ((resA && h2B) || (h2A && resB)) return 0.60;
+
+    // 1X2 + DNB: incompatible (ya bloqueado)
+
+    // 1X2 + Win to Nil: incompatible (ya bloqueado)
+
+    // 1X2 + CleanSheet
+    if ((resA && (csHB || csAB)) || ((csHA || csAA) && resB)) {
+      // Local gana + portería a cero local: victoria sin encajar (correlados)
+      // Visitante gana + portería a cero visitante: ídem
+      return 0.45;
+    }
+
+    // 1X2 + FirstScore / NextGoal
+    if ((resA && (firstB || nextB)) || ((firstA || nextA) && resB)) return 0.50;
+
+    // 1X2 + Handicap europeo
+    if ((resA && ehB) || (ehA && resB)) return 0.50;
+    if ((resA && ahB) || (ahA && resB)) return 0.50;
+
+    // 1X2 local/visitante + Asian Handicap mismo equipo: correlados
+    if ((resA && asianB) || (asianA && resB)) return 0.55;
+
+    /* ──────────────────────────────────────────────────────────────
+       BLOQUE 11: DNB con mercados de goles
+    ────────────────────────────────────────────────────────────── */
+    if ((dnbA && golB) || (golA && dnbB)) {
+      const gDir  = golA ? dA : dB;
+      const gLine = golA ? nA : nB;
+      // DNB + Over: si hay goles suficientes para distinguir ganador, correlados
+      if (gDir === 'over' && gLine !== null) {
+        if (gLine <= 0.5) return 0.40;
+        if (gLine <= 1.5) return 0.45;
+        return 0.55;
+      }
+      // DNB + Under: pocos goles → partido sin goles → DNB devuelve si empate (0-0) → correlados
+      if (gDir === 'under' && gLine !== null) {
+        if (gLine <= 1.5) return 0.25;
+        return 0.45;
+      }
+      return 0.50;
+    }
+
+    if ((dnbA && htB) || (htA && dnbB)) return 0.65;
+
+    /* ──────────────────────────────────────────────────────────────
+       BLOQUE 12: Resultado HT con Total Goles HT
+    ────────────────────────────────────────────────────────────── */
+    if ((htA && htGolB) || (htGolA && htB)) return 0.45;
+
+    /* ──────────────────────────────────────────────────────────────
+       BLOQUE 13: Impar/Par con Goles
+       El resultado impar/par está muy correlado con los totales
+    ────────────────────────────────────────────────────────────── */
+    if ((imparA && golB) || (golA && imparB)) {
+      const tipoImpar = imparA ? tA : tB;
+      const gDir  = golA ? dA : dB;
+      const gLine = golA ? nA : nB;
+
+      if (tipoImpar.includes('impar')) {
+        // Impar goles + Over: goles impares (1,3,5...) → correlado con over si la línea es par
+        if (gDir === 'over' && gLine !== null) {
+          if (gLine <= 1.5) return 0.35; // Over 1.5 + Impar: solo 1 gol o 3+ → cierta correlación
+          return 0.50;
+        }
+        return 0.50;
+      }
+      // Par goles
+      if (gDir === 'under' && gLine !== null) {
+        if (gLine <= 2.5) return 0.35; // Par + Under 2.5: solo 0 o 2 goles → correlados
+        return 0.50;
+      }
+      return 0.50;
+    }
+
+    if ((htImA && htGolB) || (htGolA && htImB)) return 0.45;
+    if (imparA && imparB) return 0; // Impar + Par del mismo segmento → incompatible (ya manejado)
+    if (htImA && htImB)   return 0;
+
+    /* ──────────────────────────────────────────────────────────────
+       BLOQUE 14: CleanSheet y WinNil
+    ────────────────────────────────────────────────────────────── */
+    // WinNil implica CleanSheet del mismo equipo → factor 0
+    if (wnA && csHB && tA.includes('home')) return 0;
+    if (wnA && csAB && tA.includes('away')) return 0;
+    if (wnB && csHA && tB.includes('home')) return 0;
+    if (wnB && csAA && tB.includes('away')) return 0;
+
+    // WinNil + CleanSheet equipo contrario: independientes
+    if ((wnA && (csHB || csAB)) || ((csHA || csAA) && wnB)) return 0.60;
+
+    // CleanSheet home + CleanSheet away: imposible que ambos tengan portería a cero con resultado
+    // (si local tiene portería a cero Y visitante tiene portería a cero → 0-0, pero eso
+    //  requiere que ambos no encajen, lo que implica 0-0 → prácticamente el mismo evento)
+    if ((csHA && csAB) || (csAA && csHB)) {
+      if ((opA === 'si' || tA.includes('yes')) && (opB === 'si' || tB.includes('yes'))) return 0.10;
+      return 0.50;
+    }
+
+    // CleanSheet + Total Goles: si portería a cero local Sí → visitante no marca
+    if ((csHA || csAA) && golB) {
+      const esCS_Si = csHA ? tA.includes('yes') : tA.includes('yes');
+      const gDir  = dB;
+      const gLine = nB;
+      if (esCS_Si && gDir === 'under' && gLine !== null) {
+        // CleanSheet Sí + Under X: el equipo que tiene portería a cero no encaja → menos goles
+        return 0.35;
+      }
+      if (esCS_Si && gDir === 'over' && gLine !== null && gLine <= 1.5) {
+        return 0.40; // Portería a cero + Over 1.5: el otro equipo debe meter al menos 2
+      }
+      return 0.55;
+    }
+    if (golA && (csHB || csAB)) {
+      const esCS_Si = csHB ? tB.includes('yes') : tB.includes('yes');
+      const gDir  = dA;
+      const gLine = nA;
+      if (esCS_Si && gDir === 'under' && gLine !== null) return 0.35;
+      if (esCS_Si && gDir === 'over'  && gLine !== null && gLine <= 1.5) return 0.40;
+      return 0.55;
+    }
+
+    /* ──────────────────────────────────────────────────────────────
+       BLOQUE 15: FirstScore / NextGoal
+    ────────────────────────────────────────────────────────────── */
+    if (firstA && nextB) return 0.55;
+    if (firstB && nextA) return 0.55;
+
+    // FirstScore/NextGoal "sin goles" + Under: correlados
+    if ((firstA || nextA) && golB) {
+      const esSinGol = tA.includes('none') || tA.includes('sin');
+      const gDir  = dB;
+      const gLine = nB;
+      if (esSinGol && gDir === 'under' && gLine !== null && gLine <= 1.5) return 0.15;
+      if (esSinGol && gDir === 'over') return 0.20;
+      return 0.55;
+    }
+    if ((firstB || nextB) && golA) {
+      const esSinGol = tB.includes('none') || tB.includes('sin');
+      const gDir  = dA;
+      const gLine = nA;
+      if (esSinGol && gDir === 'under' && gLine !== null && gLine <= 1.5) return 0.15;
+      if (esSinGol && gDir === 'over') return 0.20;
+      return 0.55;
+    }
+
+    // FirstScore/NextGoal con resultado
+    if ((firstA || nextA) && resB) return 0.50;
+    if ((firstB || nextB) && resA) return 0.50;
+
+    /* ──────────────────────────────────────────────────────────────
+       BLOQUE 16: Córners
+       Los córners son bastante independientes de los goles/resultado
+       salvo correlación general "partido activo"
+    ────────────────────────────────────────────────────────────── */
+    if (cornA && cornB) {
+      // Mismo mercado misma línea mismo sentido → ya manejado por clave
+      if (dA === dB && nA !== null && nB !== null) {
+        const diff = Math.abs(nA - nB);
+        if (diff <= 1) return 0.20;
+        return 0.55;
+      }
+      return 0.65;
+    }
+    if (cornHTA && cornHTB) {
+      if (dA === dB && nA !== null && nB !== null) {
+        const diff = Math.abs(nA - nB);
+        if (diff <= 1) return 0.20;
+        return 0.55;
+      }
+      return 0.65;
+    }
+    // Córners encuentro + Córners 1ª mitad: correlados (la primera pone la base)
+    if ((cornA && cornHTB) || (cornHTA && cornB)) return 0.55;
+
+    // Córners + Resultado: prácticamente independientes (equipo dominante tiene más córners Y gana)
+    if ((cornA || cornHTA) && resB) return 0.80;
+    if (resA && (cornB || cornHTB)) return 0.80;
+
+    /* ──────────────────────────────────────────────────────────────
+       BLOQUE 17: Tarjetas
+       Las tarjetas son bastante independientes del marcador salvo
+       correlación con "partido disputado/tenso"
+    ────────────────────────────────────────────────────────────── */
+    if (tarjA && tarjB) {
+      if (dA === dB && nA !== null && nB !== null) {
+        const diff = Math.abs(nA - nB);
+        if (diff <= 1) return 0.20;
+        return 0.55;
+      }
+      return 0.65;
+    }
+    // Tarjetas + cualquier otro mercado de goles/resultado: bastante independiente
+    if (tarjA || tarjB) return 0.85;
+
+    /* ──────────────────────────────────────────────────────────────
+       BLOQUE 18: Hándicaps
+    ────────────────────────────────────────────────────────────── */
+    if ((ehA || ahA) && (ehB || ahB)) return 0.50;
+
+    // EH/AH + goles: equipo con ventaja tiende a mantener resultado cerrado
+    if ((ehA && golB) || (golA && ehB)) return 0.55;
+    if ((ahA && golB) || (golA && ahB)) return 0.55;
+
+    // AH mismo partido mismo equipo líneas distintas
+    if (ahA && ahB) {
+      // Si las líneas son muy cercanas → correlados
+      if (nA !== null && nB !== null) {
+        const diff = Math.abs(nA - nB);
+        if (diff <= 0.5) return 0.15;
+        return 0.45;
+      }
+      return 0.45;
+    }
+
+    /* ──────────────────────────────────────────────────────────────
+       BLOQUE 19: Resultado HT/2H entre sí y con goles HT
+    ────────────────────────────────────────────────────────────── */
+    if (htA && h2B) return 0.65; // Primera y segunda mitad: cierta correlación de forma
+    if (h2A && htB) return 0.65;
+    if (htA && htB) return 0;    // Mismo mercado → claveExclusion maneja, pero por si acaso
+
+    // Doble oportunidad + BTTS
+    if ((dcA && bttsB) || (bttsA && dcB)) {
+      const bttsSi = bttsA ? opA === 'si' : opB === 'si';
+      if (bttsSi) return 0.40;
+      return 0.55;
+    }
+
+    // Doble oportunidad + Goles
+    if ((dcA && golB) || (golA && dcB)) {
+      const gDir  = golA ? dA : dB;
+      const gLine = golA ? nA : nB;
+      if (gDir === 'over' && gLine !== null && gLine <= 1.5) return 0.45;
+      return 0.55;
+    }
+
+    // Doble oportunidad + HT result
+    if ((dcA && htB) || (htA && dcB)) return 0.55;
+
+    /* ──────────────────────────────────────────────────────────────
+       BLOQUE 20: Segmentos completamente distintos (primera ↔ encuentro)
+       Mercados de 1ª mitad vs mercados de encuentro completo
+       son más independientes que dos del mismo segmento
+    ────────────────────────────────────────────────────────────── */
+    const segA = segmento(tA);
+    const segB = segmento(tB);
+    if (segA !== segB && segA !== 'encuentro' && segB !== 'encuentro') {
+      // Primera mitad vs segunda mitad: correlación baja-moderada
+      return 0.75;
+    }
+
+    // ── FALLBACK: mercados sin correlación conocida → independientes ──
     return 1;
   }
 
@@ -551,7 +1017,6 @@
     const cStr  = (cuota || '').toString().trim();
     const clave = claveExclusion(mNorm, tipo);
 
-    // Bloqueo: partido ya comenzado o terminado
     if (pid) {
       const noApostable = await partidoNoApostable(pid);
       if (noApostable) {
@@ -564,11 +1029,9 @@
     if (line != null) betNuevo.line = line;
     if (dir  != null) betNuevo.dir  = dir;
 
-    // Validar restricción DNB
     const dnbCheck = validarDNBEnCarrito(betNuevo, bets);
     if (!dnbCheck.ok) { toast(`🚫 ${dnbCheck.motivo}`, 'error'); return; }
 
-    // v4.3: Resolver conflictos de totales (over/over o under/under del mismo mercado)
     const conflicto = resolverConflictoGoles(betNuevo, bets);
 
     if (conflicto.accion === 'reemplazar') {
@@ -597,7 +1060,6 @@
       return;
     }
 
-    // Validar incompatibilidades con selecciones del mismo partido
     const delMismoPartido = bets.filter(b =>
       (b.partidoId || '').toString().trim() === pid && pid !== ''
     );
@@ -620,7 +1082,6 @@
       return;
     }
 
-    // Toggle: si ya está exactamente la misma selección, eliminarla
     const idx = bets.findIndex(b =>
       (b.partidoId || '').toString().trim() === pid &&
       claveExclusion(normM(b.mercado), b.tipo) === clave
@@ -712,9 +1173,10 @@
       for (let i = 0; i < grupo.length; i++) {
         for (let j = i + 1; j < grupo.length; j++) {
           const f = factorCorrelacion(grupo[i], grupo[j]);
-          if (f === 0)       avisos.push('⚠ Selecciones incompatibles detectadas');
-          else if (f <= 0.4) avisos.push('↘ Correlación fuerte: cuota reducida significativamente');
-          else if (f <= 0.6) avisos.push('↘ Correlación moderada: cuota reducida');
+          if (f === 0)       avisos.push('⚠ Selecciones redundantes: una incluye a la otra');
+          else if (f <= 0.25) avisos.push('↘ Correlación muy fuerte: cuota reducida considerablemente');
+          else if (f <= 0.50) avisos.push('↘ Correlación fuerte: cuota reducida significativamente');
+          else if (f <= 0.70) avisos.push('↘ Correlación moderada: cuota reducida');
         }
       }
       const avisosHTML = [...new Set(avisos)].map(a =>
@@ -724,9 +1186,10 @@
       const cuotaGrupo = calcularCuotaCombinada(grupo);
       const subItems   = grupo.map(({ tipo, cuota, mercado, _idx }) => {
         const factor = infoCorrelacion(bets, _idx);
-        const badge  = factor === 0  ? `<span class="bs-corr-badge bs-corr-incompatible">⚠ Absorbida</span>`
-                     : factor <= 0.4 ? `<span class="bs-corr-badge bs-corr-reducida">↘ Muy correlada</span>`
-                     : factor <= 0.6 ? `<span class="bs-corr-badge bs-corr-reducida">↘ Correlada</span>`
+        const badge  = factor === 0   ? `<span class="bs-corr-badge bs-corr-incompatible">⚠ Absorbida</span>`
+                     : factor <= 0.25 ? `<span class="bs-corr-badge bs-corr-reducida">↘ Muy correlada</span>`
+                     : factor <= 0.50 ? `<span class="bs-corr-badge bs-corr-reducida">↘ Fuerte correlación</span>`
+                     : factor <= 0.70 ? `<span class="bs-corr-badge bs-corr-reducida">↘ Correlada</span>`
                      : '';
         return `<li class="bs-item bs-item-sub">
           <div class="bs-top">

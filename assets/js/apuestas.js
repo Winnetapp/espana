@@ -639,20 +639,42 @@ function buildBetRow(b, apuesta) {
 
   let indicatorClass = '';
 
-  if (b.resultado === 'ganada') {
+  // 1. Prioridad: detalleResultados del worker (fuente más fiable)
+  const detalleResultados = apuesta.detalleResultados || [];
+  const detalleMatch = detalleResultados.find(d =>
+    (d.tipo    || '') === (b.tipo    || '') &&
+    (d.mercado || '') === (b.mercado || '')
+  );
+  const detalleRes = detalleMatch?.resultado ?? null;
+
+  if (detalleRes === 'ganada') {
+    indicatorClass = 'ganada';
+  } else if (detalleRes === 'perdida') {
+    indicatorClass = 'perdida';
+  } else if (detalleRes === 'devuelta') {
+    indicatorClass = 'devuelta';
+
+  // 2. Campo resultado individual en el bet (legado)
+  } else if (b.resultado === 'ganada') {
     indicatorClass = 'ganada';
   } else if (b.resultado === 'perdida') {
     indicatorClass = 'perdida';
   } else if (b.resultado === 'devuelta') {
     indicatorClass = 'devuelta';
+
+  // 3. Partido en vivo
   } else if (enVivo) {
     indicatorClass = 'en-curso';
+
+  // 4. Partido terminado → calcular en cliente
   } else if (terminado) {
     const res = calcularResultadoBet(b, partidoData);
     if      (res === 'ganada')   indicatorClass = 'ganada';
     else if (res === 'perdida')  indicatorClass = 'perdida';
     else if (res === 'devuelta') indicatorClass = 'devuelta';
     else                         indicatorClass = 'en-curso';
+
+  // 5. Apuesta resuelta pero partido no en caché → usar estado de apuesta (solo simple)
   } else if (apuesta.estado !== 'pendiente') {
     if ((apuesta.bets || []).length === 1) {
       if (apuesta.estado === 'ganada')   indicatorClass = 'ganada';

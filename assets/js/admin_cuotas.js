@@ -423,7 +423,7 @@ export async function actualizar_cuotas_apifootball(db, onProgress) {
 // ═══════════════════════════════════════════════════════════════
 
 const WORKER_URL   = "https://winnet-proxy.winnetaplicacion.workers.dev";
-const ADMIN_SECRET = "Winnet2026"; // mismo valor que env.ADMIN_SECRET en el worker
+const ADMIN_SECRET = "winnet2026"; // mismo valor que env.ADMIN_SECRET en el worker
 
 export async function actualizar_cuotas_extras(db, onProgress) {
   const log = (tipo, msg) => onProgress?.(tipo, msg);
