@@ -591,14 +591,14 @@ function calcularResultadoBet(b, p) {
 
   /* ── Hándicap europeo ── */
   if (mercado === 'ehresult') {
-    const ehHdp = p.cuotas?.ehHdp ?? 1;
-    const glAdj = gl + ehHdp;
-    const resEH = glAdj > gv ? 'local' : gv > glAdj ? 'visitante' : 'empate';
-    const t = normStr(tipo.replace(/^EH:\s*/i, '').replace(/[+-]?\d+\s*/g, '').trim());
-    if (t === 'empate' || t === 'x') return resEH === 'empate'    ? 'ganada' : 'perdida';
-    if (t === local    || t === '1') return resEH === 'local'     ? 'ganada' : 'perdida';
-    if (t === visitante|| t === '2') return resEH === 'visitante' ? 'ganada' : 'perdida';
-    return null;
+    // [FIX v2.1] Leer línea desde bet.line (mercados.js v4.2) o extraerla del tipo
+    const hcp   = b.line ?? parseFloat((tipo.match(/EH:\s*([+-]?\d+(?:\.\d+)?)/) || [])[1] ?? '0');
+    const glAdj = gl + hcp;
+    const diff  = glAdj - gv;
+    const t = normStr(tipo.replace(/^EH:\s*/i, '').replace(/[+-]?\d+(?:\.\d+)?\s*/g, '').trim());
+    if (diff === 0) return (t === 'empate' || t === 'x') ? 'ganada' : 'devuelta';
+    if (diff > 0)   return (t === 'empate' || t === 'x') ? 'perdida' : t === local     ? 'ganada' : 'perdida';
+    /* diff < 0 */  return (t === 'empate' || t === 'x') ? 'perdida' : t === visitante ? 'ganada' : 'perdida';
   }
 
   /* ── Asian Handicap ── */

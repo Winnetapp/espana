@@ -1,28 +1,22 @@
 /* =============================================================
-   mercados.js  —  v4.1
+   mercados.js  —  v4.2
    Renderiza todos los mercados de apuestas.
+
+   CAMBIOS v4.2:
+   · Bloque Hándicap europeo (#13): ahora lee claves dinámicas
+     ehHome{hdp}, ehDraw{hdp}, ehAway{hdp} (generadas por el
+     worker con hdpKey). Antes buscaba c.ehHome plano y nunca
+     encontraba datos.
+   · Render genérico de opciones: añadido data-line a todos los
+     botones para que el worker pueda leer la línea en EH y AH.
+   · Opciones AH: añadida propiedad `line` al objeto opción.
 
    CAMBIOS v4.1:
    · Tabla de goles: columna "Línea" ahora muestra "2.5 goles"
      en lugar de "+2.5".
 
    CAMBIOS v4.0:
-   · Bloque GOLES completamente rediseñado al estilo Bet365:
-     – Dos selects independientes: "Período" (Encuentro / 1ª Mitad)
-       y "Equipo" (Ambos equipos / Local / Visitante).
-     – Cada select solo se muestra si hay más de una opción.
-     – Tabla con filas de líneas (+0.5, +1.5, +2.5 …) y dos
-       columnas "Más de" / "Menos de".
-     – Los botones muestran solo la cuota; la línea va en la fila.
-
-   CAMBIOS v3.4:
-   · _renderLineasGU: data-tipo legible + data-line + data-dir.
-
-   CAMBIOS v3.3:
-   · _leerOUraw: filtro revertido a original (line > 0).
-
-   CAMBIOS v3.1:
-   · Mercados de goles unificados en bloque con selector.
+   · Bloque GOLES completamente rediseñado al estilo Bet365.
    ============================================================= */
 
 window.toggleMercado = function(id) {
@@ -69,8 +63,8 @@ function leerLineasOU(c, prefOver, prefUnder, mercadoId, labelOver, labelUnder) 
   for (const raw of sorted) {
     const line = parseLineKey(raw);
     if (line === null || line <= 0) continue;
-    if (c[prefOver  + raw] != null) opts.push({ label: labelOver(line),  cuota: c[prefOver  + raw], tipo: labelOver(line),  mercado: mercadoId });
-    if (c[prefUnder + raw] != null) opts.push({ label: labelUnder(line), cuota: c[prefUnder + raw], tipo: labelUnder(line), mercado: mercadoId });
+    if (c[prefOver  + raw] != null) opts.push({ label: labelOver(line),  cuota: c[prefOver  + raw], tipo: labelOver(line),  mercado: mercadoId, line });
+    if (c[prefUnder + raw] != null) opts.push({ label: labelUnder(line), cuota: c[prefUnder + raw], tipo: labelUnder(line), mercado: mercadoId, line });
   }
   return opts;
 }
@@ -94,7 +88,6 @@ function leerLineasOU(c, prefOver, prefUnder, mercadoId, labelOver, labelUnder) 
 
 /* Config de todas las combinaciones */
 const _GU_CONFIG = {
-  // [periodoId, equipoId] → prefijos y mercado Firestore
   'encuentro_ambos':     { prefO: 'over',         prefU: 'under',         mercado: 'totalgoles'    },
   'encuentro_local':     { prefO: 'ttHomeOver',   prefU: 'ttHomeUnder',   mercado: 'teamtotalhome' },
   'encuentro_visitante': { prefO: 'ttAwayOver',   prefU: 'ttAwayUnder',   mercado: 'teamtotalaway' },
@@ -150,7 +143,6 @@ function _analizarDisponibilidad(c) {
   if (tienePrimeraAmbos || tienePrimeraLocal || tienePrimeraVisitante)
     periodos.push('primera');
 
-  // Equipos disponibles para el primer período con datos
   const periodoRef = periodos[0] || 'encuentro';
   const tieneAmbos     = _leerLineasGU(`${periodoRef}_ambos`, c).length > 0;
   const tieneLocal     = _leerLineasGU(`${periodoRef}_local`, c).length > 0;
@@ -249,16 +241,14 @@ function _buildBloqueGoles(p, c, terminado) {
   const { periodos, equipos } = _analizarDisponibilidad(c);
   if (!periodos.length) return null;
 
-  // Estado inicial
   const periodoInicial = periodos[0];
   const equipoInicial  = equipos[0] || 'ambos';
   const comboInicial   = `${periodoInicial}_${equipoInicial}`;
 
-  const lineasIni   = _leerLineasGU(comboInicial, c);
-  const mercadoIni  = _GU_CONFIG[comboInicial]?.mercado || 'totalgoles';
+  const lineasIni    = _leerLineasGU(comboInicial, c);
+  const mercadoIni   = _GU_CONFIG[comboInicial]?.mercado || 'totalgoles';
   const ganadoresIni = terminado ? _ganadoresGU(comboInicial, p, c) : new Set();
 
-  /* Selects — solo se muestran si hay más de 1 opción */
   const labelPeriodo = { encuentro: 'Encuentro', primera: '1ª Mitad' };
   const labelEquipo  = { ambos: 'Ambos equipos', local: p.local, visitante: p.visitante };
 
@@ -271,7 +261,6 @@ function _buildBloqueGoles(p, c, terminado) {
        </div>`
     : `<div class="gu-select-single">${labelPeriodo[periodoInicial]}</div>`;
 
-  /* Para el select equipo, recalcular disponibilidad del período inicial */
   const equiposParaPeriodo = ['ambos','local','visitante'].filter(eq =>
     _leerLineasGU(`${periodoInicial}_${eq}`, c).length > 0
   );
@@ -308,30 +297,26 @@ window._switchGolesTab = function() {
   const periodo = selPeriodo?.value || 'encuentro';
   let   equipo  = selEquipo?.value  || 'ambos';
 
-  /* Al cambiar período, actualizar opciones del select equipo */
   if (selEquipo) {
     const equiposDisp = ['ambos','local','visitante'].filter(eq =>
       _leerLineasGU(`${periodo}_${eq}`, c).length > 0
     );
 
-    // Reconstruir opciones
     const labelEquipo = { ambos: 'Ambos equipos', local: p.local, visitante: p.visitante };
     selEquipo.innerHTML = equiposDisp
       .map(id => `<option value="${id}">${labelEquipo[id]}</option>`)
       .join('');
 
-    // Si el equipo anterior no existe en nuevo período, usar el primero
     if (!equiposDisp.includes(equipo)) equipo = equiposDisp[0] || 'ambos';
     selEquipo.value = equipo;
 
-    // Ocultar/mostrar el wrap del select equipo si solo hay 1 opción
     const wrapEquipo = selEquipo.closest('.gu-select-wrap');
     if (wrapEquipo) wrapEquipo.style.display = equiposDisp.length > 1 ? '' : 'none';
   }
 
-  const comboId  = `${periodo}_${equipo}`;
-  const lineas   = _leerLineasGU(comboId, c);
-  const mercado  = _GU_CONFIG[comboId]?.mercado || 'totalgoles';
+  const comboId   = `${periodo}_${equipo}`;
+  const lineas    = _leerLineasGU(comboId, c);
+  const mercado   = _GU_CONFIG[comboId]?.mercado || 'totalgoles';
   const ganadores = terminado ? _ganadoresGU(comboId, p, c) : new Set();
 
   const wrap = document.getElementById('gu-tabla-wrap');
@@ -433,6 +418,25 @@ function obtenerGanadores(mercadoId, p, c) {
       if (gl === null || gv === null) break;
       if (gl > gv && gv === 0) g.add('winNilHome');
       if (gv > gl && gl === 0) g.add('winNilAway');
+      break;
+    }
+    case 'ehResult': {
+      // Ganador con hándicap europeo — marcar la opción correcta según línea apostada
+      // Se resuelve en calcularResultadoBet, aquí solo marcamos la opción ganadora
+      // usando la misma lógica que el worker
+      if (gl === null || gv === null) break;
+      for (const key of Object.keys(c)) {
+        if (!key.startsWith('ehHome') && !key.startsWith('ehDraw') && !key.startsWith('ehAway')) continue;
+        const prefix = key.startsWith('ehHome') ? 'ehHome' : key.startsWith('ehDraw') ? 'ehDraw' : 'ehAway';
+        const raw  = key.slice(prefix.length);
+        const hcp  = parseLineKey(raw);
+        if (hcp === null) continue;
+        const glAdj = gl + hcp;
+        const diff  = glAdj - gv;
+        if (diff > 0  && prefix === 'ehHome') g.add(key);
+        if (diff === 0 && prefix === 'ehDraw') g.add(key);
+        if (diff < 0  && prefix === 'ehAway') g.add(key);
+      }
       break;
     }
   }
@@ -613,27 +617,67 @@ window.renderMercados = function(p) {
     if (key.startsWith('ahHome') || key.startsWith('ahAway')) ahLineas.add(key.slice(6));
   }
   const ahOpts = [];
-  for (const raw of [...ahLineas].sort()) {
+  for (const raw of [...ahLineas].sort((a, b) => parseLineKey(a) - parseLineKey(b))) {
     const line = parseLineKey(raw);
-    if (c[`ahHome${raw}`] != null) ahOpts.push({ label: `${p.local} (${line > 0 ? '+' : ''}${line})`,     cuota: c[`ahHome${raw}`], tipo: `AH: ${line > 0 ? '+' : ''}${line} ${p.local}`,     mercado: 'asianHandicap' });
-    if (c[`ahAway${raw}`] != null) ahOpts.push({ label: `${p.visitante} (${line > 0 ? '+' : ''}${line})`, cuota: c[`ahAway${raw}`], tipo: `AH: ${line > 0 ? '+' : ''}${line} ${p.visitante}`, mercado: 'asianHandicap' });
+    if (line === null) continue;
+    const sign = line >= 0 ? '+' : '';
+    if (c[`ahHome${raw}`] != null) ahOpts.push({
+      label:   `${p.local} (${sign}${line})`,
+      cuota:   c[`ahHome${raw}`],
+      tipo:    `AH: ${sign}${line} ${p.local}`,
+      mercado: 'asianHandicap',
+      line,
+    });
+    if (c[`ahAway${raw}`] != null) ahOpts.push({
+      label:   `${p.visitante} (${sign}${line})`,
+      cuota:   c[`ahAway${raw}`],
+      tipo:    `AH: ${sign}${line} ${p.visitante}`,
+      mercado: 'asianHandicap',
+      line,
+    });
   }
   if (ahOpts.length) {
     mercados.push({ id: 'asianHandicap', titulo: '⚖️ Hándicap asiático', cols: 2, opciones: ahOpts, collapsed: true });
   }
 
   /* ── 13. Hándicap europeo ────────────────────────────────── */
-  if (c.ehHome != null || c.ehDraw != null || c.ehAway != null) {
-    const ehHdp = c.ehHdp ?? 1;
-    const ehSign = ehHdp >= 0 ? '+' : '';
-    mercados.push({
-      id: 'ehResult', titulo: '⚖️ Hándicap europeo', cols: 3,
-      opciones: [
-        { label: p.local,     cuota: c.ehHome, tipo: `EH: ${ehSign}${ehHdp} ${p.local}`,  mercado: 'ehResult' },
-        { label: 'Empate',    cuota: c.ehDraw, tipo: `EH: ${ehSign}${ehHdp} Empate`,       mercado: 'ehResult' },
-        { label: p.visitante, cuota: c.ehAway, tipo: `EH: -${ehHdp} ${p.visitante}`,       mercado: 'ehResult' },
-      ], collapsed: true,
+  // [FIX v4.2] Lee claves dinámicas ehHome{hdp}, ehDraw{hdp}, ehAway{hdp}
+  // El worker las genera con hdpKey(): ej. ehHome-1 → raw "m1", ehDraw0 → raw "0", ehAway2 → raw "2"
+  const ehLineas = new Set();
+  for (const key of Object.keys(c)) {
+    if (key.startsWith('ehHome')) ehLineas.add(key.slice(6));
+    else if (key.startsWith('ehDraw')) ehLineas.add(key.slice(6));
+    else if (key.startsWith('ehAway')) ehLineas.add(key.slice(6));
+  }
+  const ehOpts = [];
+  for (const raw of [...ehLineas].sort((a, b) => parseLineKey(a) - parseLineKey(b))) {
+    const line = parseLineKey(raw);
+    if (line === null) continue;
+    const sign = line >= 0 ? '+' : '';
+    if (c[`ehHome${raw}`] != null) ehOpts.push({
+      label:   `${p.local} (${sign}${line})`,
+      cuota:   c[`ehHome${raw}`],
+      tipo:    `EH: ${sign}${line} ${p.local}`,
+      mercado: 'ehresult',
+      line,
     });
+    if (c[`ehDraw${raw}`] != null) ehOpts.push({
+      label:   `Empate (${sign}${line})`,
+      cuota:   c[`ehDraw${raw}`],
+      tipo:    `EH: ${sign}${line} Empate`,
+      mercado: 'ehresult',
+      line,
+    });
+    if (c[`ehAway${raw}`] != null) ehOpts.push({
+      label:   `${p.visitante} (-${Math.abs(line)})`,
+      cuota:   c[`ehAway${raw}`],
+      tipo:    `EH: -${Math.abs(line)} ${p.visitante}`,
+      mercado: 'ehresult',
+      line,
+    });
+  }
+  if (ehOpts.length) {
+    mercados.push({ id: 'ehResult', titulo: '⚖️ Hándicap europeo', cols: 3, opciones: ehOpts, collapsed: true });
   }
 
   /* ── 14. Portería a cero — Local ─────────────────────────── */
@@ -769,6 +813,7 @@ window.renderMercados = function(p) {
                         data-tipo="${o.tipo}"
                         data-cuota="${tieneValor ? o.cuota : '-'}"
                         data-mercado="${o.mercado}"
+                        data-line="${o.line != null ? o.line : ''}"
                         onclick="handleOpcion(this)"
                         ${terminado ? 'title="Partido finalizado"' : ''}>
                   <span class="opcion-label">${o.label}</span>
