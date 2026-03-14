@@ -75,7 +75,7 @@ async function cargarPerfilPublico(uid) {
     const inicial  = username.charAt(0).toUpperCase();
 
     /* ── Racha ── */
-    const racha      = ud.rachaActual || 0;
+    const racha = ud.rachaDiasTotales || ud.rachaActual || 0;
     const rachaFuego = ud.rachaFuego  || false;
 
     /* 2. Apuestas para stats y logros */

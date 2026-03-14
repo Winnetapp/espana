@@ -127,35 +127,79 @@ if (document.getElementById('partidos-container')) {
     if (container) container.innerHTML = `
       <div class="partidos-loading"><div class="partidos-spinner"></div>Cargando partidos...</div>`;
 
-    if (tabActual === 'historial')  { cargarHistorial();  return; }
-    if (tabActual === 'favoritos')  { cargarFavoritos();  return; }
+    if (tabActual === 'historial') { cargarHistorial(); return; }
+    if (tabActual === 'favoritos') { cargarFavoritos(); return; }
 
-    const query = tabActual === 'envivo'
-      ? db.collection('partidos').where('estado', 'in', ESTADOS_VIVO)
-      : db.collection('partidos').where('estado', '==', 'NS').orderBy('timestamp');
-
-    unsubscribe = query.onSnapshot(snap => {
-      let lista = snap.docs.map(d => ({ ...d.data(), partidoId: d.id }));
-      if (tabActual === 'envivo') {
+    if (tabActual === 'envivo') {
+      const query = db.collection('partidos').where('estado', 'in', ESTADOS_VIVO);
+      unsubscribe = query.onSnapshot(snap => {
+        let lista = snap.docs.map(d => ({ ...d.data(), partidoId: d.id }));
         lista = lista.filter(p => ESTADOS_VIVO.includes(p.estado));
         _listaVivo = lista;
         iniciarTicker();
-      }
-      listaPartidos = lista;
-      renderizarPartidos(listaPartidos);
-    }, err => {
-      const fallback = tabActual === 'envivo'
-        ? db.collection('partidos').where('estado', 'in', ESTADOS_VIVO)
-        : db.collection('partidos').where('estado', '==', 'NS');
-      fallback.onSnapshot(snap => {
-        let lista = snap.docs.map(d => ({ ...d.data(), partidoId: d.id }));
-        if (tabActual === 'envivo') {
-          lista = lista.filter(p => ESTADOS_VIVO.includes(p.estado));
-          _listaVivo = lista; iniciarTicker();
-        }
         listaPartidos = lista;
         renderizarPartidos(listaPartidos);
+      }, () => {
+        db.collection('partidos').where('estado', 'in', ESTADOS_VIVO).get().then(snap => {
+          let lista = snap.docs.map(d => ({ ...d.data(), partidoId: d.id }));
+          lista = lista.filter(p => ESTADOS_VIVO.includes(p.estado));
+          _listaVivo = lista; iniciarTicker();
+          listaPartidos = lista;
+          renderizarPartidos(listaPartidos);
+        });
       });
+      return;
+    }
+
+    // Tab PRÓXIMOS — carga NS + detecta partidos atascados en vivo con fecha antigua
+    const hace7dias = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+    Promise.all([
+      db.collection('partidos').where('estado', '==', 'NS').orderBy('timestamp').get(),
+      db.collection('partidos').where('estado', 'in', ESTADOS_VIVO).get(),
+    ]).then(([snapNS, snapVivo]) => {
+      const ahora  = new Date();
+      const lista  = [];
+      const vistos = new Set();
+
+      // Partidos NS normales
+      snapNS.docs.forEach(d => {
+        if (!vistos.has(d.id)) {
+          vistos.add(d.id);
+          lista.push({ ...d.data(), partidoId: d.id });
+        }
+      });
+
+      // Partidos atascados: en ESTADOS_VIVO pero con fecha de hace más de 3h
+      snapVivo.docs.forEach(d => {
+        if (vistos.has(d.id)) return;
+        const data  = d.data();
+        const fecha = data.timestamp?.toDate?.() || (data.fecha ? new Date(data.fecha) : null);
+        if (fecha && (ahora - fecha) > 3 * 60 * 60 * 1000) {
+          vistos.add(d.id);
+          lista.push({ ...data, partidoId: d.id, _atascado: true });
+        }
+      });
+
+      listaPartidos = lista;
+
+      // Suscribir en tiempo real solo a NS para actualizaciones futuras
+      unsubscribe = db.collection('partidos').where('estado', '==', 'NS').orderBy('timestamp')
+        .onSnapshot(snap2 => {
+          const listaNS    = snap2.docs.map(d => ({ ...d.data(), partidoId: d.id }));
+          const atascados  = listaPartidos.filter(p => p._atascado);
+          listaPartidos    = [...listaNS, ...atascados];
+          renderizarPartidos(listaPartidos);
+        });
+
+      renderizarPartidos(lista);
+    }).catch(() => {
+      // Fallback: solo NS
+      unsubscribe = db.collection('partidos').where('estado', '==', 'NS').orderBy('timestamp')
+        .onSnapshot(snap => {
+          listaPartidos = snap.docs.map(d => ({ ...d.data(), partidoId: d.id }));
+          renderizarPartidos(listaPartidos);
+        });
     });
   }
 
@@ -405,7 +449,11 @@ if (document.getElementById('partidos-container')) {
     return oD.map(key=>{
       const {etiq,partidos:psDia}=gD[key];
       const gL={},oL=[];
-      psDia.forEach(p=>{const l=p.liga||'Otras ligas';if(!gL[l]){gL[l]=[];oL.push(l);}gL[l].push(p);});
+      psDia.forEach(p=>{const l=p.liga||'Otras ligas';if(!gL[l]){gL[l]=[];}gL[l].push(p);});
+      // Respetar orden guardado por el usuario
+      const ordenGuardado = window.getOrdenLigas ? window.getOrdenLigas() : [];
+      ordenGuardado.forEach(l => { if (gL[l]) oL.push(l); });
+      Object.keys(gL).forEach(l => { if (!oL.includes(l)) oL.push(l); });
       return `
         <div class="seccion-fecha">
           <div class="seccion-fecha-header"><span class="seccion-fecha-titulo">${etiq}</span></div>
@@ -565,6 +613,111 @@ if (document.getElementById('partidos-container')) {
 
   suscribirPartidos();
 }
+
+/* ══════════════════════════════════════════════════════
+   ORDENAR LIGAS
+══════════════════════════════════════════════════════ */
+(function () {
+  const LIGAS_DEFAULT = [
+    'Premier League', 'La Liga', 'Bundesliga', 'Serie A', 'Ligue 1',
+    'Champions League', 'Europa League', 'Championship', 'Eredivisie', 'Primeira Liga',
+  ];
+  const KV_KEY = 'winnet_orden_ligas';
+
+  function getOrden() {
+    try {
+      const saved = localStorage.getItem(KV_KEY);
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return [...LIGAS_DEFAULT];
+  }
+
+  function setOrden(orden) {
+    try { localStorage.setItem(KV_KEY, JSON.stringify(orden)); } catch {}
+  }
+
+  window.getOrdenLigas = getOrden;
+
+  const btnAbrir   = document.getElementById('btn-ordenar-ligas');
+  const overlay    = document.getElementById('ordenar-overlay');
+  const modal      = document.getElementById('ordenar-modal');
+  const lista      = document.getElementById('ordenar-lista');
+  const btnGuardar = document.getElementById('ordenar-guardar');
+  const btnReset   = document.getElementById('ordenar-reset');
+
+  if (!btnAbrir) return;
+
+  function abrirModal() {
+    const orden = getOrden();
+    lista.innerHTML = orden.map((liga, i) => `
+      <li class="ordenar-item" draggable="true" data-liga="${liga}">
+        <span class="ordenar-item-handle"><i class="fas fa-grip-vertical"></i></span>
+        <span class="ordenar-item-nombre">${liga}</span>
+        <span class="ordenar-item-num">${i + 1}</span>
+      </li>`).join('');
+
+    let dragged = null;
+    lista.querySelectorAll('.ordenar-item').forEach(item => {
+      item.addEventListener('dragstart', () => {
+        dragged = item;
+        setTimeout(() => item.classList.add('dragging'), 0);
+      });
+      item.addEventListener('dragend', () => {
+        item.classList.remove('dragging');
+        lista.querySelectorAll('.ordenar-item').forEach(i => i.classList.remove('drag-over'));
+        lista.querySelectorAll('.ordenar-item').forEach((el, idx) => {
+          el.querySelector('.ordenar-item-num').textContent = idx + 1;
+        });
+      });
+      item.addEventListener('dragover', e => {
+        e.preventDefault();
+        lista.querySelectorAll('.ordenar-item').forEach(i => i.classList.remove('drag-over'));
+        if (item !== dragged) item.classList.add('drag-over');
+      });
+      item.addEventListener('drop', e => {
+        e.preventDefault();
+        if (item !== dragged) {
+          const items = [...lista.querySelectorAll('.ordenar-item')];
+          const dragIdx = items.indexOf(dragged);
+          const dropIdx = items.indexOf(item);
+          if (dragIdx < dropIdx) item.after(dragged);
+          else item.before(dragged);
+        }
+      });
+    });
+
+    overlay.style.display = 'block';
+    modal.style.display   = 'block';
+    requestAnimationFrame(() => {
+      modal.style.transform  = 'translateY(100%)';
+      modal.style.transition = 'transform 0.32s cubic-bezier(.4,0,.2,1)';
+      requestAnimationFrame(() => { modal.style.transform = 'translateY(0)'; });
+    });
+  }
+
+  function cerrarModal() {
+    modal.style.transform = 'translateY(100%)';
+    setTimeout(() => {
+      overlay.style.display = 'none';
+      modal.style.display   = 'none';
+    }, 320);
+  }
+
+  btnAbrir.addEventListener('click', abrirModal);
+  overlay.addEventListener('click', cerrarModal);
+
+  btnGuardar.addEventListener('click', () => {
+    const nuevoOrden = [...lista.querySelectorAll('.ordenar-item')].map(el => el.dataset.liga);
+    setOrden(nuevoOrden);
+    cerrarModal();
+    renderizarPartidos(listaPartidos);
+  });
+
+  btnReset.addEventListener('click', () => {
+    setOrden([...LIGAS_DEFAULT]);
+    abrirModal();
+  });
+})();
 
 /* ── Service Worker ── */
 if ('serviceWorker' in navigator && !window.__swRegistered) {

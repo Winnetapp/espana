@@ -257,7 +257,7 @@ async function cargarPerfil(user) {
     const username   = _userData.username || user.email || 'Usuario';
     const email      = user.email || '';
     const esAdmin    = _userData.rol === 'admin';
-    const racha      = _userData.rachaActual || 0;
+    const racha = _userData.rachaDiasTotales || _userData.rachaActual || 0;
     const rachaFuego = _userData.rachaFuego  || false;
 
     const snapAp = await db.collection('apuestas')

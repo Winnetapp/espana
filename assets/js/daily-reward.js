@@ -87,30 +87,43 @@ window.DailyReward = (function () {
     // Ya cobró hoy
     if (ultima === hoy) {
       return {
-        estado:     'ya-reclamado',
-        racha:      ud.rachaActual  || 0,
-        semana:     ud.semanaTotal  || 1,
-        rachaFuego: ud.rachaFuego   || false,
-        piezas:     ud.piezas       || 0,
-        rachaMax:   ud.rachaMaxima  || 0,
+        estado:          'ya-reclamado',
+        racha:           ud.rachaActual      || 0,
+        rachaDiasTotal:  ud.rachaDiasTotal   || 0,
+        semana:          ud.semanaTotal      || 1,
+        rachaFuego:      ud.rachaFuego       || false,
+        piezas:          ud.piezas           || 0,
+        rachaMax:        ud.rachaMaxima      || 0,
       };
     }
 
     // ── Estado actual ──
-    let racha      = ud.rachaActual  || 0;
-    let semana     = ud.semanaTotal  || 1;
-    let rachaMax   = ud.rachaMaxima  || 0;
-    let rachaFuego = ud.rachaFuego   || false;
-    let piezas     = ud.piezas       || 0;
+    let racha          = ud.rachaActual     || 0;
+    let rachaDiasTotal = ud.rachaDiasTotal  || 0; // ← días consecutivos reales
+    let semana         = ud.semanaTotal     || 1;
+    let rachaMax       = ud.rachaMaxima     || 0;
+    let rachaFuego     = ud.rachaFuego      || false;
+    let piezas         = ud.piezas          || 0;
 
     const sigueRacha = ultima === ayer;
 
     if (!sigueRacha) {
-      // Racha rota → reset
-      racha      = 1;
-      rachaFuego = false;
+      if (rachaFuego) {
+        // Tenía x2 activo → pierde el x2 pero mantiene la racha
+        rachaFuego = false;
+        racha      += 1;
+        rachaDiasTotal += 1;
+        // NO reseteamos semana ni racha
+      } else {
+        // Sin x2 → reset completo
+        racha          = 1;
+        rachaDiasTotal = 1;
+        rachaFuego     = false;
+        semana         = 1;
+      }
     } else {
-      racha += 1;
+      racha          += 1;
+      rachaDiasTotal += 1;
     }
 
     // ── Semana completada (día 7) ──
@@ -123,17 +136,18 @@ window.DailyReward = (function () {
       nuevaPieza       = true;
       piezas          += 1;
 
-      // ¿Completó 4 semanas seguidas? → bonus mes + activar racha de fuego
       if (semana % 4 === 0) {
         bonusMes   = true;
         rachaFuego = true;
       }
 
       semana += 1;
-      racha   = 0; // el próximo día arrancará como día 1
+      racha   = 0;
+      // rachaDiasTotal NO se resetea — sigue contando
     }
 
-    if (racha > rachaMax) rachaMax = racha;
+    // rachaMaxima ahora guarda el máximo de días consecutivos reales
+    if (rachaDiasTotal > rachaMax) rachaMax = rachaDiasTotal;
 
     // ── Calcular cantidad ──
     const diaReal    = semanaCompletada ? 7 : racha;
@@ -141,17 +155,16 @@ window.DailyReward = (function () {
 
     let cantidad = recompensaDia(diaReal, semanaReal);
 
-    // Multiplicador ×2 solo en días 1-6
     if (!semanaCompletada) {
       cantidad = aplicarMultiplicador(cantidad, rachaFuego);
     }
 
-    // Bonus mes completo (4 semanas seguidas)
     const bonusCantidad = bonusMes ? 10 : 0;
 
     // ── Guardar en Firestore ──
     const updates = {
       rachaActual:      racha,
+      rachaDiasTotal:   rachaDiasTotal,
       semanaTotal:      semana,
       rachaMaxima:      rachaMax,
       ultimaRecompensa: hoy,
@@ -162,18 +175,19 @@ window.DailyReward = (function () {
 
     await ref.update(updates);
 
-    // ── Actualizar saldo en la UI del header ──
     _actualizarSaldoUI(ud.saldo || 0, cantidad + bonusCantidad);
 
     return {
       estado:           'reclamado',
       racha:            diaReal,
+      rachaDiasTotal,
       semana:           semanaReal,
       cantidad,
       bonusMes,
       bonusCantidad,
       rachaMax,
       rachaFuego,
+      perdioFuego,        // ← nuevo
       semanaCompletada,
       nuevaPieza,
       piezas,
@@ -236,7 +250,7 @@ window.DailyReward = (function () {
   /* ─────────────────────────────────────────
      MODAL DÍAS 1-6
   ───────────────────────────────────────── */
-  function mostrarModal({ racha, semana, cantidad, rachaMax, rachaFuego, nuevaPieza, piezas, bonusMes, bonusCantidad }) {
+  function mostrarModal({ racha, rachaDiasTotal, semana, cantidad, rachaMax, rachaFuego, perdioFuego, nuevaPieza, piezas, bonusMes, bonusCantidad }) {
     if (document.getElementById('_dr-modal')) return;
 
     const info = DIA_INFO[Math.min(racha - 1, 6)];
@@ -266,6 +280,13 @@ window.DailyReward = (function () {
       <div style="text-align:center;margin-bottom:10px;">
         <span style="background:rgba(255,107,43,0.15);border:1px solid rgba(255,107,43,0.4);color:#ff6b2b;font-size:0.72rem;padding:3px 12px;border-radius:20px;letter-spacing:1px;font-weight:700;text-transform:uppercase;">
           🔥 RACHA DE FUEGO × 2
+        </span>
+      </div>` : '';
+    
+    const perdioFuegoTag = perdioFuego ? `
+      <div style="text-align:center;margin-bottom:10px;">
+        <span style="background:rgba(138,143,158,0.1);border:1px solid rgba(138,143,158,0.3);color:#8a8f9e;font-size:0.72rem;padding:3px 12px;border-radius:20px;letter-spacing:1px;font-weight:700;text-transform:uppercase;">
+          💨 Racha de fuego perdida · Racha mantenida
         </span>
       </div>` : '';
 
@@ -304,6 +325,7 @@ window.DailyReward = (function () {
   </div>
 
   ${fuegoTag}
+  ${perdioFuegoTag}
 
   <div style="text-align:center;margin-bottom:8px;">
     <span style="font-size:3.4rem;display:inline-block;animation:drBNC .6s cubic-bezier(.36,.07,.19,.97) .3s both;">${info.emoji}</span>
@@ -324,7 +346,7 @@ window.DailyReward = (function () {
   ${piezaTag}
 
   <div style="display:flex;gap:8px;margin-bottom:16px;">
-    ${[['🔥', racha + ' días', 'Racha'], ['🏆', rachaMax, 'Récord'], ['🧩', piezas + '/3', 'Piezas']].map(([ic, val, lbl]) => `
+    ${[['🔥', (rachaDiasTotal || racha) + ' días', 'Racha'], ['🏆', rachaMax, 'Récord'], ['🧩', piezas + '/3', 'Piezas']].map(([ic, val, lbl]) => `
       <div style="flex:1;background:#0e0f14;border:1px solid #1e2530;border-radius:10px;padding:10px 6px;text-align:center;">
         <span style="font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;font-weight:800;color:#e8edf5;display:block;">${ic} ${val}</span>
         <span style="font-size:0.6rem;color:#5a6580;text-transform:uppercase;letter-spacing:.4px;">${lbl}</span>
@@ -537,7 +559,7 @@ window.DailyReward = (function () {
   /* ─────────────────────────────────────────
      MODAL YA COBRADO HOY
   ───────────────────────────────────────── */
-  function mostrarYaCobrado({ racha, semana, rachaFuego, piezas }) {
+  function mostrarYaCobrado({ racha, rachaDiasTotal, semana, rachaFuego, piezas }) {
     if (document.getElementById('_dr-modal')) return;
 
     const proxDia    = racha >= 7 ? 1 : racha + 1;
@@ -554,7 +576,7 @@ window.DailyReward = (function () {
   <div style="font-size:2.8rem;margin-bottom:12px;">✅</div>
   <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.3rem;font-weight:900;text-transform:uppercase;letter-spacing:1px;color:#e8edf5;margin-bottom:6px;">Ya reclamaste hoy</div>
   <div style="color:#5a6580;font-size:0.82rem;margin-bottom:16px;line-height:1.6;">
-    Tu racha es <strong style="color:#f5c518;">${info.emoji} ${racha} días</strong>.
+    Tu racha es <strong style="color:#f5c518;">${info.emoji} ${rachaDiasTotal || racha} días</strong>.
     ${rachaFuego ? '<br><span style="color:#ff6b2b;">🔥 Racha de fuego × 2 activa</span>' : ''}
     <br>Vuelve mañana para seguir.
   </div>

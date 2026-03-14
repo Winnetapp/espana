@@ -184,6 +184,37 @@
       transition: background 0.2s, transform 0.2s;
     }
     .tips-nav-dot.active { background: #e63030; transform: scale(1.3); }
+
+    /* ══════════════════════════════════════════════
+       ORDENAR LIGAS
+    ══════════════════════════════════════════════ */
+    .ordenar-ligas-btn {
+      display: flex; align-items: center; gap: 6px;
+      margin: 8px 0 4px; padding: 7px 14px;
+      background: #1a1d26; border: 1px solid #252830;
+      border-radius: 20px; color: #8a8f9e;
+      font-family: 'Barlow', sans-serif; font-size: 0.78rem;
+      font-weight: 600; cursor: pointer;
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .ordenar-ligas-btn:hover { color: #e8ecf5; border-color: #3a3f52; }
+    .ordenar-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 14px; background: #0e0f14;
+      border: 1px solid #252830; border-radius: 10px;
+      cursor: grab; user-select: none;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .ordenar-item:active { cursor: grabbing; }
+    .ordenar-item.dragging { opacity: 0.5; border-color: #e63030; }
+    .ordenar-item.drag-over { background: rgba(230,48,48,0.08); border-color: rgba(230,48,48,0.4); }
+    .ordenar-item-handle { color: #3a3f52; font-size: 0.85rem; }
+    .ordenar-item-nombre {
+      font-family: 'Barlow Condensed', sans-serif; font-size: 0.9rem;
+      font-weight: 700; color: #c0c5d4; text-transform: uppercase;
+      letter-spacing: 0.5px; flex: 1;
+    }
+    .ordenar-item-num { font-size: 0.65rem; color: #555b6e; font-weight: 600; }
   </style>
 </head>
 <body>
@@ -274,6 +305,25 @@
         <button class="liga-btn" data-liga="Bundesliga">Bundesliga</button>
         <button class="liga-btn" data-liga="Serie A">Serie A</button>
         <button class="liga-btn" data-liga="Ligue 1">Ligue 1</button>
+      </div>
+
+      <!-- Botón ordenar ligas -->
+      <button class="ordenar-ligas-btn" id="btn-ordenar-ligas">
+        <i class="fas fa-sort"></i> Ordenar ligas
+      </button>
+
+      <!-- Modal ordenar ligas -->
+      <div id="ordenar-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:300;backdrop-filter:blur(4px);"></div>
+      <div id="ordenar-modal" style="display:none;position:fixed;bottom:40px;;left:0;right:0;background:#16181d;border-top:1px solid #252830;border-radius:20px 20px 0 0;padding:20px;z-index:301;max-height:80vh;overflow-y:auto;">
+        <div style="width:40px;height:4px;background:#2e3242;border-radius:2px;margin:0 auto 16px;"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+          <span style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:#fff;">Orden de ligas</span>
+          <button id="ordenar-reset" style="background:none;border:none;color:#8a8f9e;font-size:0.75rem;cursor:pointer;font-weight:600;">Restablecer</button>
+        </div>
+        <p style="font-size:0.75rem;color:#8a8f9e;margin-bottom:14px;">Arrastra para cambiar el orden en que aparecen las ligas</p>
+        <ul id="ordenar-lista" style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:8px;"></ul>
+        <button id="ordenar-guardar" style="width:100%;margin-top:20px;padding:13px;background:linear-gradient(135deg,#e63030,#c02020);color:#fff;border:none;border-radius:10px;font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:800;letter-spacing:1px;text-transform:uppercase;cursor:pointer;">Guardar orden</button>
+        <div style="height:20px;"></div>
       </div>
 
       <div id="partidos-container">
